@@ -1,0 +1,41 @@
+name: EAS Update
+
+# Publica el juego en Expo (EAS Update) cada vez que hay cambios en main.
+# Requiere el secret EXPO_TOKEN en Settings → Secrets and variables → Actions.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: eas-update
+  cancel-in-progress: true
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Verificar juego y niveles
+        run: npm run verify
+
+      - uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+
+      - name: Publicar actualización
+        env:
+          MSG: ${{ github.event.head_commit.message || 'Actualización manual' }}
+        run: npx eas update --branch main --message "$(echo "$MSG" | head -n1)" --non-interactive
