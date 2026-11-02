@@ -5,6 +5,13 @@ import {
   MIN_CAMERA_WORLD_X,
   TILE,
 } from './biomes';
+import {
+  isInLowGrav,
+  isPlatformSolid,
+  lavaSurfaceY,
+  updateMechanics,
+  windPush,
+} from './mechanics';
 import { buildWorldState, gridKey } from '../levels/levelBuilder';
 import type {
   Block,
@@ -182,6 +189,7 @@ function collectNearbySolids(world: WorldState, box: Rect, includeHidden = false
   }
 
   for (const pl of world.platforms) {
+    if (!isPlatformSolid(pl, world.frameCount)) continue;
     if (pl.x + pl.width >= box.x - TILE && pl.x <= box.x + box.width + TILE) {
       results.push({ x: pl.x, y: pl.y, width: pl.width, height: pl.height, platform: pl });
     }
@@ -771,6 +779,14 @@ export function stepWorld(
     }
   }
 
+  // Mecánica del mundo (viento, carámbanos, puentes frágiles, marea de lava)
+  updateMechanics(world, events, {
+    removeBlock: (b) => removeBlock(world, b),
+    damagePlayer: () => damagePlayer(world, events),
+    sparks: (x, y, color, count) => spawnSparks(world, x, y, color, count),
+  });
+  if (p.dead || world.status !== 'playing') return events;
+
   // Update Moving Platforms first so standing entities inherit delta
   let ridingPlatform: MovingPlatform | null = null;
   for (const pl of world.platforms) {
@@ -784,6 +800,7 @@ export function stepWorld(
 
     if (
       p.onGround &&
+      isPlatformSolid(pl, world.frameCount) &&
       p.x + p.width > pl.x + 2 &&
       p.x < pl.x + pl.width - 2 &&
       Math.abs(p.y + p.height - prevY) <= 6
@@ -1055,6 +1072,13 @@ export function stepWorld(
     if (Math.abs(p.vx) < 0.08) p.vx = 0;
   }
 
+  // Ráfagas de viento (Mundo 2): empujan más en el aire que en el suelo
+  const windAccel = windPush(world, p.onGround);
+  if (windAccel !== 0) {
+    const cap = maxSpeed + 1.6;
+    p.vx = Math.max(-cap, Math.min(cap, p.vx + windAccel));
+  }
+
   p.x += p.vx;
   const maxWorldX = world.totalCols * TILE - p.width;
   if (p.x < 0) {
@@ -1190,7 +1214,10 @@ export function stepWorld(
     gravity = 0.26;
   }
 
-  p.vy = Math.min(p.vy + gravity, 12.2);
+  // Zonas de gravedad baja (Mundo 6): saltos lentos y flotantes
+  const lowGrav = isInLowGrav(world, p.x + p.width / 2);
+  if (lowGrav) gravity *= 0.5;
+  p.vy = Math.min(p.vy + gravity, lowGrav ? 5.5 : 12.2);
 
   // SMW Cape Parachute Glide: holding A while falling billows the yellow cape!
   if (p.powerState === 3 && !p.onGround && input.jump && !p.capeFlying && p.vy > 1.85) {
@@ -1273,7 +1300,7 @@ export function stepWorld(
   const playerFootCol = Math.floor((p.x + p.width / 2) / TILE);
   if (
     p.y > LOGICAL_HEIGHT + 24 ||
-    (world.lavaCols.has(playerFootCol) && p.y + p.height >= GROUND_ROW * TILE + 12)
+    (world.lavaCols.has(playerFootCol) && p.y + p.height >= lavaSurfaceY(world, playerFootCol))
   ) {
     killPlayer(world, events);
     return events;
@@ -1306,7 +1333,8 @@ export function stepWorld(
     if (p.vy >= 0 && overlaps(p, sp) && prevY + p.height <= sp.y + 18) {
       sp.compressTimer = 14;
       p.y = sp.y - p.height;
-      p.vy = input.jump ? -15.4 : -12.2;
+      p.vy =
+        sp.kind === 'mushroom' ? (input.jump ? -16.6 : -13.6) : input.jump ? -15.4 : -12.2;
       p.onGround = false;
       p.stompCombo = 0;
       events.push({ type: 'sfx', id: 'spring' });

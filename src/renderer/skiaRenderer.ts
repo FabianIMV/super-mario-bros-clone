@@ -20,6 +20,7 @@ import {
   type BiomeDefinition,
 } from '../engine/biomes';
 import { gridKey } from '../levels/levelBuilder';
+import { lavaTideRise, platformGlow } from '../engine/mechanics';
 import type { Enemy, Player, WorldState } from '../engine/types';
 
 export class SkiaWorldRenderer {
@@ -132,11 +133,13 @@ export class SkiaWorldRenderer {
     const startCol = Math.max(0, Math.floor(camX / TILE) - 1);
     const endCol = Math.min(world.totalCols - 1, Math.ceil((camX + viewportWorldW) / TILE) + 1);
 
+    this.drawLowGravZones(canvas, world, camX, viewportWorldW);
     this.drawLavaPools(canvas, atlas, world, startCol, endCol);
     this.drawPipes(canvas, atlas, world, camX, viewportWorldW);
     this.drawMovingPlatforms(canvas, atlas, world, camX, viewportWorldW);
     this.drawSprings(canvas, atlas, world);
     this.drawVisibleBlocks(canvas, atlas, world, startCol, endCol);
+    this.drawIcicles(canvas, world, camX, viewportWorldW);
 
     // 9. Red Berries, Coins, SMW Dragon Coins & Active Powerups
     for (const br of world.berries) {
@@ -196,7 +199,10 @@ export class SkiaWorldRenderer {
 
     // 15. Particles & Floating Pixel Score Popups
     for (const pt of world.particles) {
-      if (pt.kind === 'coin_pop') {
+      if (pt.kind === 'wind') {
+        this.fillPaint.setColor(Skia.Color(pt.color));
+        canvas.drawRect(Skia.XYWHRect(pt.x, pt.y, 26, 2), this.fillPaint);
+      } else if (pt.kind === 'coin_pop') {
         this.blitSprite(canvas, atlas, 'coin_1', pt.x - 4, pt.y - 4, 22, 22, false);
       } else {
         this.fillPaint.setColor(Skia.Color(pt.color));
@@ -538,9 +544,19 @@ export class SkiaWorldRenderer {
   ): void {
     if (world.lavaCols.size === 0) return;
     const lavaKey = Math.floor(world.frameCount / 14) % 2 === 0 ? 'tile_lava_1' : 'tile_lava_2';
+    const rise = lavaTideRise(world);
     for (let col = startCol; col <= endCol; col++) {
       if (!world.lavaCols.has(col)) continue;
-      this.blitSprite(canvas, atlas, lavaKey, col * TILE, GROUND_ROW * TILE + 6, TILE, TILE, false);
+      const colRise = rise > 0 && !world.boss?.bridgeCols.includes(col) ? rise : 0;
+      if (colRise > 0) {
+        this.fillPaint.setColor(Skia.Color('#ea580c'));
+        const top = GROUND_ROW * TILE + 6 - colRise;
+        canvas.drawRect(
+          Skia.XYWHRect(col * TILE, top, TILE, (GROUND_ROW + 1) * TILE - top + 1),
+          this.fillPaint
+        );
+      }
+      this.blitSprite(canvas, atlas, lavaKey, col * TILE, GROUND_ROW * TILE + 6 - colRise, TILE, TILE, false);
       this.fillPaint.setColor(Skia.Color('#dc2626'));
       canvas.drawRect(
         Skia.XYWHRect(col * TILE, (GROUND_ROW + 1) * TILE, TILE, TILE * 2),
@@ -588,14 +604,40 @@ export class SkiaWorldRenderer {
     for (const pl of world.platforms) {
       if (pl.x + pl.width < camX - TILE || pl.x > camX + viewportW + TILE) continue;
       const tiles = Math.round(pl.width / TILE);
+      const glow = platformGlow(pl, world.frameCount);
+      if (pl.blink && glow === 0) {
+        // Apagada: solo un contorno punteado para saber dónde volverá
+        this.fillPaint.setColor(Skia.Color('rgba(190, 242, 100, 0.35)'));
+        for (let k = 0; k < tiles * 4; k += 2) {
+          canvas.drawRect(Skia.XYWHRect(pl.x + k * 8, pl.y, 6, 3), this.fillPaint);
+        }
+        continue;
+      }
       for (let t = 0; t < tiles; t++) {
         this.blitSprite(canvas, atlas, 'tile_bridge', pl.x + t * TILE, pl.y - 4, TILE, TILE, false);
+      }
+      if (pl.blink) {
+        // Luciérnagas sobre la plataforma
+        this.fillPaint.setColor(Skia.Color(glow < 1 ? 'rgba(217, 249, 157, 0.35)' : '#d9f99d'));
+        for (let k = 0; k < tiles * 2; k++) {
+          const fx = pl.x + 8 + k * 16;
+          const fy = pl.y - 10 + Math.sin(world.frameCount * 0.12 + k) * 3;
+          canvas.drawCircle(fx, fy, 2.5, this.fillPaint);
+        }
+        if (glow < 1) {
+          this.fillPaint.setColor(Skia.Color('rgba(9, 13, 22, 0.45)'));
+          canvas.drawRect(Skia.XYWHRect(pl.x, pl.y - 4, pl.width, TILE), this.fillPaint);
+        }
       }
     }
   }
 
   private drawSprings(canvas: SkCanvas, atlas: SkiaSpriteAtlas, world: WorldState): void {
     for (const sp of world.springs) {
+      if (sp.kind === 'mushroom') {
+        this.drawBounceMushroom(canvas, sp.x, sp.y, sp.width, sp.height, sp.compressTimer);
+        continue;
+      }
       const key = sp.compressTimer > 0 ? 'spring_comp' : 'spring_idle';
       this.blitSprite(canvas, atlas, key, sp.x - 3, sp.y - 4, TILE, TILE, false);
     }
@@ -652,6 +694,16 @@ export class SkiaWorldRenderer {
             spriteKey = `${prefix}_brick`;
         }
 
+        if (b.crumble) {
+          const shake = b.crumbleTimer ? Math.sin(world.frameCount * 2.1) * 2 : 0;
+          this.blitSprite(canvas, atlas, spriteKey, b.x + shake, b.y, TILE, TILE, false);
+          this.fillPaint.setColor(Skia.Color('rgba(40, 20, 10, 0.75)'));
+          canvas.drawRect(Skia.XYWHRect(b.x + 8 + shake, b.y + 6, 2, 10), this.fillPaint);
+          canvas.drawRect(Skia.XYWHRect(b.x + 10 + shake, b.y + 14, 8, 2), this.fillPaint);
+          canvas.drawRect(Skia.XYWHRect(b.x + 22 + shake, b.y + 4, 2, 8), this.fillPaint);
+          continue;
+        }
+
         this.blitSprite(canvas, atlas, spriteKey, b.x, b.y, TILE, TILE, false);
 
         // Extend deep ground 1 row lower so WORLD_VERTICAL_LIFT shows continuous earth to bottom of screen!
@@ -667,6 +719,71 @@ export class SkiaWorldRenderer {
             false
           );
         }
+      }
+    }
+  }
+
+  private drawBounceMushroom(
+    canvas: SkCanvas,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    compress: number
+  ): void {
+    const squash = compress > 0 ? 6 : 0;
+    // Tallo
+    this.fillPaint.setColor(Skia.Color('#fef3c7'));
+    canvas.drawRect(Skia.XYWHRect(x + 8, y + 12, w - 16, h - 12), this.fillPaint);
+    // Sombrero rojo con lunares
+    this.fillPaint.setColor(Skia.Color('#090d16'));
+    canvas.drawRect(Skia.XYWHRect(x - 5, y + 1 + squash, w + 10, 15 - squash), this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('#dc2626'));
+    canvas.drawRect(Skia.XYWHRect(x - 3, y + 3 + squash, w + 6, 11 - squash), this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(x + 3, y - 1 + squash, w - 6, 5), this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('#ffffff'));
+    canvas.drawCircle(x + 4, y + 7 + squash, 2.5, this.fillPaint);
+    canvas.drawCircle(x + w / 2, y + 3 + squash, 3, this.fillPaint);
+    canvas.drawCircle(x + w - 4, y + 7 + squash, 2.5, this.fillPaint);
+  }
+
+  private drawIcicles(canvas: SkCanvas, world: WorldState, camX: number, viewportW: number): void {
+    if (!world.icicles || world.icicles.length === 0) return;
+    for (const ic of world.icicles) {
+      if (ic.state === 'gone') continue;
+      if (ic.x + ic.width < camX - 20 || ic.x > camX + viewportW + 20) continue;
+      const jitter = ic.state === 'shake' ? Math.sin(world.frameCount * 2.7) * 1.5 : 0;
+      const x = ic.x + jitter;
+      // Carámbano escalonado en pixel-art (ancho → punta) con contorno oscuro
+      const steps = [16, 12, 8, 4];
+      this.fillPaint.setColor(Skia.Color('#0c4a6e'));
+      for (let i = 0; i < steps.length; i++) {
+        const sw = steps[i] + 4;
+        canvas.drawRect(Skia.XYWHRect(x + (16 - sw) / 2, ic.y + i * 6 - 1, sw, 8), this.fillPaint);
+      }
+      for (let i = 0; i < steps.length; i++) {
+        const sw = steps[i];
+        this.fillPaint.setColor(Skia.Color(i % 2 === 0 ? '#e0f2fe' : '#7dd3fc'));
+        canvas.drawRect(Skia.XYWHRect(x + (16 - sw) / 2, ic.y + i * 6, sw, 6), this.fillPaint);
+      }
+      this.fillPaint.setColor(Skia.Color('#ffffff'));
+      canvas.drawRect(Skia.XYWHRect(x + 3, ic.y + 1, 2, 10), this.fillPaint);
+    }
+  }
+
+  private drawLowGravZones(canvas: SkCanvas, world: WorldState, camX: number, viewportW: number): void {
+    if (!world.lowGravZones || world.lowGravZones.length === 0) return;
+    for (const z of world.lowGravZones) {
+      if (z.x1 < camX || z.x0 > camX + viewportW) continue;
+      this.fillPaint.setColor(Skia.Color('rgba(167, 139, 250, 0.13)'));
+      canvas.drawRect(Skia.XYWHRect(z.x0, 0, z.x1 - z.x0, GROUND_ROW * TILE + 40), this.fillPaint);
+      // Burbujas que suben lentamente
+      this.fillPaint.setColor(Skia.Color('rgba(221, 214, 254, 0.55)'));
+      const width = z.x1 - z.x0;
+      for (let i = 0; i < Math.ceil(width / 40); i++) {
+        const bx = z.x0 + ((i * 53) % width);
+        const by = GROUND_ROW * TILE - ((world.frameCount * 0.6 + i * 47) % (GROUND_ROW * TILE));
+        canvas.drawCircle(bx, by, 2 + (i % 3), this.fillPaint);
       }
     }
   }

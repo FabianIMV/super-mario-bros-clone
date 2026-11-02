@@ -125,6 +125,9 @@ export interface Block {
   bounceY: number;
   bounceVel: number;
   spinTimer: number;
+  /** Puente que se derrumba (Mundo 5): se activa al pisarlo. */
+  crumble?: boolean;
+  crumbleTimer?: number;
 }
 
 export interface Pipe {
@@ -148,6 +151,8 @@ export interface MovingPlatform {
   phase: number;
   vx: number;
   vy: number;
+  /** Plataforma de luciérnagas: visible/sólida `on` frames de cada `period`. */
+  blink?: { period: number; on: number; offset: number };
 }
 
 export interface Spring {
@@ -156,6 +161,52 @@ export interface Spring {
   width: number;
   height: number;
   compressTimer: number;
+  /** 'mushroom' = hongo trampolín del Mundo 1 (rebota más alto). */
+  kind?: 'spring' | 'mushroom';
+}
+
+// ============================================================================
+// MECÁNICAS POR MUNDO (Fase 1)
+// ============================================================================
+export type StageMechanic =
+  | 'none'
+  | 'bounce' // Hongos trampolín
+  | 'wind' // Ráfagas de viento
+  | 'firefly' // Plataformas de luciérnagas que se apagan
+  | 'icicles' // Carámbanos que caen
+  | 'crumble' // Puentes que se derrumban al pisarlos
+  | 'lowgrav' // Zonas de gravedad baja
+  | 'lava_tide'; // Marea de lava en los castillos
+
+export type WindPhase = 'calm' | 'warn' | 'gust';
+
+export interface WindState {
+  phase: WindPhase;
+  timer: number;
+  dir: 1 | -1;
+  cycle: number;
+}
+
+export interface Icicle {
+  id: number;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  homeY: number;
+  state: 'hang' | 'shake' | 'fall' | 'gone';
+  timer: number;
+  vy: number;
+}
+
+export interface LowGravZone {
+  x0: number;
+  x1: number;
+}
+
+export interface CrumbledBlock {
+  block: Block;
+  respawnTimer: number;
 }
 
 export interface Checkpoint {
@@ -325,7 +376,7 @@ export interface Particle {
   color: string;
   life: number;
   maxLife: number;
-  kind: 'debris' | 'dust' | 'spark' | 'coin_pop' | 'lava';
+  kind: 'debris' | 'dust' | 'spark' | 'coin_pop' | 'lava' | 'wind';
 }
 
 export interface FloatingText {
@@ -497,4 +548,11 @@ export interface WorldState {
   prevSpinHeld: boolean;
   doubleJumpAssist: boolean;
   nextEntityId: number;
+  // Mecánica del mundo (opcionales: los mundos sin mecánica no las usan)
+  mechanic?: StageMechanic;
+  wind?: WindState | null;
+  icicles?: Icicle[];
+  lowGravZones?: LowGravZone[];
+  crumbled?: CrumbledBlock[];
+  lavaTide?: boolean;
 }
