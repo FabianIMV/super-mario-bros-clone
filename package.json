@@ -36,7 +36,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "verify": "tsc --ignoreConfig --target ES2022 --module commonjs --esModuleInterop --skipLibCheck --types node --outDir /tmp/spb-verify scripts/verify-game.ts && node /tmp/spb-verify/scripts/verify-game.js"
+    "verify": "tsc --ignoreConfig --target ES2022 --module commonjs --esModuleInterop --skipLibCheck --types node --outDir /tmp/spb-verify scripts/verify-game.ts scripts/level-diversity.ts && node /tmp/spb-verify/scripts/verify-game.js && node /tmp/spb-verify/scripts/level-diversity.js"
   },
   "private": true
 }
