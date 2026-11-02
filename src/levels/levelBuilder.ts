@@ -29,6 +29,7 @@ import type {
 } from '../engine/types';
 import { buildSmwWorldState } from './smwLevelBuilder';
 import { applyStageMechanic } from '../engine/mechanics';
+import { applyStageObjective } from '../engine/objectives';
 
 const STAGE_TITLES: string[] = [
   // World 1
@@ -992,7 +993,7 @@ export function buildWorldState(
   partition: GamePartition = 'classic'
 ): WorldState {
   if (partition === 'smw') {
-    return applyStageMechanic(buildSmwWorldState(levelIndex, carryState));
+    return applyStageObjective(applyStageMechanic(buildSmwWorldState(levelIndex, carryState)));
   }
   const clampedIdx = Math.max(0, Math.min(levelIndex, 23));
   const worldNum = Math.floor(clampedIdx / STAGES_PER_WORLD) + 1;
@@ -1151,7 +1152,7 @@ export function buildWorldState(
   // Start camera with generous left safe zone so Plomero NEVER sits behind the left D-Pad!
   const startCameraX = Math.max(MIN_CAMERA_WORLD_X, player.x - 304);
 
-  return applyStageMechanic({
+  return applyStageObjective(applyStageMechanic({
     partition: 'classic',
     totalStagesInPartition: TOTAL_LEVELS,
     status: 'playing',
@@ -1200,5 +1201,5 @@ export function buildWorldState(
     prevSpinHeld: false,
     doubleJumpAssist: carryState?.doubleJumpAssist ?? false,
     nextEntityId: ctx.nextId,
-  });
+  }));
 }

@@ -19,6 +19,9 @@ export interface HudSnapshot {
   dragonCoins: number;
   bossHp: number | null;
   bossMaxHp: number | null;
+  /** Objetivo del nivel ("💎 2/5", "⏱ CONTRARRELOJ"...) o null si es llegar a la meta. */
+  objective?: string | null;
+  timeAttack?: boolean;
 }
 
 interface Props {
@@ -108,7 +111,7 @@ export const HudOverlay: React.FC<Props> = ({ hud, pixelFontLoaded, onPausePress
             style={[
               styles.statValue,
               { fontFamily },
-              hud.timeLeft <= 60 && { color: '#ef4444' },
+              hud.timeLeft <= (hud.timeAttack ? 20 : 60) && { color: '#ef4444' },
             ]}
           >
             {String(hud.timeLeft).padStart(3, '0')}
@@ -155,6 +158,14 @@ export const HudOverlay: React.FC<Props> = ({ hud, pixelFontLoaded, onPausePress
           <View style={[styles.powerPill, { backgroundColor: powerBadge.bg }]}>
             <Text style={[styles.powerPillText, { fontFamily, color: powerBadge.text }]}>
               {powerBadge.label}
+            </Text>
+          </View>
+        )}
+
+        {hud.objective && (
+          <View style={[styles.powerPill, { backgroundColor: '#581c87' }]}>
+            <Text style={[styles.powerPillText, { fontFamily, color: '#f5d0fe' }]}>
+              {hud.objective}
             </Text>
           </View>
         )}
