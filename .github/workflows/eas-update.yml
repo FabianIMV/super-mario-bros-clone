@@ -36,4 +36,6 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Publicar actualización
-        run: npx eas update --branch main --message "${{ github.event.head_commit.message || 'Actualización manual' }}" --non-interactive
+        env:
+          MSG: ${{ github.event.head_commit.message || 'Actualización manual' }}
+        run: npx eas update --branch main --message "$(echo "$MSG" | head -n1)" --non-interactive
