@@ -1,0 +1,399 @@
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import type { GameSettings, WorldStatus } from '../engine/types';
+
+interface PauseProps {
+  visible: boolean;
+  mode: 'pause' | 'settings';
+  settings: GameSettings;
+  pixelFontLoaded: boolean;
+  onUpdateSettings: (patch: Partial<GameSettings>) => void;
+  onResume: () => void;
+  onRestartStage: () => void;
+  onOpenWorldSelect: () => void;
+  onExitToTitle: () => void;
+}
+
+export const PauseModal: React.FC<PauseProps> = ({
+  visible,
+  mode,
+  settings,
+  pixelFontLoaded,
+  onUpdateSettings,
+  onResume,
+  onRestartStage,
+  onOpenWorldSelect,
+  onExitToTitle,
+}) => {
+  const insets = useSafeAreaInsets();
+  const fontFamily = pixelFontLoaded ? 'PressStart2P_400Regular' : undefined;
+
+  if (!visible) return null;
+
+  const toggleItems: Array<{ key: keyof GameSettings; label: string }> = [
+    { key: 'soundEnabled', label: 'EFECTOS SFX' },
+    { key: 'musicEnabled', label: 'MÚSICA 8-BIT' },
+    { key: 'hapticsEnabled', label: 'TAPTIC IPHONE' },
+    { key: 'crtScanlines', label: 'FILTRO CRT' },
+    { key: 'doubleJumpAssist', label: 'BOTAS 2X SALTO' },
+  ];
+
+  return (
+    <View
+      style={[
+        styles.backdrop,
+        {
+          paddingLeft: Math.max(insets.left, 18),
+          paddingRight: Math.max(insets.right, 18),
+        },
+      ]}
+    >
+      <View style={styles.card}>
+        <Text style={[styles.title, { fontFamily }]}>
+          {mode === 'pause' ? 'PAUSA DE JUEGO' : 'AJUSTES ARCADE'}
+        </Text>
+
+        <View style={styles.togglesGrid}>
+          {toggleItems.map((item) => {
+            const active = Boolean(settings[item.key]);
+            return (
+              <Pressable
+                key={item.key}
+                onPress={() => onUpdateSettings({ [item.key]: !active })}
+                style={[styles.toggleChip, active && styles.toggleChipActive]}
+              >
+                <Text style={[styles.toggleLabel, { fontFamily }]}>{item.label}</Text>
+                <Text
+                  style={[
+                    styles.toggleState,
+                    { fontFamily, color: active ? '#4ade80' : '#94a3b8' },
+                  ]}
+                >
+                  {active ? 'ON' : 'OFF'}
+                </Text>
+              </Pressable>
+            );
+          })}
+
+          <Pressable
+            onPress={() => {
+              const nextScale =
+                settings.controlScale < 0.99 ? 1.0 : settings.controlScale < 1.12 ? 1.15 : 0.88;
+              onUpdateSettings({ controlScale: nextScale });
+            }}
+            style={styles.toggleChip}
+          >
+            <Text style={[styles.toggleLabel, { fontFamily }]}>TAMAÑO MANDOS</Text>
+            <Text style={[styles.toggleState, { fontFamily, color: '#fde047' }]}>
+              {Math.round(settings.controlScale * 100)}%
+            </Text>
+          </Pressable>
+        </View>
+
+        <View style={styles.actionsRow}>
+          <Pressable
+            onPress={onResume}
+            style={({ pressed }) => [styles.btnGold, pressed && styles.pressed]}
+          >
+            <Text style={[styles.btnGoldText, { fontFamily }]}>
+              {mode === 'pause' ? '▶ REANUDAR' : '✓ LISTO'}
+            </Text>
+          </Pressable>
+
+          {mode === 'pause' && (
+            <>
+              <Pressable
+                onPress={onRestartStage}
+                style={({ pressed }) => [styles.btnSlate, pressed && styles.pressed]}
+              >
+                <Text style={[styles.btnLightText, { fontFamily }]}>REINICIAR</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={onOpenWorldSelect}
+                style={({ pressed }) => [styles.btnSlate, pressed && styles.pressed]}
+              >
+                <Text style={[styles.btnLightText, { fontFamily }]}>MUNDOS</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={onExitToTitle}
+                style={({ pressed }) => [styles.btnCrimson, pressed && styles.pressed]}
+              >
+                <Text style={[styles.btnLightText, { fontFamily }]}>TÍTULO</Text>
+              </Pressable>
+            </>
+          )}
+        </View>
+      </View>
+    </View>
+  );
+};
+
+interface StatusBannerProps {
+  status: WorldStatus;
+  worldLabel: string;
+  stageTitle: string;
+  lives: number;
+  score: number;
+  highScore: number;
+  pixelFontLoaded: boolean;
+  onRetry: () => void;
+  onExitToTitle: () => void;
+}
+
+export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
+  status,
+  worldLabel,
+  stageTitle,
+  lives,
+  score,
+  highScore,
+  pixelFontLoaded,
+  onRetry,
+  onExitToTitle,
+}) => {
+  const fontFamily = pixelFontLoaded ? 'PressStart2P_400Regular' : undefined;
+
+  if (status === 'stage_intro') {
+    return (
+      <View style={styles.introOverlay}>
+        <Text style={[styles.introWorld, { fontFamily }]}>MUNDO {worldLabel}</Text>
+        <Text style={styles.introSubtitle}>{stageTitle.toUpperCase()}</Text>
+        <View style={styles.introLivesRow}>
+          <View style={styles.heroBadge}>
+            <Text style={[styles.heroBadgeLetter, { fontFamily }]}>P</Text>
+          </View>
+          <Text style={[styles.introLivesText, { fontFamily }]}>×  {lives}</Text>
+        </View>
+      </View>
+    );
+  }
+
+  if (status === 'gameover' || status === 'victory') {
+    const isWin = status === 'victory';
+    return (
+      <View style={styles.backdrop}>
+        <View style={[styles.card, { borderColor: isWin ? '#4ade80' : '#ef4444' }]}>
+          <Text
+            style={[
+              styles.title,
+              { fontFamily, color: isWin ? '#4ade80' : '#f87171', fontSize: 15 },
+            ]}
+          >
+            {isWin ? '¡CAMPEÓN DE LOS 6 REINOS!' : 'FIN DE LA PARTIDA'}
+          </Text>
+
+          <Text style={styles.summaryText}>
+            {isWin
+              ? '¡Derrotaste al Rey Koopa en la Fortaleza Final y liberaste los 24 niveles!'
+              : 'Has agotado tus vidas en esta incursión.'}
+          </Text>
+
+          <View style={styles.scoreBoard}>
+            <Text style={[styles.scoreLine, { fontFamily }]}>
+              PUNTOS {String(score).padStart(6, '0')}
+            </Text>
+            <Text style={[styles.scoreLineGold, { fontFamily }]}>
+              RÉCORD {String(Math.max(score, highScore)).padStart(6, '0')}
+            </Text>
+          </View>
+
+          <View style={styles.actionsRow}>
+            <Pressable
+              onPress={onRetry}
+              style={({ pressed }) => [styles.btnGold, pressed && styles.pressed]}
+            >
+              <Text style={[styles.btnGoldText, { fontFamily }]}>
+                {isWin ? '▶ NUEVA GIRA' : '▶ REINTENTAR'}
+              </Text>
+            </Pressable>
+            <Pressable
+              onPress={onExitToTitle}
+              style={({ pressed }) => [styles.btnSlate, pressed && styles.pressed]}
+            >
+              <Text style={[styles.btnLightText, { fontFamily }]}>MENÚ TÍTULO</Text>
+            </Pressable>
+          </View>
+        </View>
+      </View>
+    );
+  }
+
+  return null;
+};
+
+const styles = StyleSheet.create({
+  backdrop: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: 'rgba(6, 10, 22, 0.8)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 60,
+  },
+  card: {
+    width: '100%',
+    maxWidth: 560,
+    backgroundColor: '#0f172a',
+    borderWidth: 3,
+    borderColor: '#facc15',
+    borderRadius: 14,
+    padding: 16,
+    alignItems: 'center',
+  },
+  title: {
+    color: '#fde047',
+    fontSize: 13,
+    fontWeight: '900',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
+  togglesGrid: {
+    width: '100%',
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'space-between',
+    gap: 8,
+    marginBottom: 14,
+  },
+  toggleChip: {
+    width: '48.5%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#1e293b',
+    borderWidth: 2,
+    borderColor: '#334155',
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 9,
+  },
+  toggleChipActive: {
+    borderColor: '#38bdf8',
+    backgroundColor: '#172554',
+  },
+  toggleLabel: {
+    color: '#e2e8f0',
+    fontSize: 8,
+    fontWeight: '800',
+  },
+  toggleState: {
+    fontSize: 8,
+    fontWeight: '900',
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
+  },
+  btnGold: {
+    backgroundColor: '#facc15',
+    borderWidth: 2.5,
+    borderColor: '#fef9c3',
+    borderRadius: 9,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  btnGoldText: {
+    color: '#422006',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  btnSlate: {
+    backgroundColor: '#334155',
+    borderWidth: 2.5,
+    borderColor: '#94a3b8',
+    borderRadius: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  btnCrimson: {
+    backgroundColor: '#b91c1c',
+    borderWidth: 2.5,
+    borderColor: '#fca5a5',
+    borderRadius: 9,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+  },
+  btnLightText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  pressed: {
+    transform: [{ scale: 0.94 }],
+  },
+  introOverlay: {
+    ...StyleSheet.absoluteFill,
+    backgroundColor: '#060913',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 55,
+  },
+  introWorld: {
+    color: '#fde047',
+    fontSize: 18,
+    fontWeight: '900',
+  },
+  introSubtitle: {
+    color: '#94a3b8',
+    fontSize: 13,
+    fontWeight: '800',
+    letterSpacing: 1.5,
+    marginTop: 8,
+  },
+  introLivesRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginTop: 22,
+  },
+  heroBadge: {
+    width: 32,
+    height: 32,
+    borderRadius: 6,
+    backgroundColor: '#dc2626',
+    borderWidth: 2,
+    borderColor: '#ffffff',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroBadgeLetter: {
+    color: '#ffffff',
+    fontSize: 13,
+    fontWeight: '900',
+  },
+  introLivesText: {
+    color: '#ffffff',
+    fontSize: 15,
+    fontWeight: '900',
+  },
+  summaryText: {
+    color: '#cbd5e1',
+    fontSize: 13,
+    fontWeight: '600',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  scoreBoard: {
+    backgroundColor: '#1e293b',
+    borderRadius: 8,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
+    marginBottom: 14,
+    gap: 6,
+    alignItems: 'center',
+  },
+  scoreLine: {
+    color: '#f8fafc',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  scoreLineGold: {
+    color: '#fde047',
+    fontSize: 10,
+    fontWeight: '900',
+  },
+});
