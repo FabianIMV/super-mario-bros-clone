@@ -98,7 +98,8 @@ export type BlockType =
   | 'hidden'
   | 'empty'
   | 'hard'
-  | 'bridge';
+  | 'bridge'
+  | 'lock'; // Puerta de bóveda: se abre con la llave (Fase 3)
 
 export type BlockContent =
   | 'coin'
@@ -215,7 +216,7 @@ export type StageObjective =
 
 export interface Pickup {
   id: number;
-  kind: 'gem' | 'clock';
+  kind: 'gem' | 'clock' | 'key' | 'treasure' | 'portal';
   x: number;
   y: number;
   width: number;
@@ -588,4 +589,9 @@ export interface WorldState {
   gemsCollected?: number;
   chase?: ChaseWall | null;
   goalBlockedTimer?: number;
+  // Secretos (Fase 3)
+  hasKey?: boolean;
+  vaultOpened?: boolean;
+  /** Si existe, la salida lleva a este nivel en vez del siguiente (portal secreto). */
+  warpTo?: number | null;
 }

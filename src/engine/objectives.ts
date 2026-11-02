@@ -137,7 +137,7 @@ function makePickup(world: WorldState, kind: Pickup['kind'], col: number, row: n
 export function applyStageObjective(world: WorldState): WorldState {
   const objective = getStageObjective(world.levelIndex, world.partition);
   world.objective = objective;
-  world.pickups = [];
+  world.pickups = world.pickups ?? [];
   world.gemsNeeded = 0;
   world.gemsCollected = 0;
   world.chase = null;
@@ -156,7 +156,7 @@ export function applyStageObjective(world: WorldState): WorldState {
         }
         world.pickups.push(gem);
       }
-      world.gemsNeeded = world.pickups.length;
+      world.gemsNeeded = world.pickups.filter((pk) => pk.kind === 'gem').length;
       break;
     }
     case 'time_attack': {
@@ -234,7 +234,7 @@ export function updateObjectives(world: WorldState, events: GameEvent[], cb: Obj
   // --- Gemas y relojes ---
   if (world.pickups) {
     for (const pk of world.pickups) {
-      if (pk.collected || !hit(p, pk)) continue;
+      if (pk.collected || (pk.kind !== 'gem' && pk.kind !== 'clock') || !hit(p, pk)) continue;
       pk.collected = true;
       if (pk.kind === 'gem') {
         world.gemsCollected = (world.gemsCollected ?? 0) + 1;

@@ -13,6 +13,7 @@ import {
   windPush,
 } from './mechanics';
 import { enforceGoalLock, updateObjectives } from './objectives';
+import { updateSecrets } from './secrets';
 import { buildWorldState, gridKey } from '../levels/levelBuilder';
 import type {
   Block,
@@ -552,7 +553,8 @@ function advanceOrWinStage(world: WorldState, events: GameEvent[]): void {
   });
 
   if (world.levelIndex < world.totalStagesInPartition - 1) {
-    const nextIdx = world.levelIndex + 1;
+    // El portal secreto salta directo al castillo del mundo
+    const nextIdx = world.warpTo ?? world.levelIndex + 1;
     const carryPower = world.player.powerState;
     const carryYoshi = world.player.mountedYoshi;
     const nextWorld = buildWorldState(
@@ -654,7 +656,7 @@ export function stepWorld(
   if (world.status === 'flagpole') {
     const p = world.player;
     const fp = world.flagpole;
-    if (fp) {
+    if (fp && world.warpTo == null) {
       const groundY = GROUND_ROW * TILE - p.height;
       if (fp.flagY < 10.6 * TILE) {
         fp.flagY += 3.8;
@@ -798,6 +800,14 @@ export function stepWorld(
   };
   updateObjectives(world, events, objectiveCb);
   if (p.dead || world.status !== 'playing') return events;
+
+  // Llave, bóveda, tesoro y portal secreto
+  updateSecrets(world, events, {
+    removeBlock: (b) => removeBlock(world, b),
+    sparks: objectiveCb.sparks,
+    text: objectiveCb.text,
+  }, input.up || input.down);
+  if (world.status !== 'playing') return events;
 
   // Update Moving Platforms first so standing entities inherit delta
   let ridingPlatform: MovingPlatform | null = null;

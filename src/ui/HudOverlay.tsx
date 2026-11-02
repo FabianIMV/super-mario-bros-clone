@@ -22,6 +22,7 @@ export interface HudSnapshot {
   /** Objetivo del nivel ("💎 2/5", "⏱ CONTRARRELOJ"...) o null si es llegar a la meta. */
   objective?: string | null;
   timeAttack?: boolean;
+  keyHeld?: boolean;
 }
 
 interface Props {
@@ -167,6 +168,12 @@ export const HudOverlay: React.FC<Props> = ({ hud, pixelFontLoaded, onPausePress
             <Text style={[styles.powerPillText, { fontFamily, color: '#f5d0fe' }]}>
               {hud.objective}
             </Text>
+          </View>
+        )}
+
+        {hud.keyHeld && (
+          <View style={[styles.powerPill, { backgroundColor: '#a16207' }]}>
+            <Text style={[styles.powerPillText, { fontFamily, color: '#fef9c3' }]}>🔑 LLAVE</Text>
           </View>
         )}
 
