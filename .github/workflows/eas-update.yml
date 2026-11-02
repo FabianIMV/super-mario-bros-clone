@@ -38,4 +38,4 @@ jobs:
       - name: Publicar actualización
         env:
           MSG: ${{ github.event.head_commit.message || 'Actualización manual' }}
-        run: npx eas update --branch main --message "$(echo "$MSG" | head -n1)" --non-interactive
+        run: eas update --branch main --message "$(echo "$MSG" | head -n1)" --non-interactive
