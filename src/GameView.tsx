@@ -43,6 +43,7 @@ import {
   saveSettings,
 } from './storage/saveStorage';
 import { HudOverlay, type HudSnapshot } from './ui/HudOverlay';
+import { objectiveHudLabel } from './engine/objectives';
 import { PauseModal, StageStatusOverlay } from './ui/PauseModal';
 import { TitleScreen } from './ui/TitleScreen';
 import { WorldSelectModal } from './ui/WorldSelectModal';
@@ -332,7 +333,7 @@ export const GameView: React.FC = () => {
         const starActive = activeWorld.player.starTimer > 0;
         const pBucket = Math.floor(activeWorld.player.pMeter / 10);
         const yoshiFireReady = activeWorld.player.yoshiMouthItem === 'fire';
-        const hudKey = `${activeWorld.partition}|${activeWorld.status}|${activeWorld.score}|${activeWorld.coins}|${activeWorld.dragonCoinsCollected}|${activeWorld.worldLabel}|${activeWorld.timeLeft}|${activeWorld.lives}|${activeWorld.player.powerState}|${starActive}|${pBucket}|${activeWorld.player.mountedYoshi}|${yoshiFireReady}|${bossHp}`;
+        const hudKey = `${activeWorld.partition}|${activeWorld.status}|${activeWorld.score}|${activeWorld.coins}|${activeWorld.dragonCoinsCollected}|${activeWorld.worldLabel}|${activeWorld.timeLeft}|${activeWorld.lives}|${activeWorld.player.powerState}|${starActive}|${pBucket}|${activeWorld.player.mountedYoshi}|${yoshiFireReady}|${bossHp}|${activeWorld.gemsCollected ?? 0}|${activeWorld.objective ?? ''}`;
         if (hudKey !== lastHudKey) {
           lastHudKey = hudKey;
           setUiStatus(activeWorld.status);
@@ -352,6 +353,8 @@ export const GameView: React.FC = () => {
             dragonCoins: activeWorld.dragonCoinsCollected,
             bossHp,
             bossMaxHp,
+            objective: objectiveHudLabel(activeWorld),
+            timeAttack: activeWorld.objective === 'time_attack',
           });
         }
       }

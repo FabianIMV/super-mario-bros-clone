@@ -21,6 +21,7 @@ import {
 } from '../engine/biomes';
 import { gridKey } from '../levels/levelBuilder';
 import { lavaTideRise, platformGlow } from '../engine/mechanics';
+import { isGoalLocked } from '../engine/objectives';
 import type { Enemy, Player, WorldState } from '../engine/types';
 
 export class SkiaWorldRenderer {
@@ -172,6 +173,10 @@ export class SkiaWorldRenderer {
       }
     }
 
+    // 9b. Objetivo del nivel: gemas, relojes y candado de la meta
+    this.drawPickups(canvas, world, camX, viewportWorldW);
+    this.drawGoalLock(canvas, world);
+
     // 10. Unmounted Yoshis & Eggs!
     this.drawYoshis(canvas, atlas, world);
 
@@ -218,6 +223,9 @@ export class SkiaWorldRenderer {
         canvas.drawText(ft.text, ft.x, ft.y, this.fillPaint, pixelFont);
       }
     }
+
+    // 16. Sombra que persigue (por encima de todo el mundo)
+    this.drawChaseWall(canvas, world);
 
     canvas.restore(); // End camera transform
     canvas.restore(); // End world scale
@@ -720,6 +728,107 @@ export class SkiaWorldRenderer {
           );
         }
       }
+    }
+  }
+
+  private drawPickups(canvas: SkCanvas, world: WorldState, camX: number, viewportW: number): void {
+    if (!world.pickups || world.pickups.length === 0) return;
+    for (const pk of world.pickups) {
+      if (pk.collected) continue;
+      if (pk.x + pk.width < camX - 20 || pk.x > camX + viewportW + 20) continue;
+      const bob = Math.sin(world.frameCount * 0.09 + pk.phase) * 2.5;
+      const x = pk.x;
+      const y = pk.y + bob;
+      if (pk.kind === 'gem') {
+        // Gema facetada en pixel-art
+        const rows: Array<[number, number, string]> = [
+          [8, 4, '#f5d0fe'],
+          [16, 5, '#e879f9'],
+          [20, 5, '#d946ef'],
+          [14, 5, '#a21caf'],
+          [6, 5, '#701a75'],
+        ];
+        this.fillPaint.setColor(Skia.Color('#2e1065'));
+        let yy = y - 1;
+        for (const [w, h] of rows) {
+          canvas.drawRect(Skia.XYWHRect(x + (20 - w) / 2 - 1, yy, w + 2, h + 1), this.fillPaint);
+          yy += h;
+        }
+        yy = y;
+        for (const [w, h, c] of rows) {
+          this.fillPaint.setColor(Skia.Color(c));
+          canvas.drawRect(Skia.XYWHRect(x + (20 - w) / 2, yy, w, h), this.fillPaint);
+          yy += h;
+        }
+        if (Math.floor(world.frameCount / 12 + pk.phase) % 4 === 0) {
+          this.fillPaint.setColor(Skia.Color('#ffffff'));
+          canvas.drawRect(Skia.XYWHRect(x + 6, y + 5, 3, 3), this.fillPaint);
+        }
+      } else {
+        // Reloj de bolsillo
+        const cx = x + 10;
+        const cy = y + 13;
+        this.fillPaint.setColor(Skia.Color('#422006'));
+        canvas.drawCircle(cx, cy, 11, this.fillPaint);
+        canvas.drawRect(Skia.XYWHRect(cx - 3, cy - 15, 6, 5), this.fillPaint);
+        this.fillPaint.setColor(Skia.Color('#facc15'));
+        canvas.drawCircle(cx, cy, 9, this.fillPaint);
+        this.fillPaint.setColor(Skia.Color('#fefce8'));
+        canvas.drawCircle(cx, cy, 6.5, this.fillPaint);
+        this.fillPaint.setColor(Skia.Color('#1c1917'));
+        canvas.drawRect(Skia.XYWHRect(cx - 1, cy - 5, 2, 6), this.fillPaint);
+        canvas.drawRect(Skia.XYWHRect(cx - 1, cy - 1, 5, 2), this.fillPaint);
+      }
+    }
+  }
+
+  private drawGoalLock(canvas: SkCanvas, world: WorldState): void {
+    if (!isGoalLocked(world)) return;
+    const gx = world.flagpole ? world.flagpole.x - 8 : world.goalTape ? world.goalTape.x - 4 : null;
+    if (gx === null) return;
+    const gy = (GROUND_ROW - 3) * TILE;
+    // Barrotes delante de la meta
+    this.fillPaint.setColor(Skia.Color('rgba(88, 28, 135, 0.55)'));
+    canvas.drawRect(Skia.XYWHRect(gx - 4, 2 * TILE, 8, (GROUND_ROW - 2) * TILE), this.fillPaint);
+    // Candado
+    this.fillPaint.setColor(Skia.Color('#1c1917'));
+    canvas.drawRect(Skia.XYWHRect(gx - 13, gy - 1, 26, 22), this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(gx - 9, gy - 13, 18, 14), this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('#facc15'));
+    canvas.drawRect(Skia.XYWHRect(gx - 11, gy + 1, 22, 18), this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(gx - 7, gy - 11, 14, 4), this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(gx - 7, gy - 11, 4, 12), this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(gx + 3, gy - 11, 4, 12), this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('#1c1917'));
+    canvas.drawRect(Skia.XYWHRect(gx - 2, gy + 6, 4, 8), this.fillPaint);
+  }
+
+  private drawChaseWall(canvas: SkCanvas, world: WorldState): void {
+    const ch = world.chase;
+    if (!ch) return;
+    const edge = ch.x;
+    const top = -2 * TILE;
+    const bottom = (GROUND_ROW + 4) * TILE;
+    this.fillPaint.setColor(Skia.Color('#12061f'));
+    canvas.drawRect(Skia.XYWHRect(edge - 1400, top, 1400, bottom - top), this.fillPaint);
+    // Borde irregular que se retuerce
+    for (let yy = top; yy < bottom; yy += 16) {
+      const wave = Math.sin(world.frameCount * 0.15 + yy * 0.05) * 10 + 12;
+      this.fillPaint.setColor(Skia.Color('#12061f'));
+      canvas.drawRect(Skia.XYWHRect(edge, yy, wave, 16), this.fillPaint);
+      this.fillPaint.setColor(Skia.Color('rgba(168, 85, 247, 0.55)'));
+      canvas.drawRect(Skia.XYWHRect(edge + wave, yy + 4, 4, 8), this.fillPaint);
+    }
+    // Ojos que siguen al jugador
+    const eyeY = Math.max(3 * TILE, Math.min(world.player.y, (GROUND_ROW - 2) * TILE));
+    const blink = world.frameCount % 150 < 6;
+    this.fillPaint.setColor(Skia.Color('#f0abfc'));
+    if (!blink) {
+      canvas.drawRect(Skia.XYWHRect(edge - 34, eyeY, 10, 6), this.fillPaint);
+      canvas.drawRect(Skia.XYWHRect(edge - 18, eyeY, 10, 6), this.fillPaint);
+      this.fillPaint.setColor(Skia.Color('#ffffff'));
+      canvas.drawRect(Skia.XYWHRect(edge - 28, eyeY + 1, 3, 3), this.fillPaint);
+      canvas.drawRect(Skia.XYWHRect(edge - 12, eyeY + 1, 3, 3), this.fillPaint);
     }
   }
 

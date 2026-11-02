@@ -204,6 +204,32 @@ export interface LowGravZone {
   x1: number;
 }
 
+// ============================================================================
+// OBJETIVOS POR NIVEL (Fase 2)
+// ============================================================================
+export type StageObjective =
+  | 'reach' // Llegar a la meta
+  | 'collect' // Juntar todas las gemas para abrir la meta
+  | 'time_attack' // Contrarreloj con relojes que suman tiempo
+  | 'chase'; // Escapar de la sombra que avanza
+
+export interface Pickup {
+  id: number;
+  kind: 'gem' | 'clock';
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  collected: boolean;
+  phase: number;
+}
+
+export interface ChaseWall {
+  x: number;
+  speed: number;
+  delay: number;
+}
+
 export interface CrumbledBlock {
   block: Block;
   respawnTimer: number;
@@ -555,4 +581,11 @@ export interface WorldState {
   lowGravZones?: LowGravZone[];
   crumbled?: CrumbledBlock[];
   lavaTide?: boolean;
+  // Objetivo del nivel (opcionales: 'reach' no los usa)
+  objective?: StageObjective;
+  pickups?: Pickup[];
+  gemsNeeded?: number;
+  gemsCollected?: number;
+  chase?: ChaseWall | null;
+  goalBlockedTimer?: number;
 }

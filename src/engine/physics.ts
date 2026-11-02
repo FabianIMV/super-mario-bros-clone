@@ -12,6 +12,7 @@ import {
   updateMechanics,
   windPush,
 } from './mechanics';
+import { enforceGoalLock, updateObjectives } from './objectives';
 import { buildWorldState, gridKey } from '../levels/levelBuilder';
 import type {
   Block,
@@ -785,6 +786,17 @@ export function stepWorld(
     damagePlayer: () => damagePlayer(world, events),
     sparks: (x, y, color, count) => spawnSparks(world, x, y, color, count),
   });
+  if (p.dead || world.status !== 'playing') return events;
+
+  // Objetivo del nivel (gemas, relojes, sombra que persigue)
+  const objectiveCb = {
+    killPlayer: () => killPlayer(world, events),
+    sparks: (x: number, y: number, color: string, count: number) =>
+      spawnSparks(world, x, y, color, count),
+    text: (x: number, y: number, text: string, color: string) =>
+      spawnText(world, x, y, text, color),
+  };
+  updateObjectives(world, events, objectiveCb);
   if (p.dead || world.status !== 'playing') return events;
 
   // Update Moving Platforms first so standing entities inherit delta
@@ -2055,6 +2067,9 @@ export function stepWorld(
       }
     }
   }
+
+  // Meta cerrada si faltan gemas
+  enforceGoalLock(world, events, objectiveCb);
 
   // Classic Flagpole Goal check
   if (world.flagpole && overlaps(p, world.flagpole)) {
