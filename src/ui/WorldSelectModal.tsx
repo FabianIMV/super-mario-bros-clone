@@ -1,18 +1,28 @@
 import React, { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { BIOMES, STAGES_PER_WORLD, TOTAL_WORLDS, getStageBiome, getWorldLabel } from '../engine/biomes';
-import type { SaveProgress } from '../engine/types';
+import {
+  BIOMES,
+  SMW_WORLDS,
+  STAGES_PER_WORLD,
+  TOTAL_WORLDS,
+  getStageBiome,
+  getWorldLabel,
+} from '../engine/biomes';
+import type { GamePartition, SaveProgress } from '../engine/types';
+import { SMW_WORLD_NAMES } from '../levels/smwLevelBuilder';
 
 interface Props {
   visible: boolean;
+  partition: GamePartition;
   progress: SaveProgress;
   pixelFontLoaded: boolean;
-  onSelectStage: (levelIndex: number) => void;
+  onSelectPartition: (partition: GamePartition) => void;
+  onSelectStage: (levelIndex: number, partition: GamePartition) => void;
   onClose: () => void;
 }
 
-const WORLD_NAMES = [
+const CLASSIC_WORLD_NAMES = [
   '1 • REINO PRADERA',
   '2 • DUNAS SOLARES',
   '3 • CUMBRE ESTELAR',
@@ -23,8 +33,10 @@ const WORLD_NAMES = [
 
 export const WorldSelectModal: React.FC<Props> = ({
   visible,
+  partition,
   progress,
   pixelFontLoaded,
+  onSelectPartition,
   onSelectStage,
   onClose,
 }) => {
@@ -33,6 +45,12 @@ export const WorldSelectModal: React.FC<Props> = ({
   const fontFamily = pixelFontLoaded ? 'PressStart2P_400Regular' : undefined;
 
   if (!visible) return null;
+
+  const isSmw = partition === 'smw';
+  const worldCount = isSmw ? SMW_WORLDS : TOTAL_WORLDS;
+  const worldNames = isSmw ? SMW_WORLD_NAMES : CLASSIC_WORLD_NAMES;
+  const unlockedIdx = isSmw ? progress.smwUnlockedLevel : progress.unlockedLevel;
+  const clearedList = isSmw ? progress.smwClearedLevels : progress.clearedLevels;
 
   return (
     <View
@@ -46,10 +64,35 @@ export const WorldSelectModal: React.FC<Props> = ({
         },
       ]}
     >
-      <View style={styles.panel}>
+      <View style={[styles.panel, isSmw && { borderColor: '#4ade80' }]}>
         <View style={styles.header}>
-          <Text style={[styles.title, { fontFamily }]}>MAPA DE LOS 6 MUNDOS</Text>
+          <View style={styles.titleBlock}>
+            <Text style={[styles.title, { fontFamily }, isSmw && { color: '#86efac' }]}>
+              {isSmw ? 'ISLA DINOSAURIO (20)' : '6 MUNDOS CLÁSICOS (24)'}
+            </Text>
+          </View>
+
           <View style={styles.headerActions}>
+            <Pressable
+              onPress={() => onSelectPartition('classic')}
+              style={[
+                styles.partChip,
+                !isSmw && styles.partChipClassicActive,
+              ]}
+            >
+              <Text style={[styles.chipText, { fontFamily }]}>🍄 BROS</Text>
+            </Pressable>
+
+            <Pressable
+              onPress={() => onSelectPartition('smw')}
+              style={[
+                styles.partChip,
+                isSmw && styles.partChipSmwActive,
+              ]}
+            >
+              <Text style={[styles.chipText, { fontFamily }]}>🦕 WORLD</Text>
+            </Pressable>
+
             <Pressable
               onPress={() => setFreePlay((v) => !v)}
               style={[
@@ -58,7 +101,7 @@ export const WorldSelectModal: React.FC<Props> = ({
               ]}
             >
               <Text style={[styles.chipText, { fontFamily }]}>
-                {freePlay ? '★ LIBRE ON' : 'MODO LIBRE'}
+                {freePlay ? '★ LIBRE ON' : 'LIBRE'}
               </Text>
             </Pressable>
 
@@ -72,33 +115,34 @@ export const WorldSelectModal: React.FC<Props> = ({
           contentContainerStyle={styles.grid}
           showsVerticalScrollIndicator={false}
         >
-          {Array.from({ length: TOTAL_WORLDS }, (_, wIdx) => {
-            const primaryBiome = BIOMES[getStageBiome(wIdx * STAGES_PER_WORLD)];
+          {Array.from({ length: worldCount }, (_, wIdx) => {
+            const primaryBiome = BIOMES[getStageBiome(wIdx * STAGES_PER_WORLD, partition)];
             return (
-              <View key={wIdx} style={styles.worldCard}>
+              <View key={`${partition}_${wIdx}`} style={styles.worldCard}>
                 <View style={styles.worldHeaderRow}>
                   <View
                     style={[styles.worldSwatch, { backgroundColor: primaryBiome.groundCap }]}
                   />
                   <Text style={[styles.worldTitle, { fontFamily }]}>
-                    {WORLD_NAMES[wIdx]}
+                    {worldNames[wIdx]}
                   </Text>
                 </View>
 
                 <View style={styles.stageRow}>
                   {Array.from({ length: STAGES_PER_WORLD }, (_, sIdx) => {
                     const levelIdx = wIdx * STAGES_PER_WORLD + sIdx;
-                    const unlocked = freePlay || levelIdx <= progress.unlockedLevel;
-                    const cleared = progress.clearedLevels.includes(levelIdx);
+                    const unlocked = freePlay || levelIdx <= unlockedIdx;
+                    const cleared = clearedList.includes(levelIdx);
                     const isBoss = sIdx === 3;
 
                     return (
                       <Pressable
                         key={sIdx}
                         disabled={!unlocked}
-                        onPress={() => onSelectStage(levelIdx)}
+                        onPress={() => onSelectStage(levelIdx, partition)}
                         style={({ pressed }) => [
                           styles.stageBtn,
+                          isSmw && styles.stageBtnSmw,
                           isBoss && styles.stageBtnBoss,
                           !unlocked && styles.stageBtnLocked,
                           cleared && styles.stageBtnCleared,
@@ -112,7 +156,7 @@ export const WorldSelectModal: React.FC<Props> = ({
                             !unlocked && { color: '#64748b' },
                           ]}
                         >
-                          {getWorldLabel(levelIdx)}
+                          {getWorldLabel(levelIdx, partition)}
                         </Text>
                         <Text style={styles.stageBadge}>
                           {!unlocked ? '🔒' : cleared ? '★' : isBoss ? '👑' : '▶'}
@@ -133,7 +177,7 @@ export const WorldSelectModal: React.FC<Props> = ({
 const styles = StyleSheet.create({
   backdrop: {
     ...StyleSheet.absoluteFill,
-    backgroundColor: 'rgba(6, 10, 22, 0.82)',
+    backgroundColor: 'rgba(6, 10, 22, 0.84)',
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 50,
@@ -153,28 +197,48 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     marginBottom: 10,
+    gap: 8,
+  },
+  titleBlock: {
+    flexShrink: 1,
   },
   title: {
     color: '#fde047',
-    fontSize: 12,
+    fontSize: 10,
     fontWeight: '900',
   },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 6,
+  },
+  partChip: {
+    backgroundColor: '#1e293b',
+    borderWidth: 2,
+    borderColor: '#475569',
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  partChipClassicActive: {
+    backgroundColor: '#b91c1c',
+    borderColor: '#fde047',
+  },
+  partChipSmwActive: {
+    backgroundColor: '#15803d',
+    borderColor: '#86efac',
   },
   freePlayChip: {
     backgroundColor: '#1e293b',
     borderWidth: 2,
     borderColor: '#64748b',
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     paddingVertical: 6,
     borderRadius: 8,
   },
   chipText: {
     color: '#f8fafc',
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: '800',
   },
   closeBtn: {
@@ -235,6 +299,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingVertical: 6,
     alignItems: 'center',
+  },
+  stageBtnSmw: {
+    backgroundColor: '#0284c7',
+    borderColor: '#7dd3fc',
   },
   stageBtnBoss: {
     backgroundColor: '#991b1b',

@@ -1,29 +1,46 @@
+export type GamePartition = 'classic' | 'smw';
+
 export type BiomeId =
   | 'meadow'
   | 'cavern'
   | 'desert'
   | 'night'
   | 'glacier'
-  | 'fortress';
+  | 'fortress'
+  | 'yoshi_island'
+  | 'donut_plains'
+  | 'vanilla_dome'
+  | 'forest_illusion'
+  | 'valley_koopa';
 
 export type BgmTrackId =
   | 'overworld'
   | 'underground'
   | 'athletic'
   | 'fortress'
-  | 'starman';
+  | 'starman'
+  | 'smw_overworld'
+  | 'smw_athletic';
 
 export type SfxId =
   | 'jump'
   | 'jump_big'
+  | 'spin_jump'
   | 'skid'
   | 'coin'
+  | 'dragon_coin'
   | 'bump'
   | 'break_block'
   | 'stomp'
   | 'kick'
   | 'powerup_spawn'
   | 'powerup_collect'
+  | 'feather_get'
+  | 'cape_spin'
+  | 'yoshi_mount'
+  | 'yoshi_tongue'
+  | 'yoshi_swallow'
+  | 'yoshi_spit'
   | 'one_up'
   | 'fireball'
   | 'power_down'
@@ -50,25 +67,34 @@ export type GameEvent =
   | { type: 'sfx'; id: SfxId }
   | { type: 'bgm'; track: BgmTrackId | null }
   | { type: 'haptic'; kind: HapticKind }
-  | { type: 'stage_cleared'; levelIndex: number; score: number; coins: number }
-  | { type: 'game_over'; score: number };
+  | {
+      type: 'stage_cleared';
+      partition: GamePartition;
+      levelIndex: number;
+      score: number;
+      coins: number;
+    }
+  | { type: 'game_over'; partition: GamePartition; score: number };
 
 export interface InputState {
   left: boolean;
   right: boolean;
+  up: boolean;
   down: boolean;
   jump: boolean;
   run: boolean;
   fire: boolean;
+  spin: boolean;
 }
 
-export type PowerState = 0 | 1 | 2; // 0 = Small, 1 = Super, 2 = Fire
+export type PowerState = 0 | 1 | 2 | 3; // 0 = Small, 1 = Super, 2 = Fire, 3 = Cape Feather (SMW)
 
 export type BlockType =
   | 'ground_top'
   | 'ground_deep'
   | 'brick'
   | 'question'
+  | 'rotating'
   | 'hidden'
   | 'empty'
   | 'hard'
@@ -78,6 +104,8 @@ export type BlockContent =
   | 'coin'
   | 'multi_coin'
   | 'powerup'
+  | 'feather'
+  | 'yoshi_egg'
   | 'star'
   | 'one_up'
   | null;
@@ -96,6 +124,7 @@ export interface Block {
   coinsRemaining: number;
   bounceY: number;
   bounceVel: number;
+  spinTimer: number;
 }
 
 export interface Pipe {
@@ -139,14 +168,19 @@ export interface Checkpoint {
 
 export type EnemyType =
   | 'goomba'
+  | 'galoomba'
   | 'koopa_green'
   | 'koopa_red'
   | 'paratroopa'
   | 'piranha'
-  | 'spiny';
+  | 'spiny'
+  | 'rex'
+  | 'chuck'
+  | 'bullet_bill';
 
 export type EnemyState =
   | 'walk'
+  | 'rex_squished'
   | 'shell_idle'
   | 'shell_wake'
   | 'shell_slide'
@@ -166,6 +200,7 @@ export interface Enemy {
   height: number;
   facing: 1 | -1;
   onGround: boolean;
+  hp: number;
   stateTimer: number;
   kickGraceTimer: number;
   shellCombo: number;
@@ -208,7 +243,7 @@ export interface FortressBoss {
   bridgeCollapseTimer: number;
 }
 
-export type PowerupKind = 'mushroom' | 'flower' | 'star' | 'one_up';
+export type PowerupKind = 'mushroom' | 'flower' | 'feather' | 'yoshi_egg' | 'star' | 'one_up';
 
 export interface PowerupItem {
   id: number;
@@ -222,6 +257,40 @@ export interface PowerupItem {
   width: number;
   height: number;
   onGround: boolean;
+  swayPhase: number;
+}
+
+export interface YoshiEntity {
+  id: number;
+  x: number;
+  y: number;
+  vx: number;
+  vy: number;
+  width: number;
+  height: number;
+  facing: 1 | -1;
+  onGround: boolean;
+  state: 'hatching' | 'idle' | 'panic';
+  stateTimer: number;
+  animTimer: number;
+}
+
+export interface DragonCoin {
+  x: number;
+  y: number;
+  baseY: number;
+  width: number;
+  height: number;
+  collected: boolean;
+  phase: number;
+}
+
+export interface BerryEntity {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  eaten: boolean;
 }
 
 export interface Fireball {
@@ -233,6 +302,7 @@ export interface Fireball {
   height: number;
   bounces: number;
   animFrame: number;
+  fromYoshi?: boolean;
 }
 
 export interface CoinEntity {
@@ -268,7 +338,17 @@ export interface FloatingText {
 }
 
 export interface SceneryProp {
-  kind: 'cloud' | 'hill' | 'bush' | 'pillar' | 'dune' | 'pine' | 'banner' | 'chain';
+  kind:
+    | 'cloud'
+    | 'hill'
+    | 'smw_hill'
+    | 'bush'
+    | 'yoshi_house'
+    | 'pillar'
+    | 'dune'
+    | 'pine'
+    | 'banner'
+    | 'chain';
   x: number;
   y: number;
   scale: number;
@@ -281,6 +361,18 @@ export interface FlagpoleGoal {
   width: number;
   height: number;
   flagY: number;
+  castleX: number;
+  castleY: number;
+}
+
+export interface GoalTape {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  barY: number;
+  barVy: number;
+  triggered: boolean;
   castleX: number;
   castleY: number;
 }
@@ -308,6 +400,18 @@ export interface Player {
   animTimer: number;
   dead: boolean;
   enteringCastle: boolean;
+  // Super Plomero World (SMW) Cape & Yoshi mechanics:
+  pMeter: number; // 0..112 -> at 112 enables SMW Cape takeoff!
+  capeFlying: boolean;
+  capeFlightTimer: number;
+  capeDiveSpeed: number;
+  capeSpinTimer: number;
+  spinJumping: boolean;
+  mountedYoshi: boolean;
+  yoshiTongueTimer: number;
+  yoshiTonguePhase: number; // 0..18
+  yoshiMouthItem: 'none' | 'fire';
+  berriesEaten: number;
 }
 
 export type WorldStatus =
@@ -315,6 +419,7 @@ export type WorldStatus =
   | 'stage_intro'
   | 'playing'
   | 'flagpole'
+  | 'goal_tape'
   | 'boss_collapse'
   | 'dying'
   | 'gameover'
@@ -335,9 +440,17 @@ export interface SaveProgress {
   clearedLevels: number[];
   bestStageScores: Record<number, number>;
   totalCoins: number;
+  // Partition 2: Super Plomero World (20 levels)
+  smwHighScore: number;
+  smwUnlockedLevel: number;
+  smwClearedLevels: number[];
+  smwBestStageScores: Record<number, number>;
+  lastPartition: GamePartition;
 }
 
 export interface WorldState {
+  partition: GamePartition;
+  totalStagesInPartition: number;
   status: WorldStatus;
   levelIndex: number;
   worldLabel: string;
@@ -367,6 +480,10 @@ export interface WorldState {
   boss: FortressBoss | null;
   bossFires: BossFireWave[];
   powerups: PowerupItem[];
+  yoshis: YoshiEntity[];
+  dragonCoins: DragonCoin[];
+  dragonCoinsCollected: number;
+  berries: BerryEntity[];
   fireballs: Fireball[];
   coinsList: CoinEntity[];
   particles: Particle[];
@@ -374,8 +491,10 @@ export interface WorldState {
   sceneries: SceneryProp[];
   lavaCols: Set<number>;
   flagpole: FlagpoleGoal | null;
+  goalTape: GoalTape | null;
   prevJumpHeld: boolean;
   prevFireHeld: boolean;
+  prevSpinHeld: boolean;
   doubleJumpAssist: boolean;
   nextEntityId: number;
 }

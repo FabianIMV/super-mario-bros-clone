@@ -1,14 +1,16 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { GameSettings, WorldStatus } from '../engine/types';
+import type { GamePartition, GameSettings, WorldStatus } from '../engine/types';
 
 interface PauseProps {
   visible: boolean;
   mode: 'pause' | 'settings';
+  partition: GamePartition;
   settings: GameSettings;
   pixelFontLoaded: boolean;
   onUpdateSettings: (patch: Partial<GameSettings>) => void;
+  onSwitchPartition: () => void;
   onResume: () => void;
   onRestartStage: () => void;
   onOpenWorldSelect: () => void;
@@ -18,9 +20,11 @@ interface PauseProps {
 export const PauseModal: React.FC<PauseProps> = ({
   visible,
   mode,
+  partition,
   settings,
   pixelFontLoaded,
   onUpdateSettings,
+  onSwitchPartition,
   onResume,
   onRestartStage,
   onOpenWorldSelect,
@@ -31,10 +35,12 @@ export const PauseModal: React.FC<PauseProps> = ({
 
   if (!visible) return null;
 
+  const isSmw = partition === 'smw';
+
   const toggleItems: Array<{ key: keyof GameSettings; label: string }> = [
     { key: 'soundEnabled', label: 'EFECTOS SFX' },
-    { key: 'musicEnabled', label: 'MÚSICA 8-BIT' },
-    { key: 'hapticsEnabled', label: 'TAPTIC IPHONE' },
+    { key: 'musicEnabled', label: 'MÚSICA 16-BIT' },
+    { key: 'hapticsEnabled', label: 'VIBRACIÓN FUERTE' },
     { key: 'crtScanlines', label: 'FILTRO CRT' },
     { key: 'doubleJumpAssist', label: 'BOTAS 2X SALTO' },
   ];
@@ -49,9 +55,13 @@ export const PauseModal: React.FC<PauseProps> = ({
         },
       ]}
     >
-      <View style={styles.card}>
+      <View style={[styles.card, isSmw && { borderColor: '#4ade80' }]}>
         <Text style={[styles.title, { fontFamily }]}>
-          {mode === 'pause' ? 'PAUSA DE JUEGO' : 'AJUSTES ARCADE'}
+          {mode === 'pause'
+            ? isSmw
+              ? 'PAUSA • PLOMERO WORLD'
+              : 'PAUSA • PLOMERO BROS'
+            : 'AJUSTES ARCADE'}
         </Text>
 
         <View style={styles.togglesGrid}>
@@ -118,6 +128,15 @@ export const PauseModal: React.FC<PauseProps> = ({
               </Pressable>
 
               <Pressable
+                onPress={onSwitchPartition}
+                style={({ pressed }) => [styles.btnEmerald, pressed && styles.pressed]}
+              >
+                <Text style={[styles.btnLightText, { fontFamily }]}>
+                  {isSmw ? '🍄 IR A BROS' : '🦕 IR A WORLD'}
+                </Text>
+              </Pressable>
+
+              <Pressable
                 onPress={onExitToTitle}
                 style={({ pressed }) => [styles.btnCrimson, pressed && styles.pressed]}
               >
@@ -132,6 +151,7 @@ export const PauseModal: React.FC<PauseProps> = ({
 };
 
 interface StatusBannerProps {
+  partition: GamePartition;
   status: WorldStatus;
   worldLabel: string;
   stageTitle: string;
@@ -144,6 +164,7 @@ interface StatusBannerProps {
 }
 
 export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
+  partition,
   status,
   worldLabel,
   stageTitle,
@@ -155,14 +176,20 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
   onExitToTitle,
 }) => {
   const fontFamily = pixelFontLoaded ? 'PressStart2P_400Regular' : undefined;
+  const isSmw = partition === 'smw';
 
   if (status === 'stage_intro') {
     return (
       <View style={styles.introOverlay}>
-        <Text style={[styles.introWorld, { fontFamily }]}>MUNDO {worldLabel}</Text>
+        <Text style={[styles.introEdition, { fontFamily, color: isSmw ? '#4ade80' : '#f87171' }]}>
+          {isSmw ? '🦕 SUPER PLOMERO WORLD' : '🍄 SUPER PLOMERO BROS'}
+        </Text>
+        <Text style={[styles.introWorld, { fontFamily }]}>
+          {isSmw ? `ETAPA ${worldLabel}` : `MUNDO ${worldLabel}`}
+        </Text>
         <Text style={styles.introSubtitle}>{stageTitle.toUpperCase()}</Text>
         <View style={styles.introLivesRow}>
-          <View style={styles.heroBadge}>
+          <View style={[styles.heroBadge, isSmw && { backgroundColor: '#16a34a' }]}>
             <Text style={[styles.heroBadgeLetter, { fontFamily }]}>P</Text>
           </View>
           <Text style={[styles.introLivesText, { fontFamily }]}>×  {lives}</Text>
@@ -179,15 +206,21 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
           <Text
             style={[
               styles.title,
-              { fontFamily, color: isWin ? '#4ade80' : '#f87171', fontSize: 15 },
+              { fontFamily, color: isWin ? '#4ade80' : '#f87171', fontSize: 14 },
             ]}
           >
-            {isWin ? '¡CAMPEÓN DE LOS 6 REINOS!' : 'FIN DE LA PARTIDA'}
+            {isWin
+              ? isSmw
+                ? '¡CAMPEÓN DE PLOMERO WORLD!'
+                : '¡CAMPEÓN DE LOS 6 REINOS!'
+              : 'FIN DE LA PARTIDA'}
           </Text>
 
           <Text style={styles.summaryText}>
             {isWin
-              ? '¡Derrotaste al Rey Koopa en la Fortaleza Final y liberaste los 24 niveles!'
+              ? isSmw
+                ? '¡Liberaste la Isla Dinosaurio y los 20 niveles junto a Yoshi y la Capa Dorada!'
+                : '¡Derrotaste al Rey Koopa en la Fortaleza Final y liberaste los 24 niveles!'
               : 'Has agotado tus vidas en esta incursión.'}
           </Text>
 
@@ -234,17 +267,17 @@ const styles = StyleSheet.create({
   },
   card: {
     width: '100%',
-    maxWidth: 560,
+    maxWidth: 590,
     backgroundColor: '#0f172a',
     borderWidth: 3,
     borderColor: '#facc15',
     borderRadius: 14,
-    padding: 16,
+    padding: 15,
     alignItems: 'center',
   },
   title: {
     color: '#fde047',
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: '900',
     marginBottom: 12,
     textAlign: 'center',
@@ -286,19 +319,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     justifyContent: 'center',
-    gap: 8,
+    gap: 7,
   },
   btnGold: {
     backgroundColor: '#facc15',
     borderWidth: 2.5,
     borderColor: '#fef9c3',
     borderRadius: 9,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
+    paddingHorizontal: 13,
+    paddingVertical: 9,
   },
   btnGoldText: {
     color: '#422006',
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '900',
   },
   btnSlate: {
@@ -306,20 +339,28 @@ const styles = StyleSheet.create({
     borderWidth: 2.5,
     borderColor: '#94a3b8',
     borderRadius: 9,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
+  },
+  btnEmerald: {
+    backgroundColor: '#15803d',
+    borderWidth: 2.5,
+    borderColor: '#86efac',
+    borderRadius: 9,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
   },
   btnCrimson: {
     backgroundColor: '#b91c1c',
     borderWidth: 2.5,
     borderColor: '#fca5a5',
     borderRadius: 9,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 11,
+    paddingVertical: 9,
   },
   btnLightText: {
     color: '#ffffff',
-    fontSize: 9,
+    fontSize: 8,
     fontWeight: '900',
   },
   pressed: {
@@ -331,6 +372,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     zIndex: 55,
+  },
+  introEdition: {
+    fontSize: 10,
+    fontWeight: '900',
+    marginBottom: 10,
   },
   introWorld: {
     color: '#fde047',

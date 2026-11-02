@@ -1,4 +1,4 @@
-import type { BgmTrackId, BiomeId } from './types';
+import type { BgmTrackId, BiomeId, GamePartition } from './types';
 
 export interface BiomeDefinition {
   id: BiomeId;
@@ -38,9 +38,19 @@ export const TILE = 32;
 export const WORLD_ROWS = 14;
 export const LOGICAL_HEIGHT = WORLD_ROWS * TILE; // 448 units (exact 224p x 2)
 export const GROUND_ROW = 12;
+
+// Partition 1: Super Plomero Bros (Classic — 6 Worlds x 4 Stages = 24 Levels)
 export const TOTAL_WORLDS = 6;
 export const STAGES_PER_WORLD = 4;
-export const TOTAL_LEVELS = TOTAL_WORLDS * STAGES_PER_WORLD; // 24 stages (1-1 to 6-4)
+export const TOTAL_LEVELS = TOTAL_WORLDS * STAGES_PER_WORLD;
+
+// Partition 2: Super Plomero World (SMW — 5 Dinosaur Island Worlds x 4 Stages = 20 Levels)
+export const SMW_WORLDS = 5;
+export const SMW_TOTAL_LEVELS = SMW_WORLDS * STAGES_PER_WORLD; // 20 stages!
+
+// Camera & Vertical Framing Constants so Touch Controls NEVER cover Plomero in either game!
+export const MIN_CAMERA_WORLD_X = -7 * TILE; // -224: keeps col 0 at screenX >= 195px (clear right of D-Pad!)
+export const WORLD_VERTICAL_LIFT = 22; // Shifts rendered ground 22 logical px upward above lower bezel!
 
 export const BIOMES: Record<BiomeId, BiomeDefinition> = {
   meadow: {
@@ -241,20 +251,211 @@ export const BIOMES: Record<BiomeId, BiomeDefinition> = {
     hasLava: true,
     bgm: 'fortress',
   },
+
+  // ==========================================================================
+  // SUPER PLOMERO WORLD (SMW 16-BIT DINOSAUR ISLAND BIOMES)
+  // ==========================================================================
+  yoshi_island: {
+    id: 'yoshi_island',
+    name: 'Isla de Yoshi',
+    skyTop: '#22a6f5',
+    skyBottom: '#b4f0ff',
+    distantHill: '#34d399',
+    nearHill: '#10b981',
+    hillOutline: '#064e3b',
+    bushFill: '#22c55e',
+    bushHighlight: '#bbf7d0',
+    cloudFill: '#ffffff',
+    cloudShadow: '#bae6fd',
+    groundCap: '#4ade80',
+    groundCapHighlight: '#dcfce7',
+    groundMain: '#d97706',
+    groundShadow: '#92400e',
+    groundDark: '#451a03',
+    brickLight: '#fde047',
+    brickMain: '#eab308',
+    brickDark: '#a16207',
+    mortar: '#422006',
+    hardLight: '#fed7aa',
+    hardMain: '#fb923c',
+    hardDark: '#9a3412',
+    pipeLight: '#86efac',
+    pipeMain: '#16a34a',
+    pipeDark: '#14532d',
+    underground: false,
+    slippery: false,
+    hasStars: false,
+    hasLava: false,
+    bgm: 'smw_overworld',
+  },
+  donut_plains: {
+    id: 'donut_plains',
+    name: 'Llanura Rosquilla',
+    skyTop: '#0ea5e9',
+    skyBottom: '#fef08a',
+    distantHill: '#65a30d',
+    nearHill: '#84cc16',
+    hillOutline: '#365314',
+    bushFill: '#4ade80',
+    bushHighlight: '#dcfce7',
+    cloudFill: '#fffbeb',
+    cloudShadow: '#fde68a',
+    groundCap: '#84cc16',
+    groundCapHighlight: '#ecfccb',
+    groundMain: '#b45309',
+    groundShadow: '#78350f',
+    groundDark: '#3b1806',
+    brickLight: '#fde68a',
+    brickMain: '#f59e0b',
+    brickDark: '#b45309',
+    mortar: '#3b1806',
+    hardLight: '#fbcfe8',
+    hardMain: '#ec4899',
+    hardDark: '#831843',
+    pipeLight: '#fda4af',
+    pipeMain: '#e11d48',
+    pipeDark: '#881337',
+    underground: false,
+    slippery: false,
+    hasStars: false,
+    hasLava: false,
+    bgm: 'smw_athletic',
+  },
+  vanilla_dome: {
+    id: 'vanilla_dome',
+    name: 'Domo Vainilla',
+    skyTop: '#130b29',
+    skyBottom: '#2b1954',
+    distantHill: '#4c1d95',
+    nearHill: '#6d28d9',
+    hillOutline: '#1e1b4b',
+    bushFill: '#67e8f9',
+    bushHighlight: '#cffafe',
+    cloudFill: '#4c1d95',
+    cloudShadow: '#2e1065',
+    groundCap: '#f5d0fe',
+    groundCapHighlight: '#fdf4ff',
+    groundMain: '#7e22ce',
+    groundShadow: '#581c87',
+    groundDark: '#2e1065',
+    brickLight: '#e9d5ff',
+    brickMain: '#9333ea',
+    brickDark: '#581c87',
+    mortar: '#1e0b36',
+    hardLight: '#a5f3fc',
+    hardMain: '#06b6d4',
+    hardDark: '#155e75',
+    pipeLight: '#fde047',
+    pipeMain: '#ca8a04',
+    pipeDark: '#713f12',
+    underground: true,
+    slippery: false,
+    hasStars: false,
+    hasLava: false,
+    bgm: 'underground',
+  },
+  forest_illusion: {
+    id: 'forest_illusion',
+    name: 'Bosque Ilusión',
+    skyTop: '#064e3b',
+    skyBottom: '#115e59',
+    distantHill: '#0f766e',
+    nearHill: '#14b8a6',
+    hillOutline: '#042f2e',
+    bushFill: '#facc15',
+    bushHighlight: '#fef08a',
+    cloudFill: '#ccfbf1',
+    cloudShadow: '#5eead4',
+    groundCap: '#2dd4bf',
+    groundCapHighlight: '#99f6e4',
+    groundMain: '#713f12',
+    groundShadow: '#422006',
+    groundDark: '#1c0f04',
+    brickLight: '#fef08a',
+    brickMain: '#ca8a04',
+    brickDark: '#713f12',
+    mortar: '#1c0f04',
+    hardLight: '#99f6e4',
+    hardMain: '#0d9488',
+    hardDark: '#134e4a',
+    pipeLight: '#bef264',
+    pipeMain: '#65a30d',
+    pipeDark: '#365314',
+    underground: false,
+    slippery: false,
+    hasStars: true,
+    hasLava: false,
+    bgm: 'smw_overworld',
+  },
+  valley_koopa: {
+    id: 'valley_koopa',
+    name: 'Valle de Koopa',
+    skyTop: '#1f0812',
+    skyBottom: '#4c0519',
+    distantHill: '#881337',
+    nearHill: '#9f1239',
+    hillOutline: '#2a040f',
+    bushFill: '#fb923c',
+    bushHighlight: '#fde047',
+    cloudFill: '#78716c',
+    cloudShadow: '#44403c',
+    groundCap: '#fb7185',
+    groundCapHighlight: '#fecdd3',
+    groundMain: '#44403c',
+    groundShadow: '#292524',
+    groundDark: '#0c0a09',
+    brickLight: '#d6d3d1',
+    brickMain: '#78716c',
+    brickDark: '#44403c',
+    mortar: '#0c0a09',
+    hardLight: '#fda4af',
+    hardMain: '#e11d48',
+    hardDark: '#881337',
+    pipeLight: '#cbd5e1',
+    pipeMain: '#64748b',
+    pipeDark: '#1e293b',
+    underground: false,
+    slippery: false,
+    hasStars: true,
+    hasLava: false,
+    bgm: 'smw_athletic',
+  },
 };
 
-export function getWorldLabel(levelIndex: number): string {
+const SMW_WORLD_PREFIXES = ['Y', 'D', 'V', 'B', 'K'];
+
+export function getWorldLabel(levelIndex: number, partition: GamePartition = 'classic'): string {
   const worldNum = Math.floor(levelIndex / STAGES_PER_WORLD) + 1;
   const stageNum = (levelIndex % STAGES_PER_WORLD) + 1;
+  if (partition === 'smw') {
+    const prefix = SMW_WORLD_PREFIXES[Math.min(SMW_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'W';
+    return `${prefix}-${stageNum}`;
+  }
   return `${worldNum}-${stageNum}`;
 }
 
-export function getStageBiome(levelIndex: number): BiomeId {
+export function getStageBiome(levelIndex: number, partition: GamePartition = 'classic'): BiomeId {
   const worldNum = Math.floor(levelIndex / STAGES_PER_WORLD) + 1;
   const stageNum = (levelIndex % STAGES_PER_WORLD) + 1;
-  // Every X-4 stage is a Magma Fortress Boss stage!
+
+  if (partition === 'smw') {
+    if (stageNum === 4) return 'fortress';
+    switch (worldNum) {
+      case 1:
+        return 'yoshi_island';
+      case 2:
+        return stageNum === 2 ? 'vanilla_dome' : 'donut_plains';
+      case 3:
+        return stageNum === 3 ? 'glacier' : 'vanilla_dome';
+      case 4:
+        return 'forest_illusion';
+      default:
+        return stageNum === 2 ? 'vanilla_dome' : 'valley_koopa';
+    }
+  }
+
+  // Classic 24-stage biome progression
   if (stageNum === 4) return 'fortress';
-  // Stage X-2 alternates Cavern / Night
   if (stageNum === 2) return worldNum % 2 === 1 ? 'cavern' : 'night';
 
   switch (worldNum) {

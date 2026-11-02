@@ -1453,6 +1453,681 @@ const LAVA_2 = [
   'RRRRRRRRRRRRRRRR',
 ];
 
+// ============================================================================
+// SUPER PLOMERO WORLD (SMW 16-BIT) SPRITES: CAPE, YOSHI, ITEMS & ENEMIES!
+// ============================================================================
+const CAPE_PAL: PaletteMap = {
+  ...HERO_BASE,
+  C: '#facc15', // Golden SMW cape
+  c: '#eab308', // Cape midtone
+  q: '#a16207', // Cape shadow
+};
+
+const CAPE_BACK_IDLE = [
+  '................',
+  '................',
+  '....KKKK........',
+  '...KCCCCK.......',
+  '..KCCCCCCK......',
+  '..KCCccCCK......',
+  '.KCCCccCK.......',
+  '.KCCcccCK.......',
+  'KCCCccqCK.......',
+  'KCCcccqCK.......',
+  'KCCccqqCK.......',
+  '.KKKKKKK........',
+  '................',
+  '................',
+  '................',
+  '................',
+];
+
+const CAPE_BACK_FLUTTER = [
+  '................',
+  '..KKKKKK........',
+  '.KCCCCCCK.......',
+  'KCCCCCCCCK......',
+  'KCCCccCCCK......',
+  'KCCcccqCCK......',
+  '.KCCccqqCK......',
+  '..KKKKKKK.......',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+];
+
+const CAPE_PARACHUTE = [
+  '..KKKKKKKKKKKK..',
+  '.KCCCCCCCCCCCCK.',
+  'KCCCLLLLCCCCCCCk'.replace('k', 'K'),
+  'KCCCCCCCCCCCCCCK',
+  'KCCccccccccccCCK',
+  'KCcqqqqqqqqqqcCK',
+  '.KK..KK..KK..KK.',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+];
+
+// 24x16 Horizontal Superhero Cape Flight Pose!
+const HERO_CAPE_FLY1 = [
+  '....KKKKKKKK............',
+  '..KKCCCCCCCCKK...KKKKKK.',
+  '.KCCCCCCCCCCCCK.KRRRRRRK',
+  'KCCCccccccccccCKKRHRRRRK',
+  'KCCqqqqqqccccccKKRRRRRRK',
+  '.KKKKKKKKKRRRRBBKMMSSSK.',
+  '........KRRRRBBBKMSWSSSK',
+  '.......KBBBBBBBBKMSSSSMK',
+  '......KNNNKBBBBBBKSSSSWW',
+  '.....KMMMMKKKKBBBKRRRRWW',
+  '.....KKKK.....KKKK....KK',
+  '........................',
+  '........................',
+  '........................',
+  '........................',
+  '........................',
+];
+
+const HERO_CAPE_FLY2 = [
+  '..KKKKKKKKKK............',
+  '.KCCCCCCCCCCKK...KKKKKK.',
+  'KCCCccccccccCCK.KRRRRRRK',
+  'KCCqqqqqccccccCKKRHRRRRK',
+  '.KKKKKKKKccccccKKRRRRRRK',
+  '........KKRRRRBBKMMSSSK.',
+  '........KRRRRBBBKMSWSSSK',
+  '.......KBBBBBBBBKMSSSSMK',
+  '......KNNNKBBBBBBKSSSSWW',
+  '.....KMMMMKKKKBBBKRRRRWW',
+  '.....KKKK.....KKKK....KK',
+  '........................',
+  '........................',
+  '........................',
+  '........................',
+  '........................',
+];
+
+// 24x24 Spinning Cape Whirlwind Attack!
+const HERO_CAPE_SPIN1 = [
+  '........KKKKKKK.........',
+  '.......KRRRRRRRK........',
+  '......KRHRRRRRRRK.......',
+  '......KRRRRRRRRRRK......',
+  '......KMMSSSSKSSK.......',
+  '.....KMMSWSSSKSSSK......',
+  '.....KMMSSSSSMMMMK......',
+  '......KKKSSSSSSKK.......',
+  '..KKKKKKRRBBBBBRKKKKKK..',
+  '.KCCCCCCRRBBBBBRCCCCCCK.',
+  'KCCCCCCCCBBBBBBBCCCCCCCK',
+  'KCCCccccqBBBBBBqccccCCCK',
+  '.KKKKKKKKBBBBBBBKKKKKKK.',
+  '.......KBBBBBBBBBK......',
+  '......KBBBBKKKBBBBK.....',
+  '......KNNNNK.KNNNNK.....',
+  '.....KMMMMMK.KMMMMMK....',
+  '.....KKKKKK...KKKKKK....',
+  '........................',
+  '........................',
+  '........................',
+  '........................',
+  '........................',
+  '........................',
+];
+
+// YOSHI (20x24 -> 40x48 world units, faces RIGHT natively!)
+const YOSHI_PAL: PaletteMap = {
+  '.': 'transparent',
+  K: '#0f172a',
+  G: '#22c55e', // Bright SMW Yoshi green
+  L: '#86efac', // Highlight green
+  D: '#15803d', // Shadow green
+  W: '#ffffff', // White belly / cheeks / eyes
+  g: '#cbd5e1',
+  R: '#ef4444', // Red saddle & tongue
+  r: '#991b1b',
+  O: '#f97316', // Orange spines & boots
+  Y: '#fde047',
+};
+
+const YOSHI_IDLE = [
+  '.........KKKK.......',
+  '........KWWWWK......',
+  '.......KWWKWWK.KKKK.',
+  '......KOKWWKWKKGGGGK',
+  '.....KOOKGGGGGGGGLLK',
+  '.....KOKGGGGGGGGLLGK',
+  '......KKGGGGGGGGGGGK',
+  '.....KOKGGGGWWWWGGK.',
+  '.....KKKGGGWWWWWK...',
+  '....KRRRKKWWWWWK....',
+  '...KRRRRRKGGGGK.....',
+  '..KKKrrrKGGWWGGK....',
+  '.KGGGKKKKGGWWWGGK...',
+  'KGGGGGGGGGGWWWWGK...',
+  'KGGDDDDGGGGWWWWGK...',
+  '.KKKKKKGGGGWWWWK....',
+  '......KGGGGGGGK.....',
+  '......KGGDKGGDK.....',
+  '.....KOOOK.KOOOK....',
+  '....KOOOOK.KOOOOK...',
+  '....KWWWWK.KWWWWK...',
+  '....KKKKKK.KKKKKK...',
+  '....................',
+  '....................',
+];
+
+const YOSHI_RUN1 = [
+  '.........KKKK.......',
+  '........KWWWWK......',
+  '.......KWWKWWK.KKKK.',
+  '......KOKWWKWKKGGGGK',
+  '.....KOOKGGGGGGGGLLK',
+  '.....KOKGGGGGGGGLLGK',
+  '......KKGGGGGGGGGGGK',
+  '.....KOKGGGGWWWWGGK.',
+  '.....KKKGGGWWWWWK...',
+  '....KRRRKKWWWWWK....',
+  '...KRRRRRKGGGGK.....',
+  '..KKKrrrKGGWWGGK....',
+  'KGGGGKKKKGGWWWGGK...',
+  'KGGDDDDGGGGWWWWGK...',
+  '.KKKKKKGGGGWWWWK....',
+  '.....KGGGGGGGGK.....',
+  '....KOOOK..KGGDK....',
+  '...KOOOOK...KOOOK...',
+  '...KWWWWK...KOOOOK..',
+  '...KKKKKK...KKKKKK..',
+  '....................',
+  '....................',
+  '....................',
+  '....................',
+];
+
+const YOSHI_RUN2 = [
+  '.........KKKK.......',
+  '........KWWWWK......',
+  '.......KWWKWWK.KKKK.',
+  '......KOKWWKWKKGGGGK',
+  '.....KOOKGGGGGGGGLLK',
+  '.....KOKGGGGGGGGLLGK',
+  '......KKGGGGGGGGGGGK',
+  '.....KOKGGGGWWWWGGK.',
+  '.....KKKGGGWWWWWK...',
+  '....KRRRKKWWWWWK....',
+  '...KRRRRRKGGGGK.....',
+  '..KKKrrrKGGWWGGK....',
+  '.KGGGKKKKGGWWWGGK...',
+  'KGGGGGGGGGGWWWWGK...',
+  '.KKKKKKGGGGWWWWK....',
+  '......KGGGGGGGK.....',
+  '.......KGGDKOOOK....',
+  '......KOOOK.KOOOOK..',
+  '.....KOOOOK.KWWWWK..',
+  '.....KKKKKK.KKKKKK..',
+  '....................',
+  '....................',
+  '....................',
+  '....................',
+];
+
+const YOSHI_EAT = [
+  '.........KKKK.......',
+  '........KWWWWK......',
+  '.......KWWKWWK.KKKK.',
+  '......KOKWWKWKKGGGGK',
+  '.....KOOKGGGGGGGGLLK',
+  '.....KOKGGGGGGKKKKKK',
+  '......KKGGGGGKRRRRRK',
+  '.....KOKGGGGGKRRRRRK',
+  '.....KKKGGGWWKKKKKK.',
+  '....KRRRKKWWWWWK....',
+  '...KRRRRRKGGGGK.....',
+  '..KKKrrrKGGWWGGK....',
+  '.KGGGKKKKGGWWWGGK...',
+  'KGGGGGGGGGGWWWWGK...',
+  'KGGDDDDGGGGWWWWGK...',
+  '.KKKKKKGGGGWWWWK....',
+  '......KGGGGGGGK.....',
+  '......KGGDKGGDK.....',
+  '.....KOOOK.KOOOK....',
+  '....KOOOOK.KOOOOK...',
+  '....KWWWWK.KWWWWK...',
+  '....KKKKKK.KKKKKK...',
+  '....................',
+  '....................',
+];
+
+const YOSHI_EGG_1 = [
+  '.....KKKKKK.....',
+  '...KKWWWWWWKK...',
+  '..KWWGGWWWWWWK..',
+  '.KWWGGGGWWWWGGK.',
+  '.KWWWGGWWWWGGGK.',
+  'KWWWWWWWWWWWGGWK',
+  'KWWGGGWWWWWWWWWK',
+  'KWWGGGGWWWWWWWWK',
+  'KWWWGGWWWWGGGWWK',
+  'KWWWWWWWWGGGGWWK',
+  '.KWWGGWWWWGGWWK.',
+  '.KWWGGGWWWWWWWK.',
+  '..KWWWWWWWWWWK..',
+  '...KKWWWWWWKK...',
+  '.....KKKKKK.....',
+  '................',
+];
+
+const YOSHI_EGG_2 = [
+  '................',
+  '.....KKKKKK.....',
+  '...KKWWWWWWKK...',
+  '..KWWGGWWWWWWK..',
+  '.KWWGGGGWWWWGGK.',
+  'KWWWWGGWWWWGGGWK',
+  'KWWWWWWWWWWWGGWK',
+  'KWWGGGWWWWWWWWWK',
+  'KWWGGGGWWWWGGWWK',
+  'KWWWGGWWWWGGGGWK',
+  '.KWWGGWWWWGGWWK.',
+  '..KWWWWWWWWWWK..',
+  '...KKWWWWWWKK...',
+  '.....KKKKKK.....',
+  '................',
+  '................',
+];
+
+const FEATHER_1 = [
+  '.........KKKKK..',
+  '.......KKRRRRRK.',
+  '......KRRRRWWWRK',
+  '.....KRROOWWWWwK'.replace('w', 'W'),
+  '....KYYOOWWWWWK.',
+  '...KLLYYWWWWWWK.',
+  '..KWWLLWWWWWWK..',
+  '..KWWWWWWWWWKK..',
+  '.KWWWWWWWWKK....',
+  '.KWWWWWWKK......',
+  '..KWWWWK........',
+  '..KWWWK.........',
+  '.KWWK...........',
+  '.KKK............',
+  '................',
+  '................',
+];
+
+const FEATHER_2 = [
+  '..KKKKK.........',
+  '.KRRRRRKK.......',
+  'KRWWWRRRRK......',
+  'KWWWWWOORRK.....',
+  '.KWWWWWOYYK.....',
+  '.KWWWWWWYYLLK...',
+  '..KWWWWWWLLWWK..',
+  '..KKWWWWWWWWWK..',
+  '....KKWWWWWWWWK.',
+  '......KKWWWWWWK.',
+  '........KWWWWK..',
+  '.........KWWWK..',
+  '...........KWWK.',
+  '............KKK.',
+  '................',
+  '................',
+];
+
+// 16x24 Giant Golden Dragon / Yoshi Coin!
+const DRAGON_COIN_1 = [
+  '....KKKKKKKK....',
+  '..KKLLLLYYYYKK..',
+  '.KLLYYYYYYYYDYK.',
+  '.KLYYKKKKKKYYDK.',
+  'KLYYKLLYYYYKYYDK',
+  'KLYYKLYKKYYKYYDK',
+  'KLYYKLYKKKYYYYDK',
+  'KLYYKLYKKKKYYYDK',
+  'KLYYKLYYKKKYYYDK',
+  'KLYYKLKKKKYYYYDK',
+  'KLYYKLYKKYYYYYDK',
+  'KLYYKLYYKKYYYYDK',
+  'KLYYKLYYYKKYYYDK',
+  'KLYYKLYYYYYKYYDK',
+  '.KLYYKKKKKKYYDK.',
+  '.KLYYYYYYYYYYDK.',
+  '..KKYYYYYYDDKK..',
+  '....KKKKKKKK....',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+];
+
+const DRAGON_COIN_2 = [
+  '.....KKKKKK.....',
+  '...KKLLYYYYKK...',
+  '..KLYYYYYYYYDK..',
+  '..KLYKKKKKKYDK..',
+  '..KLYKLLYYKYDK..',
+  '..KLYKLYKKKYDK..',
+  '..KLYKLYKKKYDK..',
+  '..KLYKLKKKYYDK..',
+  '..KLYKLYKKYYDK..',
+  '..KLYKLYYKYYDK..',
+  '..KLYKLYYYKYDK..',
+  '..KLYKKKKKKYDK..',
+  '..KLYYYYYYYYDK..',
+  '...KKYYYYDDKK...',
+  '.....KKKKKK.....',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+];
+
+const BERRY_RED = [
+  '......KKKK......',
+  '....KKGGGGKK....',
+  '...KGGGGGGGGK...',
+  '....KKRRRRKK....',
+  '..KKRRRRRRRRKK..',
+  '.KRRWWWRRRRRRRK.',
+  'KRRWWWRRRRRRRRRK',
+  'KRRRRRRRRRRRRRRK',
+  'KRRRRRRWWWRRRRRK',
+  'KRRRRRRRRRRRRrrK',
+  '.KRRRRRRRRRRrrK.',
+  '..KRRRRRRRRrrK..',
+  '...KKrrrrrrKK...',
+  '.....KKKKKK.....',
+  '................',
+  '................',
+];
+
+// SMW Rotating Yellow Block [👀]
+const ROTATING_BLOCK_IDLE = [
+  'KKKKKKKKKKKKKKKK',
+  'KLLLLLLLLLLLLLDK',
+  'KLMYYYYYYYYYYMDK',
+  'KLMYYKKYYKKYYMDK',
+  'KLMYKWKYYKWKYMDK',
+  'KLMYKWKYYKWKYMDK',
+  'KLMYKKKYYKKKYMDK',
+  'KLMYYYYYYYYYYMDK',
+  'KLMYYYYYYYYYYMDK',
+  'KLMYYKYYYYKYYMDK',
+  'KLMYYYKKKKYYYMDK',
+  'KLMYYYYYYYYYYMDK',
+  'KLMYYYYYYYYYYMDK',
+  'KLMMMMMMMMMMMMDK',
+  'KDDDDDDDDDDDDDDK',
+  'KKKKKKKKKKKKKKKK',
+];
+
+const ROTATING_BLOCK_SPIN = [
+  '....KKKKKKKK....',
+  '...KLLLLLLLDK...',
+  '...KLMYYYYMDK...',
+  '...KLMYKKYMDK...',
+  '...KLMYKKYMDK...',
+  '...KLMYYYYMDK...',
+  '...KLMYYYYMDK...',
+  '...KLMYYYYMDK...',
+  '...KLMYYYYMDK...',
+  '...KLMYYYYMDK...',
+  '...KLMMMMMMDK...',
+  '...KDDDDDDDDK...',
+  '....KKKKKKKK....',
+  '................',
+  '................',
+  '................',
+];
+
+// SMW Galoomba (16x16 round chestnut SMW Goomba)
+const GALOOMBA_PAL: PaletteMap = {
+  '.': 'transparent',
+  K: '#141013',
+  B: '#b45309',
+  L: '#f59e0b',
+  D: '#78350f',
+  Y: '#fde047',
+  W: '#ffffff',
+};
+
+const GALOOMBA_WALK1 = [
+  '....KKKKKKKK....',
+  '..KKLLLLBBBBKK..',
+  '.KLLLBBBBBBBBBK.',
+  'KLLBBBBBBBBBBBBK',
+  'KLBBKWKBBBBKWKBK',
+  'KBBBKWKBBBBKWKBK',
+  'KBBBBKKBBBBKKBBK',
+  'KBBWWBBBBBBBBWWK',
+  'KBBBBKKKKKKKKBBK',
+  '.KBBBBBBBBBBBBK.',
+  '.KDDDDDDDDDDDDK.',
+  '..KKKKYYYYKKKK..',
+  '.KYYYYK..KYYYYK.',
+  '.KKKKKK..KKKKKK.',
+  '................',
+  '................',
+];
+
+const GALOOMBA_WALK2 = [
+  '....KKKKKKKK....',
+  '..KKLLLLBBBBKK..',
+  '.KLLLBBBBBBBBBK.',
+  'KLLBBBBBBBBBBBBK',
+  'KLBBKWKBBBBKWKBK',
+  'KBBBKWKBBBBKWKBK',
+  'KBBBBKKBBBBKKBBK',
+  'KBBWWBBBBBBBBWWK',
+  'KBBBBKKKKKKKKBBK',
+  '.KBBBBBBBBBBBBK.',
+  '.KDDDDDDDDDDDDK.',
+  '...KKKYYYYKKK...',
+  '..KYYYYKKYYYYK..',
+  '..KKKKK..KKKKK..',
+  '................',
+  '................',
+];
+
+// SMW Rex (16x24 tall purple dino -> stomped once into 16x16 fast Rex!)
+const REX_PAL: PaletteMap = {
+  '.': 'transparent',
+  K: '#141013',
+  P: '#7c3aed',
+  L: '#a78bfa',
+  D: '#4c1d95',
+  W: '#ffffff',
+  Y: '#fde047',
+  O: '#f97316',
+};
+
+const REX_WALK1 = [
+  '....KKKKKK......',
+  '...KPPPPPPK.....',
+  '..KPPKWKPPPK....',
+  '.KPPPKWKPPPPK...',
+  '.KPPPPPPPPPPPK..',
+  '..KKKKPPPPPWWK..',
+  '.....KPPPPKKKK..',
+  '....KPPPPPKWWK..',
+  '...KPPYYPPKWWWK.',
+  '..KPPPYYYPPKKKK.',
+  '..KPPPYYYPPPK...',
+  '..KDDPYYYYPPK...',
+  '...KKKYYYYPPK...',
+  '.....KPPPPPPK...',
+  '....KPPPKPPPK...',
+  '...KOOOK.KOOOK..',
+  '..KOOOOK.KOOOOK.',
+  '..KKKKKK.KKKKKK.',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+];
+
+const REX_WALK2 = [
+  '....KKKKKK......',
+  '...KPPPPPPK.....',
+  '..KPPKWKPPPK....',
+  '.KPPPKWKPPPPK...',
+  '.KPPPPPPPPPPPK..',
+  '..KKKKPPPPPWWK..',
+  '.....KPPPPKKKK..',
+  '....KPPPPPKWWK..',
+  '...KPPYYPPKWWWK.',
+  '..KPPPYYYPPKKKK.',
+  '..KPPPYYYPPPK...',
+  '..KDDPYYYYPPK...',
+  '...KKKYYYYPPK...',
+  '.....KPPPPPPK...',
+  '.....KPPPKPPK...',
+  '....KOOOKKOOOK..',
+  '....KKKKKKOOOK..',
+  '.........KKKKK..',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+  '................',
+];
+
+const REX_HALF = [
+  '................',
+  '................',
+  '....KKKKKKKK....',
+  '..KKPPPPPPPPKK..',
+  '.KPPKWKPPPPPPPK.',
+  'KPPPKWKPPPPPPWWK',
+  'KPPPPPPPPPPKKKK.',
+  'KDDPPYYYYYPPPK..',
+  '.KKKKYYYYYYPPK..',
+  '....KPPPPPPPPK..',
+  '...KOOOK..KOOOK.',
+  '..KOOOOK..KOOOOK',
+  '..KKKKKK..KKKKKK',
+  '................',
+  '................',
+  '................',
+];
+
+// SMW Chargin' Chuck (20x24 football helmet armored Koopa!)
+const CHUCK_PAL: PaletteMap = {
+  '.': 'transparent',
+  K: '#0f172a',
+  B: '#2563eb', // Blue helmet & pads
+  L: '#60a5fa',
+  W: '#ffffff', // Helmet stripe & facemask
+  Y: '#facc15', // Koopa skin
+  G: '#16a34a', // Shell
+  R: '#ef4444', // Cleats
+};
+
+const CHUCK_IDLE = [
+  '......KKKKKKKK......',
+  '....KKBBWWWWBBKK....',
+  '...KBBBBWWWWBBBBK...',
+  '..KBBBBBWWWWBBBBBK..',
+  '..KWWKKKKKKKKKKWWK..',
+  '..KWKYYYYKYYYYKWK...',
+  '..KWKYKWYKYKWYKWK...',
+  '..KWWKKKKKKKKWWWK...',
+  '..KKBBBBWWWWBBBBKK..',
+  '.KLLBBBBWWWWBBBBLLK.',
+  'KLLLBBBBBBBBBBBBLLLK',
+  'KBBBBBBBGGGGGBBBBBBK',
+  '.KKKKKKGGGGGGGKKKKK.',
+  '.....KYYYYYYYYYK....',
+  '....KYYYYK.KYYYYK...',
+  '...KRRRRK...KRRRRK..',
+  '..KRRRRRK...KRRRRRK.',
+  '..KKKKKKK...KKKKKKK.',
+  '....................',
+  '....................',
+  '....................',
+  '....................',
+  '....................',
+  '....................',
+];
+
+const CHUCK_CHARGE = [
+  '....................',
+  '....KKKKKKKK........',
+  '..KKBBWWWWBBKK......',
+  '.KBBBBWWWWBBBBKK....',
+  'KWWKKKKKKKKKKBBBBK..',
+  'KWKYYYYKYYYYKBBBBLLK',
+  'KWKYKWYKYKWYKBBBLLLK',
+  'KWWKKKKKKKKKGGGGGBBK',
+  '.KKBBBBWWWWGGGGGGGKK',
+  'KLLBBBBBBBBYYYYYYYK.',
+  'KBBBBBBBBBYYYYKYYYK.',
+  '.KKKKKKKKKRRRRKRRRRK',
+  '........KRRRRRKRRRRK',
+  '........KKKKKK.KKKKK',
+  '....................',
+  '....................',
+  '....................',
+  '....................',
+  '....................',
+  '....................',
+  '....................',
+  '....................',
+  '....................',
+  '....................',
+];
+
+// SMW Bullet Bill (16x16 sleek cannonball!)
+const BULLET_PAL: PaletteMap = {
+  '.': 'transparent',
+  K: '#090d16',
+  D: '#1e293b',
+  L: '#64748b',
+  W: '#ffffff',
+  R: '#ef4444',
+};
+
+const BULLET_BILL_1 = [
+  '................',
+  '....KKKKKKKKKK..',
+  '..KKLLLLDDDDDDKK',
+  '.KLLDDDDDDDDDRKK',
+  'KLDDWWWWDDDDDDRK',
+  'KDDWWKKWWDDDDDRK',
+  'KDDWWKKWWDDDDKDK',
+  'KDDDDWWDDWWWWKDK',
+  'KDDDDDDDWWWWWWDK',
+  'KDDDDDDDDWWWWDDK',
+  '.KDDDDDDDDDDDDKK',
+  '..KKKKKKKKKKKK..',
+  '................',
+  '................',
+  '................',
+  '................',
+];
+
 export function buildAllSpriteDefinitions(): Record<string, PixelSpriteDef> {
   const defs: Record<string, PixelSpriteDef> = {};
 
@@ -1594,6 +2269,70 @@ export function buildAllSpriteDefinitions(): Record<string, PixelSpriteDef> {
     palette: { '.': 'transparent', K: '#7f1d1d', R: '#dc2626', O: '#f97316', Y: '#facc15', W: '#ffffff' },
     extrude: true,
   };
+
+  // Super Plomero World (SMW 16-bit) Cape, Yoshi, Items, Blocks & Enemies
+  defs.cape_back_idle = { width: 16, height: 16, rows: CAPE_BACK_IDLE, palette: CAPE_PAL };
+  defs.cape_back_flutter = { width: 16, height: 16, rows: CAPE_BACK_FLUTTER, palette: CAPE_PAL };
+  defs.cape_parachute = { width: 16, height: 16, rows: CAPE_PARACHUTE, palette: CAPE_PAL };
+  defs.hero_cape_fly1 = { width: 24, height: 16, rows: HERO_CAPE_FLY1, palette: CAPE_PAL };
+  defs.hero_cape_fly2 = { width: 24, height: 16, rows: HERO_CAPE_FLY2, palette: CAPE_PAL };
+  defs.hero_cape_spin = {
+    width: 24,
+    height: 24,
+    rows: bottomAlignRows(HERO_CAPE_SPIN1, 24),
+    palette: CAPE_PAL,
+  };
+
+  defs.yoshi_idle = { width: 20, height: 24, rows: bottomAlignRows(YOSHI_IDLE, 24), palette: YOSHI_PAL };
+  defs.yoshi_run1 = { width: 20, height: 24, rows: bottomAlignRows(YOSHI_RUN1, 24), palette: YOSHI_PAL };
+  defs.yoshi_run2 = { width: 20, height: 24, rows: bottomAlignRows(YOSHI_RUN2, 24), palette: YOSHI_PAL };
+  defs.yoshi_eat = { width: 20, height: 24, rows: bottomAlignRows(YOSHI_EAT, 24), palette: YOSHI_PAL };
+  defs.yoshi_egg_1 = { width: 16, height: 16, rows: YOSHI_EGG_1, palette: YOSHI_PAL };
+  defs.yoshi_egg_2 = { width: 16, height: 16, rows: YOSHI_EGG_2, palette: YOSHI_PAL };
+
+  defs.feather_1 = { width: 16, height: 16, rows: FEATHER_1, palette: ITEM_PAL };
+  defs.feather_2 = { width: 16, height: 16, rows: FEATHER_2, palette: ITEM_PAL };
+  defs.dragon_coin_1 = { width: 16, height: 24, rows: DRAGON_COIN_1, palette: ITEM_PAL };
+  defs.dragon_coin_2 = { width: 16, height: 24, rows: DRAGON_COIN_2, palette: ITEM_PAL };
+  defs.berry_red = { width: 16, height: 16, rows: BERRY_RED, palette: ITEM_PAL };
+
+  defs.tile_rotating_idle = {
+    width: 16,
+    height: 16,
+    rows: ROTATING_BLOCK_IDLE,
+    palette: {
+      K: '#261008',
+      L: '#fef9c3',
+      Y: '#facc15',
+      M: '#eab308',
+      D: '#a16207',
+      W: '#ffffff',
+    },
+    extrude: true,
+  };
+  defs.tile_rotating_spin = {
+    width: 16,
+    height: 16,
+    rows: ROTATING_BLOCK_SPIN,
+    palette: {
+      '.': 'transparent',
+      K: '#261008',
+      L: '#fef9c3',
+      Y: '#facc15',
+      M: '#eab308',
+      D: '#a16207',
+      W: '#ffffff',
+    },
+  };
+
+  defs.galoomba_walk1 = { width: 16, height: 16, rows: GALOOMBA_WALK1, palette: GALOOMBA_PAL };
+  defs.galoomba_walk2 = { width: 16, height: 16, rows: GALOOMBA_WALK2, palette: GALOOMBA_PAL };
+  defs.rex_walk1 = { width: 16, height: 24, rows: bottomAlignRows(REX_WALK1, 24), palette: REX_PAL };
+  defs.rex_walk2 = { width: 16, height: 24, rows: bottomAlignRows(REX_WALK2, 24), palette: REX_PAL };
+  defs.rex_half = { width: 16, height: 16, rows: REX_HALF, palette: REX_PAL };
+  defs.chuck_idle = { width: 20, height: 24, rows: bottomAlignRows(CHUCK_IDLE, 24), palette: CHUCK_PAL };
+  defs.chuck_charge = { width: 20, height: 24, rows: bottomAlignRows(CHUCK_CHARGE, 24), palette: CHUCK_PAL };
+  defs.bullet_bill = { width: 16, height: 16, rows: BULLET_BILL_1, palette: BULLET_PAL };
 
   for (const biomeId of Object.keys(BIOMES) as BiomeId[]) {
     Object.assign(defs, makeBiomeTiles(BIOMES[biomeId]));

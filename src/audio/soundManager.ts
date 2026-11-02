@@ -6,14 +6,22 @@ import { synthesizeBgmWav, synthesizeSfxWav } from './wavSynth';
 const ALL_SFX: SfxId[] = [
   'jump',
   'jump_big',
+  'spin_jump',
   'skid',
   'coin',
+  'dragon_coin',
   'bump',
   'break_block',
   'stomp',
   'kick',
   'powerup_spawn',
   'powerup_collect',
+  'feather_get',
+  'cape_spin',
+  'yoshi_mount',
+  'yoshi_tongue',
+  'yoshi_swallow',
+  'yoshi_spit',
   'one_up',
   'fireball',
   'power_down',
@@ -33,13 +41,19 @@ const ALL_BGM: BgmTrackId[] = [
   'athletic',
   'fortress',
   'starman',
+  'smw_overworld',
+  'smw_athletic',
 ];
 
 // Rapid-fire sound effects use a small round-robin player pool to prevent cutoffs
 const POOL_SIZES: Partial<Record<SfxId, number>> = {
   coin: 3,
+  dragon_coin: 2,
   jump: 2,
   jump_big: 2,
+  spin_jump: 2,
+  cape_spin: 2,
+  yoshi_tongue: 2,
   stomp: 2,
   bump: 2,
   break_block: 2,
@@ -68,7 +82,7 @@ class RetroSoundManager {
           interruptionMode: 'mixWithOthers',
         });
 
-        const cacheDir = new Directory(Paths.cache, 'super_plomero_audio_v2');
+        const cacheDir = new Directory(Paths.cache, 'super_plomero_audio_v3');
         if (!cacheDir.exists) {
           cacheDir.create({ idempotent: true });
         }

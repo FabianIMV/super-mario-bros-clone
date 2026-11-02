@@ -122,6 +122,76 @@ export function synthesizeSfxWav(id: SfxId): Uint8Array {
         [{ wave: 'pulse50', startSec: 0, durSec: 0.2, freqStart: 165, freqEnd: 520, gain: 0.36 }],
         0.21
       );
+    case 'spin_jump':
+      return renderToneEvents(
+        [
+          { wave: 'pulse25', startSec: 0, durSec: 0.08, freqStart: 320, freqEnd: 780, gain: 0.34 },
+          { wave: 'pulse50', startSec: 0.08, durSec: 0.1, freqStart: 420, freqEnd: 980, gain: 0.32 },
+        ],
+        0.19
+      );
+    case 'dragon_coin':
+      return renderToneEvents(
+        [
+          { wave: 'pulse50', startSec: 0, durSec: 0.07, freqStart: 1046.5, gain: 0.35, decay: false },
+          { wave: 'pulse50', startSec: 0.07, durSec: 0.07, freqStart: 1318.5, gain: 0.35, decay: false },
+          { wave: 'pulse25', startSec: 0.14, durSec: 0.28, freqStart: 1567.98, gain: 0.36 },
+        ],
+        0.43
+      );
+    case 'feather_get': {
+      const notes = [65, 69, 72, 77, 81, 84];
+      return renderToneEvents(
+        notes.map((m, idx) => ({
+          wave: 'pulse50' as const,
+          startSec: idx * 0.048,
+          durSec: 0.08,
+          freqStart: midiFreq(m),
+          gain: 0.34,
+        })),
+        0.38
+      );
+    }
+    case 'cape_spin':
+      return renderToneEvents(
+        [
+          { wave: 'noise', startSec: 0, durSec: 0.12, freqStart: 1100, freqEnd: 380, gain: 0.28 },
+          { wave: 'pulse25', startSec: 0, durSec: 0.11, freqStart: 540, freqEnd: 260, gain: 0.24 },
+        ],
+        0.13
+      );
+    case 'yoshi_mount':
+      return renderToneEvents(
+        [
+          { wave: 'triangle', startSec: 0, durSec: 0.09, freqStart: 380, freqEnd: 590, gain: 0.45 },
+          { wave: 'pulse50', startSec: 0.09, durSec: 0.16, freqStart: 620, freqEnd: 980, gain: 0.36 },
+        ],
+        0.26
+      );
+    case 'yoshi_tongue':
+      return renderToneEvents(
+        [
+          { wave: 'pulse50', startSec: 0, durSec: 0.08, freqStart: 280, freqEnd: 740, gain: 0.34 },
+          { wave: 'triangle', startSec: 0.06, durSec: 0.09, freqStart: 740, freqEnd: 460, gain: 0.36 },
+        ],
+        0.16
+      );
+    case 'yoshi_swallow':
+      return renderToneEvents(
+        [
+          { wave: 'triangle', startSec: 0, durSec: 0.09, freqStart: 310, freqEnd: 140, gain: 0.45 },
+          { wave: 'pulse50', startSec: 0.08, durSec: 0.1, freqStart: 220, freqEnd: 480, gain: 0.32 },
+        ],
+        0.19
+      );
+    case 'yoshi_spit':
+      return renderToneEvents(
+        [
+          { wave: 'noise', startSec: 0, durSec: 0.16, freqStart: 680, freqEnd: 210, gain: 0.38 },
+          { wave: 'pulse12', startSec: 0, durSec: 0.15, freqStart: 620, freqEnd: 180, gain: 0.32 },
+        ],
+        0.17
+      );
     case 'skid':
       return renderToneEvents(
         [
@@ -502,6 +572,96 @@ export function synthesizeBgmWav(track: BgmTrackId): Uint8Array {
       }
     }
     return renderToneEvents(events, arp.length * step);
+  }
+
+  if (track === 'smw_overworld') {
+    // Bouncy 16-bit Dinosaur Island Calypso / Ragtime with Yoshi Bongo Percussion!
+    const step = 0.125;
+    const lead = [
+      72, 0, 69, 0, 65, 0, 69, 72, 77, 0, 76, 74, 72, 0, 0, 0,
+      74, 0, 71, 0, 67, 0, 71, 74, 79, 0, 77, 76, 74, 0, 72, 0,
+      69, 0, 72, 0, 77, 0, 81, 0, 79, 0, 76, 0, 72, 0, 69, 0,
+      70, 0, 74, 0, 72, 0, 69, 0, 65, 0, 69, 72, 65, 0, 0, 0,
+    ];
+    const bass = [
+      53, 60, 57, 60, 53, 60, 57, 60, 55, 62, 59, 62, 48, 55, 52, 55,
+      53, 60, 57, 60, 52, 59, 55, 59, 46, 53, 48, 55, 53, 60, 53, 48,
+    ];
+    for (let i = 0; i < lead.length; i++) {
+      if (lead[i] > 0) {
+        events.push({
+          wave: 'pulse50',
+          startSec: i * step,
+          durSec: step * 0.85,
+          freqStart: midiFreq(lead[i]),
+          gain: 0.17,
+        });
+      }
+      if (i % 2 === 0) {
+        events.push({
+          wave: 'triangle',
+          startSec: i * step,
+          durSec: step * 1.55,
+          freqStart: midiFreq(bass[(i >> 1) % bass.length]),
+          gain: 0.25,
+          decay: false,
+        });
+      }
+      // Syncopated Yoshi Bongo tom hits!
+      if (i % 4 === 1 || i % 8 === 6) {
+        events.push({
+          wave: 'triangle',
+          startSec: i * step,
+          durSec: 0.045,
+          freqStart: i % 8 === 6 ? 410 : 290,
+          freqEnd: 160,
+          gain: 0.16,
+        });
+      }
+    }
+    return renderToneEvents(events, lead.length * step);
+  }
+
+  if (track === 'smw_athletic') {
+    const step = 0.112;
+    const lead = [
+      76, 0, 79, 81, 84, 0, 81, 0, 79, 0, 76, 74, 72, 0, 0, 0,
+      74, 0, 77, 79, 83, 0, 79, 0, 77, 0, 74, 71, 72, 0, 76, 0,
+      79, 0, 84, 0, 86, 84, 81, 0, 79, 0, 76, 0, 72, 0, 74, 0,
+      76, 0, 74, 0, 72, 0, 79, 0, 72, 0, 0, 0, 0, 0, 0, 0,
+    ];
+    const bass = [48, 55, 52, 55, 50, 57, 55, 59];
+    for (let i = 0; i < lead.length; i++) {
+      if (lead[i] > 0) {
+        events.push({
+          wave: 'pulse25',
+          startSec: i * step,
+          durSec: step * 0.82,
+          freqStart: midiFreq(lead[i]),
+          gain: 0.17,
+        });
+      }
+      if (i % 2 === 0) {
+        events.push({
+          wave: 'triangle',
+          startSec: i * step,
+          durSec: step * 1.6,
+          freqStart: midiFreq(bass[(i >> 1) % bass.length]),
+          gain: 0.25,
+          decay: false,
+        });
+      }
+      if (i % 4 === 2) {
+        events.push({
+          wave: 'noise',
+          startSec: i * step,
+          durSec: 0.03,
+          freqStart: 1350,
+          gain: 0.08,
+        });
+      }
+    }
+    return renderToneEvents(events, lead.length * step);
   }
 
   // Starman Invincibility Rush!

@@ -10,6 +10,11 @@ export const DEFAULT_PROGRESS: SaveProgress = {
   clearedLevels: [],
   bestStageScores: {},
   totalCoins: 0,
+  smwHighScore: 0,
+  smwUnlockedLevel: 0,
+  smwClearedLevels: [],
+  smwBestStageScores: {},
+  lastPartition: 'smw',
 };
 
 export const DEFAULT_SETTINGS: GameSettings = {
@@ -32,6 +37,14 @@ export async function loadProgress(): Promise<SaveProgress> {
       clearedLevels: Array.isArray(parsed.clearedLevels) ? parsed.clearedLevels : [],
       bestStageScores: parsed.bestStageScores ?? {},
       totalCoins: typeof parsed.totalCoins === 'number' ? parsed.totalCoins : 0,
+      smwHighScore: typeof parsed.smwHighScore === 'number' ? parsed.smwHighScore : 0,
+      smwUnlockedLevel: typeof parsed.smwUnlockedLevel === 'number' ? parsed.smwUnlockedLevel : 0,
+      smwClearedLevels: Array.isArray(parsed.smwClearedLevels) ? parsed.smwClearedLevels : [],
+      smwBestStageScores: parsed.smwBestStageScores ?? {},
+      lastPartition:
+        parsed.lastPartition === 'classic' || parsed.lastPartition === 'smw'
+          ? parsed.lastPartition
+          : 'smw',
     };
   } catch {
     return { ...DEFAULT_PROGRESS };

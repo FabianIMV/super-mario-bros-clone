@@ -1,8 +1,10 @@
 import {
   BIOMES,
   GROUND_ROW,
+  MIN_CAMERA_WORLD_X,
   STAGES_PER_WORLD,
   TILE,
+  TOTAL_LEVELS,
   getStageBiome,
   getWorldLabel,
 } from '../engine/biomes';
@@ -16,6 +18,7 @@ import type {
   EnemyType,
   FlagpoleGoal,
   FortressBoss,
+  GamePartition,
   MovingPlatform,
   Pipe,
   Player,
@@ -24,6 +27,7 @@ import type {
   Spring,
   WorldState,
 } from '../engine/types';
+import { buildSmwWorldState } from './smwLevelBuilder';
 
 const STAGE_TITLES: string[] = [
   // World 1
@@ -62,8 +66,11 @@ export function gridKey(col: number, row: number): number {
   return row * 1024 + col;
 }
 
-export function createInitialPlayer(powerState: PowerState = 0): Player {
-  const height = powerState > 0 ? 46 : 30;
+export function createInitialPlayer(
+  powerState: PowerState = 0,
+  mountedYoshi = false
+): Player {
+  const height = mountedYoshi ? 52 : powerState > 0 ? 46 : 30;
   return {
     x: 2.5 * TILE,
     y: GROUND_ROW * TILE - height,
@@ -87,6 +94,17 @@ export function createInitialPlayer(powerState: PowerState = 0): Player {
     animTimer: 0,
     dead: false,
     enteringCastle: false,
+    pMeter: 0,
+    capeFlying: false,
+    capeFlightTimer: 0,
+    capeDiveSpeed: 0,
+    capeSpinTimer: 0,
+    spinJumping: false,
+    mountedYoshi,
+    yoshiTongueTimer: 0,
+    yoshiTonguePhase: 0,
+    yoshiMouthItem: 'none',
+    berriesEaten: 0,
   };
 }
 
@@ -137,6 +155,7 @@ function putBlock(
     coinsRemaining: content === 'multi_coin' ? 6 : content === 'coin' ? 1 : 0,
     bounceY: 0,
     bounceVel: 0,
+    spinTimer: 0,
   };
   ctx.blocks.push(block);
   ctx.blockGrid.set(key, block);
@@ -191,6 +210,7 @@ function addPipe(ctx: BuilderCtx, col: number, heightTiles: number, hasPiranha: 
       height: piranhaH,
       facing: -1,
       onGround: false,
+      hp: 1,
       stateTimer: (col * 17) % 90,
       kickGraceTimer: 0,
       shellCombo: 0,
@@ -221,6 +241,7 @@ function addEnemy(ctx: BuilderCtx, col: number, rowAboveBottom: number, type: En
     height,
     facing: -1,
     onGround: false,
+    hp: 1,
     stateTimer: 0,
     kickGraceTimer: 0,
     shellCombo: 0,
@@ -725,11 +746,16 @@ export function buildWorldState(
     coins: number;
     lives: number;
     powerState: PowerState;
+    mountedYoshi?: boolean;
     checkpointX?: number | null;
     checkpointY?: number | null;
     doubleJumpAssist?: boolean;
-  }
+  },
+  partition: GamePartition = 'classic'
 ): WorldState {
+  if (partition === 'smw') {
+    return buildSmwWorldState(levelIndex, carryState);
+  }
   const clampedIdx = Math.max(0, Math.min(levelIndex, 23));
   const worldNum = Math.floor(clampedIdx / STAGES_PER_WORLD) + 1;
   const stageNum = (clampedIdx % STAGES_PER_WORLD) + 1;
@@ -826,37 +852,37 @@ export function buildWorldState(
     activated: alreadyAtCheckpoint,
   };
 
-  // Parallax Scenery Props
+  // Parallax Scenery Props (start at i=-1 so negative left camera has seamless hills & clouds!)
   const sceneries: SceneryProp[] = [];
-  for (let i = 0; i < Math.ceil(totalCols / 6); i++) {
+  for (let i = -1; i < Math.ceil(totalCols / 6); i++) {
     if (biome.underground) {
       sceneries.push({
         kind: ctx.isFortress ? 'banner' : 'pillar',
         x: i * 240 + 60,
         y: TILE,
-        scale: (i % 2) + 1,
+        scale: (Math.abs(i) % 2) + 1,
         parallax: 0.55,
       });
     } else {
       sceneries.push({
         kind: 'cloud',
         x: i * 220 + 40,
-        y: 36 + (i % 3) * 26,
-        scale: (i % 2) + 1,
+        y: 36 + (Math.abs(i) % 3) * 26,
+        scale: (Math.abs(i) % 2) + 1,
         parallax: 0.35,
       });
       sceneries.push({
         kind: biomeId === 'desert' ? 'dune' : biomeId === 'glacier' ? 'pine' : 'hill',
         x: i * 260 + 20,
         y: GROUND_ROW * TILE,
-        scale: (i % 2) + 1,
+        scale: (Math.abs(i) % 2) + 1,
         parallax: 0.65,
       });
       sceneries.push({
         kind: 'bush',
         x: i * 260 + 165,
         y: GROUND_ROW * TILE,
-        scale: (i % 3) + 1,
+        scale: (Math.abs(i) % 3) + 1,
         parallax: 1.0,
       });
     }
@@ -877,19 +903,22 @@ export function buildWorldState(
     };
   }
 
-  const player = createInitialPlayer(carryState?.powerState ?? 0);
+  const player = createInitialPlayer(carryState?.powerState ?? 0, false);
   if (alreadyAtCheckpoint && carryState?.checkpointX != null) {
     player.x = carryState.checkpointX;
     player.y = GROUND_ROW * TILE - player.height;
   }
 
-  const startCameraX = Math.max(0, player.x - 240);
+  // Start camera with generous left safe zone so Plomero NEVER sits behind the left D-Pad!
+  const startCameraX = Math.max(MIN_CAMERA_WORLD_X, player.x - 304);
 
   return {
+    partition: 'classic',
+    totalStagesInPartition: TOTAL_LEVELS,
     status: 'playing',
     levelIndex: clampedIdx,
-    worldLabel: getWorldLabel(clampedIdx),
-    stageTitle: STAGE_TITLES[clampedIdx] ?? `Etapa ${getWorldLabel(clampedIdx)}`,
+    worldLabel: getWorldLabel(clampedIdx, 'classic'),
+    stageTitle: STAGE_TITLES[clampedIdx] ?? `Etapa ${getWorldLabel(clampedIdx, 'classic')}`,
     biomeId,
     totalCols,
     score: carryState?.score ?? 0,
@@ -915,6 +944,10 @@ export function buildWorldState(
     boss,
     bossFires: [],
     powerups: [],
+    yoshis: [],
+    dragonCoins: [],
+    dragonCoinsCollected: 0,
+    berries: [],
     fireballs: [],
     coinsList: ctx.coins,
     particles: [],
@@ -922,8 +955,10 @@ export function buildWorldState(
     sceneries,
     lavaCols: ctx.lavaCols,
     flagpole,
+    goalTape: null,
     prevJumpHeld: false,
     prevFireHeld: false,
+    prevSpinHeld: false,
     doubleJumpAssist: carryState?.doubleJumpAssist ?? false,
     nextEntityId: ctx.nextId,
   };

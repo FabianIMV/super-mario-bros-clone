@@ -1,9 +1,10 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import type { PowerState } from '../engine/types';
+import type { GamePartition, PowerState } from '../engine/types';
 
 export interface HudSnapshot {
+  partition: GamePartition;
   score: number;
   coins: number;
   worldLabel: string;
@@ -12,6 +13,10 @@ export interface HudSnapshot {
   lives: number;
   powerState: PowerState;
   starActive: boolean;
+  pMeter: number;
+  mountedYoshi: boolean;
+  yoshiFireReady: boolean;
+  dragonCoins: number;
   bossHp: number | null;
   bossMaxHp: number | null;
 }
@@ -22,16 +27,28 @@ interface Props {
   onPausePress: () => void;
 }
 
+const P_THRESHOLDS = [20, 42, 64, 86, 102];
+
 export const HudOverlay: React.FC<Props> = ({ hud, pixelFontLoaded, onPausePress }) => {
   const insets = useSafeAreaInsets();
   const fontFamily = pixelFontLoaded ? 'PressStart2P_400Regular' : undefined;
+  const isSmw = hud.partition === 'smw';
+  const pFull = hud.pMeter >= 108;
 
   const powerBadge = hud.starActive
     ? { label: '★ ESTRELLA', bg: '#eab308', text: '#1c1917' }
+    : hud.powerState === 3
+    ? { label: '🪶 CAPA', bg: '#d97706', text: '#fef9c3' }
     : hud.powerState === 2
     ? { label: '♦ FUEGO', bg: '#ea580c', text: '#ffffff' }
     : hud.powerState === 1
     ? { label: '▲ SUPER', bg: '#16a34a', text: '#ffffff' }
+    : null;
+
+  const yoshiBadge = hud.mountedYoshi
+    ? hud.yoshiFireReady
+      ? { label: '🔥 YOSHI', bg: '#dc2626', text: '#fef08a' }
+      : { label: '🦕 YOSHI', bg: '#15803d', text: '#dcfce7' }
     : null;
 
   return (
@@ -40,9 +57,9 @@ export const HudOverlay: React.FC<Props> = ({ hud, pixelFontLoaded, onPausePress
       style={[
         styles.container,
         {
-          paddingLeft: Math.max(insets.left, 16) + 6,
-          paddingRight: Math.max(insets.right, 16) + 6,
-          paddingTop: Math.max(insets.top, 8),
+          paddingLeft: Math.max(insets.left, 14) + 4,
+          paddingRight: Math.max(insets.right, 14) + 4,
+          paddingTop: Math.max(insets.top, 6),
         },
       ]}
     >
@@ -64,8 +81,24 @@ export const HudOverlay: React.FC<Props> = ({ hud, pixelFontLoaded, onPausePress
           </View>
         </View>
 
+        {isSmw && (
+          <View style={styles.statCol}>
+            <Text style={[styles.statLabel, { fontFamily, color: '#38bdf8' }]}>DRAGÓN</Text>
+            <Text
+              style={[
+                styles.statValue,
+                { fontFamily, color: hud.dragonCoins >= 5 ? '#fde047' : '#bae6fd' },
+              ]}
+            >
+              ◆{hud.dragonCoins}/5
+            </Text>
+          </View>
+        )}
+
         <View style={styles.statCol}>
-          <Text style={[styles.statLabel, { fontFamily, color: '#4ade80' }]}>MUNDO</Text>
+          <Text style={[styles.statLabel, { fontFamily, color: '#4ade80' }]}>
+            {isSmw ? 'ISLA' : 'MUNDO'}
+          </Text>
           <Text style={[styles.statValue, { fontFamily }]}>{hud.worldLabel}</Text>
         </View>
 
@@ -89,10 +122,47 @@ export const HudOverlay: React.FC<Props> = ({ hud, pixelFontLoaded, onPausePress
           </Text>
         </View>
 
+        {isSmw && (
+          <View style={styles.pMeterWrap}>
+            <View style={styles.pArrowsRow}>
+              {P_THRESHOLDS.map((th, idx) => {
+                const lit = hud.pMeter >= th;
+                return (
+                  <View
+                    key={idx}
+                    style={[
+                      styles.pTick,
+                      lit && (pFull ? styles.pTickGold : styles.pTickLit),
+                    ]}
+                  />
+                );
+              })}
+            </View>
+            <View style={[styles.pBadge, pFull && styles.pBadgeFull]}>
+              <Text
+                style={[
+                  styles.pBadgeText,
+                  { fontFamily, color: pFull ? '#1c1917' : '#94a3b8' },
+                ]}
+              >
+                P
+              </Text>
+            </View>
+          </View>
+        )}
+
         {powerBadge && (
           <View style={[styles.powerPill, { backgroundColor: powerBadge.bg }]}>
             <Text style={[styles.powerPillText, { fontFamily, color: powerBadge.text }]}>
               {powerBadge.label}
+            </Text>
+          </View>
+        )}
+
+        {yoshiBadge && (
+          <View style={[styles.powerPill, { backgroundColor: yoshiBadge.bg }]}>
+            <Text style={[styles.powerPillText, { fontFamily, color: yoshiBadge.text }]}>
+              {yoshiBadge.label}
             </Text>
           </View>
         )}
@@ -139,10 +209,10 @@ const styles = StyleSheet.create({
   statsBar: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 16,
-    backgroundColor: 'rgba(9, 13, 22, 0.64)',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
+    gap: 11,
+    backgroundColor: 'rgba(9, 13, 22, 0.68)',
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     borderRadius: 8,
     borderWidth: 2,
     borderColor: 'rgba(255, 255, 255, 0.18)',
@@ -151,16 +221,16 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   statLabel: {
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: '800',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
     textShadowColor: '#000000',
     textShadowOffset: { width: 1, height: 1 },
     textShadowRadius: 0,
   },
   statValue: {
     color: '#ffffff',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '900',
     marginTop: 2,
     textShadowColor: '#000000',
@@ -170,41 +240,85 @@ const styles = StyleSheet.create({
   coinRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     marginTop: 2,
   },
   coinIcon: {
-    width: 8,
-    height: 11,
+    width: 7,
+    height: 10,
     borderRadius: 3,
     backgroundColor: '#facc15',
     borderWidth: 1,
     borderColor: '#fef08a',
   },
-  powerPill: {
-    paddingHorizontal: 7,
+  pMeterWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(2, 6, 23, 0.72)',
+    paddingHorizontal: 6,
     paddingVertical: 4,
+    borderRadius: 5,
+    borderWidth: 1,
+    borderColor: '#334155',
+  },
+  pArrowsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 2,
+  },
+  pTick: {
+    width: 5,
+    height: 9,
+    borderRadius: 1.5,
+    backgroundColor: '#1e293b',
+  },
+  pTickLit: {
+    backgroundColor: '#38bdf8',
+  },
+  pTickGold: {
+    backgroundColor: '#fde047',
+  },
+  pBadge: {
+    paddingHorizontal: 4,
+    paddingVertical: 2,
+    borderRadius: 3,
+    backgroundColor: '#1e293b',
+    borderWidth: 1,
+    borderColor: '#475569',
+  },
+  pBadgeFull: {
+    backgroundColor: '#facc15',
+    borderColor: '#fef9c3',
+  },
+  pBadgeText: {
+    fontSize: 7,
+    fontWeight: '900',
+  },
+  powerPill: {
+    paddingHorizontal: 6,
+    paddingVertical: 3,
     borderRadius: 5,
     borderWidth: 1.5,
     borderColor: '#ffffff',
   },
   powerPillText: {
-    fontSize: 8,
+    fontSize: 7,
     fontWeight: '900',
   },
   rightCluster: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 8,
   },
   bossBarBox: {
     backgroundColor: 'rgba(24, 5, 5, 0.85)',
-    paddingHorizontal: 8,
-    paddingVertical: 5,
+    paddingHorizontal: 7,
+    paddingVertical: 4,
     borderRadius: 6,
     borderWidth: 2,
     borderColor: '#ef4444',
-    width: 112,
+    width: 104,
   },
   bossLabel: {
     color: '#fca5a5',
@@ -214,7 +328,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   bossTrack: {
-    height: 7,
+    height: 6,
     backgroundColor: '#450a0a',
     borderRadius: 2,
     overflow: 'hidden',
@@ -224,8 +338,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#ef4444',
   },
   pauseBtn: {
-    width: 38,
-    height: 36,
+    width: 36,
+    height: 34,
     borderRadius: 8,
     backgroundColor: 'rgba(15, 23, 42, 0.85)',
     borderWidth: 2,
@@ -239,7 +353,7 @@ const styles = StyleSheet.create({
   },
   pauseText: {
     color: '#f8fafc',
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '900',
   },
 });

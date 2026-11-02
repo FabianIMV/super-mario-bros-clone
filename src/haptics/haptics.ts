@@ -4,15 +4,53 @@ import type { HapticKind } from '../engine/types';
 class TapticController {
   private enabled = true;
   private lastTickMs = 0;
+  private lastArrowMs = 0;
 
   setEnabled(enabled: boolean): void {
     this.enabled = enabled;
   }
 
+  /**
+   * Maximum-intensity multi-pulse Taptic slam for D-Pad directional arrows on iPhone 12!
+   * Fires an immediate Heavy + Warning burst followed by resonant Heavy & Rigid follow-throughs.
+   */
+  triggerDpadArrow(): void {
+    if (!this.enabled) return;
+    const now = Date.now();
+    if (now - this.lastArrowMs < 24) return;
+    this.lastArrowMs = now;
+
+    try {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+      void Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
+      setTimeout(() => {
+        if (!this.enabled) return;
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy).catch(() => {});
+      }, 32);
+      setTimeout(() => {
+        if (!this.enabled) return;
+        void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Rigid).catch(() => {});
+      }, 64);
+    } catch {
+      // Ignore on web / unsupported platforms
+    }
+  }
+
+  /**
+   * Strong crisp punch for arcade face buttons (A, B, X, Y).
+   */
+  triggerActionButton(): void {
+    if (!this.enabled) return;
+    try {
+      void Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Heavy);
+    } catch {
+      // Ignore on web / unsupported platforms
+    }
+  }
+
   trigger(kind: HapticKind): void {
     if (!this.enabled) return;
     const now = Date.now();
-    // Prevent motor saturation when picking up dense coin rows
     if (kind === 'tick' && now - this.lastTickMs < 42) return;
     this.lastTickMs = now;
 

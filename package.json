@@ -5,27 +5,29 @@
   "dependencies": {
     "@expo-google-fonts/press-start-2p": "^0.4.1",
     "@react-native-async-storage/async-storage": "2.2.0",
-    "@shopify/react-native-skia": "2.6.2",
-    "expo": "~57.0.31",
-    "expo-asset": "~57.0.20",
-    "expo-audio": "~57.0.5",
-    "expo-constants": "~57.0.22",
-    "expo-file-system": "~57.0.7",
-    "expo-font": "~57.0.4",
-    "expo-haptics": "~57.0.3",
-    "expo-keep-awake": "~57.0.2",
-    "expo-linear-gradient": "~57.0.2",
-    "expo-screen-orientation": "~57.0.3",
-    "expo-status-bar": "~57.0.1",
-    "react": "19.2.3",
-    "react-native": "0.86.3",
-    "react-native-gesture-handler": "~2.32.0",
-    "react-native-reanimated": "4.5.1",
-    "react-native-safe-area-context": "~5.7.0",
-    "react-native-worklets": "0.10.1"
+    "@shopify/react-native-skia": "2.14.0",
+    "expo": "~58.0.22",
+    "expo-asset": "~58.0.19",
+    "expo-audio": "~58.0.11",
+    "expo-constants": "~58.0.14",
+    "expo-file-system": "~58.0.13",
+    "expo-font": "~58.0.11",
+    "expo-haptics": "~58.0.7",
+    "expo-keep-awake": "~58.0.3",
+    "expo-linear-gradient": "~58.0.3",
+    "expo-screen-orientation": "~58.0.3",
+    "expo-status-bar": "~58.0.4",
+    "expo-updates": "~58.0.20",
+    "react": "19.3.0",
+    "react-native": "0.88.1",
+    "react-native-gesture-handler": "~3.3.0",
+    "react-native-reanimated": "4.7.1",
+    "react-native-safe-area-context": "~5.10.1",
+    "react-native-worklets": "0.13.0"
   },
   "devDependencies": {
-    "@types/react": "~19.2.2",
+    "@types/node": "^22.14.0",
+    "@types/react": "~19.3.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -35,10 +37,6 @@
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
     "verify": "tsc --ignoreConfig --target ES2022 --module commonjs --esModuleInterop --skipLibCheck --types node --outDir /tmp/spb-verify scripts/verify-game.ts && node /tmp/spb-verify/scripts/verify-game.js"
-  },
-  "overrides": {
-    "expo-asset": "~57.0.20",
-    "expo-constants": "~57.0.22"
   },
   "private": true
 }

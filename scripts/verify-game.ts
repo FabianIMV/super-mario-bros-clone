@@ -5,9 +5,17 @@ import * as zlib from 'node:zlib';
 import { buildSpriteAtlasBuffer } from '../src/art/atlasBuilder';
 import { buildAllSpriteDefinitions } from '../src/art/sprites';
 import { synthesizeBgmWav, synthesizeSfxWav } from '../src/audio/wavSynth';
-import { BIOMES, GROUND_ROW, LOGICAL_HEIGHT, TILE, TOTAL_LEVELS } from '../src/engine/biomes';
+import {
+  BIOMES,
+  GROUND_ROW,
+  LOGICAL_HEIGHT,
+  SMW_TOTAL_LEVELS,
+  TILE,
+  TOTAL_LEVELS,
+  WORLD_VERTICAL_LIFT,
+} from '../src/engine/biomes';
 import { stepWorld } from '../src/engine/physics';
-import type { BgmTrackId, InputState, SfxId } from '../src/engine/types';
+import type { BgmTrackId, Enemy, GamePartition, InputState, SfxId } from '../src/engine/types';
 import { buildWorldState, gridKey } from '../src/levels/levelBuilder';
 
 // ============================================================================
@@ -112,10 +120,12 @@ function assert(cond: boolean, msg: string): void {
 const NO_INPUT: InputState = {
   left: false,
   right: false,
+  up: false,
   down: false,
   jump: false,
   run: false,
   fire: false,
+  spin: false,
 };
 
 // ============================================================================
@@ -331,6 +341,49 @@ for (let idx = 0; idx < TOTAL_LEVELS; idx++) {
 console.log('   ✔ All 24 stages passed structural, spawn, checkpoint, boss & gap solvability checks.');
 
 // ============================================================================
+// 2b. Validate All 20 Super Plomero World Stages (Y-1 through K-4)
+// ============================================================================
+console.log('2b. Validating all 20 Super Plomero World stages (Y-1 .. K-4)...');
+assert(SMW_TOTAL_LEVELS === 20, `Expected 20 SMW levels, got ${SMW_TOTAL_LEVELS}`);
+const smwLabels = new Set<string>();
+for (let idx = 0; idx < SMW_TOTAL_LEVELS; idx++) {
+  const w = buildWorldState(idx, undefined, 'smw');
+  const isCastle = idx % 4 === 3;
+  assert(w.partition === 'smw', `SMW stage ${idx} has wrong partition`);
+  assert(w.totalStagesInPartition === 20, `SMW stage ${w.worldLabel} wrong total`);
+  assert(!smwLabels.has(w.worldLabel), `Duplicate SMW label ${w.worldLabel}`);
+  smwLabels.add(w.worldLabel);
+  assert(w.blocks.length > 80, `SMW stage ${w.worldLabel} has too few blocks`);
+  assert(w.dragonCoins.length === 5, `SMW stage ${w.worldLabel} needs 5 Dragon Coins, got ${w.dragonCoins.length}`);
+  const spawnCol = Math.floor(w.player.x / TILE);
+  assert(
+    w.blockGrid.has(gridKey(spawnCol, GROUND_ROW)),
+    `SMW stage ${w.worldLabel} spawn col ${spawnCol} has no ground`
+  );
+  let gap = 0;
+  for (let col = 0; col < w.totalCols - 8; col++) {
+    const solid =
+      w.blockGrid.has(gridKey(col, GROUND_ROW)) ||
+      [6, 7, 8, 9, 10].some((r) => w.blockGrid.has(gridKey(col, r))) ||
+      w.platforms.some((pl) => Math.abs(pl.startX - col * TILE) <= 6 * TILE);
+    gap = solid ? 0 : gap + 1;
+    assert(gap <= 4, `SMW stage ${w.worldLabel} has unbridged gap > 4 at col ${col}`);
+  }
+  if (isCastle) {
+    assert(w.boss !== null, `SMW castle ${w.worldLabel} missing Rey Koopa`);
+  } else {
+    assert(w.goalTape !== null, `SMW stage ${w.worldLabel} missing Giant Gate goal tape`);
+  }
+}
+{
+  const y1 = buildWorldState(0, undefined, 'smw');
+  assert(y1.blocks.some((b) => b.content === 'yoshi_egg'), 'Y-1 must contain a Yoshi Egg block');
+  assert(y1.blocks.some((b) => b.content === 'feather'), 'Y-1 must contain a Cape Feather block');
+  assert(y1.blocks.some((b) => b.type === 'rotating'), 'Y-1 must contain Rotating blocks');
+}
+console.log(`   ✔ All 20 SMW stages valid (${Array.from(smwLabels).join(' ')}).`);
+
+// ============================================================================
 // 3. Validate Authentic Platformer Physics Invariants
 // ============================================================================
 console.log('3. Running frame-accurate 60Hz physics invariant tests...');
@@ -422,6 +475,7 @@ assert(
       kickGraceTimer: 0,
       shellCombo: 0,
       animTimer: 0,
+      hp: 1,
       active: true,
     },
     {
@@ -441,6 +495,7 @@ assert(
       kickGraceTimer: 0,
       shellCombo: 0,
       animTimer: 0,
+      hp: 1,
       active: true,
     },
     {
@@ -460,6 +515,7 @@ assert(
       kickGraceTimer: 0,
       shellCombo: 0,
       animTimer: 0,
+      hp: 1,
       active: true,
     },
   ];
@@ -504,6 +560,168 @@ assert(
   assert(w.levelIndex === 4, `After 1-4 boss collapse, should advance to 2-1 (idx 4), got ${w.levelIndex}`);
 }
 
+// 3f. SMW: Yoshi Egg hatch -> Mount -> Tongue eats Red Koopa -> Triple Fireball spit!
+function makeEnemy(id: number, type: Enemy['type'], col: number, h: number): Enemy {
+  return {
+    id,
+    type,
+    state: 'walk',
+    x: col * TILE,
+    y: GROUND_ROW * TILE - h,
+    baseY: GROUND_ROW * TILE - h,
+    vx: 0,
+    vy: 0,
+    width: 26,
+    height: h,
+    facing: -1,
+    onGround: true,
+    hp: type === 'rex' ? 2 : 1,
+    stateTimer: 0,
+    kickGraceTimer: 0,
+    shellCombo: 0,
+    animTimer: 0,
+    active: true,
+  };
+}
+{
+  const w = buildWorldState(0, undefined, 'smw');
+  w.enemies = [];
+  const eggBlock = w.blocks.find((b) => b.content === 'yoshi_egg')!;
+  // Stand beneath egg block and jump into it
+  w.player.x = eggBlock.x + 5;
+  w.player.y = GROUND_ROW * TILE - w.player.height;
+  w.player.onGround = true;
+  let hatched = false;
+  for (let f = 0; f < 40 && !hatched; f++) {
+    stepWorld(w, { ...NO_INPUT, jump: f < 14 }, 960);
+    if (w.yoshis.length > 0) hatched = true;
+  }
+  assert(hatched, 'Bumping Yoshi Egg block should hatch a Yoshi');
+  for (let f = 0; f < 140 && !w.player.mountedYoshi; f++) {
+    const yo = w.yoshis[0];
+    const dir = yo && yo.x > w.player.x ? { right: true } : { left: true };
+    stepWorld(w, { ...NO_INPUT, ...dir }, 960);
+  }
+  assert(w.player.mountedYoshi, 'Plomero should mount Yoshi on contact');
+
+  // Clear area, place Red Koopa right in front, flick tongue
+  w.player.x = 30 * TILE;
+  w.player.y = GROUND_ROW * TILE - w.player.height;
+  w.player.vx = 0;
+  w.player.vy = 0;
+  w.player.facing = 1;
+  w.player.onGround = true;
+  w.player.invulnTimer = 0;
+  w.enemies = [makeEnemy(990, 'koopa_red', 0, 38)];
+  w.enemies[0].x = w.player.x + w.player.width + 18;
+  w.enemies[0].y = w.player.y + w.player.height - 38;
+  w.enemies[0].baseY = w.enemies[0].y;
+  stepWorld(w, { ...NO_INPUT, spin: true }, 960);
+  for (let f = 0; f < 14 && w.enemies.length > 0; f++) stepWorld(w, NO_INPUT, 960);
+  assert(w.enemies.length === 0, 'Yoshi tongue should swallow the Red Koopa');
+  assert(w.player.yoshiMouthItem === 'fire', 'Swallowing Red Koopa should grant fire breath');
+  for (let f = 0; f < 20; f++) stepWorld(w, NO_INPUT, 960);
+  const before = w.fireballs.length;
+  stepWorld(w, { ...NO_INPUT, spin: true }, 960);
+  const yoshiFires = w.fireballs.filter((fb) => fb.fromYoshi).length;
+  assert(yoshiFires >= 3 && w.fireballs.length >= before + 3, `Yoshi should spit 3 fireballs, got ${yoshiFires}`);
+}
+
+// 3g. SMW: Cape Feather -> P-Meter sprint -> Cape takeoff & Cape Spin flips Rotating block
+{
+  const w = buildWorldState(1, { score: 0, highScore: 0, coins: 0, lives: 3, powerState: 3 }, 'smw');
+  w.enemies = [];
+  w.player.x = 4 * TILE;
+  w.player.y = GROUND_ROW * TILE - w.player.height;
+  w.player.onGround = true;
+  // Make a flat runway so the P-Meter can fill
+  for (let col = 0; col < 60; col++) {
+    for (let r = 4; r < GROUND_ROW; r++) {
+      const b = w.blockGrid.get(gridKey(col, r));
+      if (b) {
+        w.blockGrid.delete(gridKey(col, r));
+        w.blocks.splice(w.blocks.indexOf(b), 1);
+      }
+    }
+    if (!w.blockGrid.has(gridKey(col, GROUND_ROW))) {
+      const nb = {
+        id: 50000 + col, col, row: GROUND_ROW, x: col * TILE, y: GROUND_ROW * TILE,
+        baseY: GROUND_ROW * TILE, width: TILE, height: TILE, type: 'ground_top' as const,
+        content: null, coinsRemaining: 0, bounceY: 0, bounceVel: 0, spinTimer: 0,
+      };
+      w.blocks.push(nb);
+      w.blockGrid.set(gridKey(col, GROUND_ROW), nb);
+    }
+  }
+  w.pipes = w.pipes.filter((pp) => pp.x > 60 * TILE);
+  w.springs = [];
+  w.platforms = [];
+  let frames = 0;
+  while (w.player.pMeter < 108 && frames < 160) {
+    stepWorld(w, { ...NO_INPUT, right: true, run: true }, 960);
+    frames++;
+  }
+  assert(w.player.pMeter >= 108, `P-Meter should fill when sprinting, got ${w.player.pMeter}`);
+  stepWorld(w, { ...NO_INPUT, right: true, run: true, jump: true }, 960);
+  assert(w.player.capeFlying, 'Full P-Meter + Cape + Jump should trigger Cape takeoff');
+  const startY = w.player.y;
+  for (let f = 0; f < 12; f++) stepWorld(w, { ...NO_INPUT, right: true, run: true, jump: true }, 960);
+  assert(w.player.y < startY - 40, 'Cape takeoff should soar upward');
+
+  // Cape spin on ground flips adjacent Rotating block
+  const w2 = buildWorldState(1, { score: 0, highScore: 0, coins: 0, lives: 3, powerState: 3 }, 'smw');
+  w2.enemies = [];
+  const col = 10;
+  const row = GROUND_ROW - 1;
+  const rot = {
+    id: 77777, col, row, x: col * TILE, y: row * TILE, baseY: row * TILE, width: TILE,
+    height: TILE, type: 'rotating' as const, content: null, coinsRemaining: 0,
+    bounceY: 0, bounceVel: 0, spinTimer: 0,
+  };
+  for (const c of [8, 9, 10]) {
+    for (let r = 0; r < GROUND_ROW; r++) {
+      const ob = w2.blockGrid.get(gridKey(c, r));
+      if (ob) { w2.blockGrid.delete(gridKey(c, r)); w2.blocks.splice(w2.blocks.indexOf(ob), 1); }
+    }
+  }
+  w2.blocks.push(rot);
+  w2.blockGrid.set(gridKey(col, row), rot);
+  w2.player.x = col * TILE - w2.player.width - 2;
+  w2.player.y = GROUND_ROW * TILE - w2.player.height;
+  w2.player.facing = 1;
+  w2.player.onGround = true;
+  for (let f = 0; f < 4; f++) stepWorld(w2, { ...NO_INPUT, fire: f === 0 }, 960);
+  assert(rot.spinTimer > 0, 'Cape Spin should flip adjacent Rotating block');
+}
+
+// 3h. LEFT-EDGE CONTROL NON-OCCLUSION INVARIANT (both partitions, iPhone 12 844x390)
+const IPHONE_W = 844;
+const IPHONE_H = 390;
+const PX_SCALE = IPHONE_H / LOGICAL_HEIGHT;
+const VIEW_W = IPHONE_W / PX_SCALE;
+const DPAD_RIGHT_EDGE = 12 + 118 + 16; // leftMargin + dpadSize + slop
+let minScreenXSeen = Infinity;
+for (const part of ['classic', 'smw'] as GamePartition[]) {
+  for (const lvl of [0, 4, 9]) {
+    const w = buildWorldState(lvl, undefined, part);
+    w.enemies = [];
+    for (let f = 0; f < 160; f++) {
+      stepWorld(w, { ...NO_INPUT, left: true, run: true }, VIEW_W);
+      const sx = (w.player.x - w.cameraX) * PX_SCALE;
+      if (sx < minScreenXSeen) minScreenXSeen = sx;
+      assert(
+        sx >= 185,
+        `[${part} ${w.worldLabel}] Plomero screenX ${sx.toFixed(1)}px overlaps D-Pad (edge ${DPAD_RIGHT_EDGE}px)`
+      );
+    }
+  }
+}
+assert(DPAD_RIGHT_EDGE <= 150, 'D-Pad right edge must be <= 150px');
+
+console.log(
+  `   ✔ SMW Yoshi/Tongue/Fire, Cape P-Meter takeoff, Cape Spin & left-edge clearance (min screenX ${minScreenXSeen.toFixed(1)}px vs D-Pad ${DPAD_RIGHT_EDGE}px) all green!`
+);
+
 console.log(
   `   ✔ Physics verified (Standing jump: ${standingApex.toFixed(1)}px, Sprint jump: ${sprintApex.toFixed(1)}px, Coyote, Buffer, Shell Combos & Boss Collapse all green!).`
 );
@@ -534,8 +752,24 @@ const allSfx: SfxId[] = [
   'stage_clear',
   'die',
   'gameover',
+  'spin_jump',
+  'dragon_coin',
+  'feather_get',
+  'cape_spin',
+  'yoshi_mount',
+  'yoshi_tongue',
+  'yoshi_swallow',
+  'yoshi_spit',
 ];
-const allBgm: BgmTrackId[] = ['overworld', 'underground', 'athletic', 'fortress', 'starman'];
+const allBgm: BgmTrackId[] = [
+  'overworld',
+  'underground',
+  'athletic',
+  'fortress',
+  'starman',
+  'smw_overworld',
+  'smw_athletic',
+];
 
 function checkWav(name: string, bytes: Uint8Array): void {
   assert(bytes.length > 100, `WAV ${name} too small`);
@@ -562,20 +796,38 @@ console.log(`   ✔ All ${allSfx.length} SFX and ${allBgm.length} BGM chiptune W
 // ============================================================================
 console.log('5. Rendering iPhone 12 (844x390) visual frame snapshots for inspection...');
 
-function renderSnapshotPng(levelIdx: number, cameraTileCol: number, outName: string): void {
-  const w = buildWorldState(levelIdx, {
-    score: 14800,
-    highScore: 32400,
-    coins: 27,
-    lives: 4,
-    powerState: levelIdx === 3 ? 2 : 1,
-  });
-  w.cameraX = cameraTileCol * TILE;
-  w.player.x = (cameraTileCol + 6) * TILE;
-  w.player.y = GROUND_ROW * TILE - w.player.height - 24;
-  w.player.onGround = false;
-  w.frameCount = 24;
-  stepWorld(w, { ...NO_INPUT, right: true, run: true, jump: true }, 960);
+function renderSnapshotPng(
+  levelIdx: number,
+  cameraTileCol: number,
+  outName: string,
+  partition: GamePartition = 'classic',
+  leftEdgeShot = false
+): void {
+  const isSmw = partition === 'smw';
+  const w = buildWorldState(
+    levelIdx,
+    {
+      score: 14800,
+      highScore: 32400,
+      coins: 27,
+      lives: 4,
+      powerState: isSmw ? 3 : levelIdx === 3 ? 2 : 1,
+      mountedYoshi: isSmw,
+    },
+    partition
+  );
+  if (leftEdgeShot) {
+    // Press LEFT for 150 frames against the level start -> camera safe zone clamps
+    for (let f = 0; f < 150; f++) stepWorld(w, { ...NO_INPUT, left: true }, 969);
+  } else {
+    w.cameraX = cameraTileCol * TILE;
+    w.player.x = (cameraTileCol + 6) * TILE;
+    w.player.y = GROUND_ROW * TILE - w.player.height - 24;
+    w.player.onGround = false;
+    w.frameCount = 24;
+    stepWorld(w, { ...NO_INPUT, right: true, run: true, jump: true }, 960);
+  }
+  const lift = WORLD_VERTICAL_LIFT;
 
   const imgW = 844;
   const imgH = 390;
@@ -609,9 +861,9 @@ function renderSnapshotPng(levelIdx: number, cameraTileCol: number, outName: str
     const sr = atlas.rects[key];
     if (!sr) return;
     const dx0 = Math.round((wx - w.cameraX) * scale);
-    const dy0 = Math.round(wy * scale);
+    const dy0 = Math.round((wy - lift) * scale);
     const dw = Math.max(1, Math.round((wx - w.cameraX + ww) * scale) - dx0);
-    const dh = Math.max(1, Math.round((wy + wh) * scale) - dy0);
+    const dh = Math.max(1, Math.round((wy - lift + wh) * scale) - dy0);
 
     for (let py = 0; py < dh; py++) {
       const sy = Math.min(sr.height - 1, Math.floor((py * sr.height) / dh));
@@ -659,8 +911,21 @@ function renderSnapshotPng(levelIdx: number, cameraTileCol: number, outName: str
         ? 'tile_empty'
         : b.type === 'bridge'
         ? 'tile_bridge'
+        : b.type === 'rotating'
+        ? 'tile_rotating_idle'
         : `${w.biomeId}_${b.type}`;
     blit(key, b.x, b.y, TILE, TILE);
+  }
+  // Left border terrain (cols -10..-1) so the safe-zone looks seamless
+  for (let c = -10; c < 0; c++) {
+    blit(`${w.biomeId}_ground_top`, c * TILE, GROUND_ROW * TILE, TILE, TILE);
+    blit(`${w.biomeId}_ground_deep`, c * TILE, (GROUND_ROW + 1) * TILE, TILE, TILE);
+  }
+  for (const dc of w.dragonCoins) {
+    if (!dc.collected) blit('dragon_coin_1', dc.x, dc.y, 24, 36);
+  }
+  for (const br of w.berries) {
+    if (!br.eaten) blit('berry_red', br.x - 2, br.y - 2, 24, 24);
   }
   for (const c of w.coinsList) {
     blit('coin_1', c.x - 3, c.y - 1, 24, 24);
@@ -671,14 +936,72 @@ function renderSnapshotPng(levelIdx: number, cameraTileCol: number, outName: str
     if (en.type === 'koopa_red') blit('koopa_red_walk1', en.x - 3, en.y - 10, 32, 48, true);
     if (en.type === 'paratroopa') blit('paratroopa_fly1', en.x - 3, en.y - 10, 32, 48, true);
     if (en.type === 'spiny') blit('spiny_walk1', en.x - 3, en.y - 4, 32, 32, true);
+    if (en.type === 'galoomba') blit('galoomba_walk1', en.x - 3, en.y - 4, 32, 32);
+    if (en.type === 'rex') blit('rex_walk1', en.x - 3, en.y + en.height - 48, 32, 48, true);
+    if (en.type === 'chuck') blit('chuck_idle', en.x - 3, en.y + en.height - 48, 40, 48, true);
+    if (en.type === 'bullet_bill') blit('bullet_bill', en.x - 3, en.y - 2, 32, 32, true);
   }
   if (w.boss) {
     blit('axe_1', w.boss.axeX, w.boss.axeY, TILE, TILE);
     blit('boss_roar', w.boss.x - 4, w.boss.y - 4, 64, 64, false);
     blit('boss_fire1', w.boss.x - 48, w.boss.y + 18, 36, 16, false);
   }
-  const heroKey = w.player.powerState === 2 ? 'hero_big_fire_jump' : 'hero_big_norm_jump';
-  blit(heroKey, w.player.x - 5, w.player.y + w.player.height - 48, 32, 48, false);
+  const pl = w.player;
+  const flip = pl.facing === -1;
+  if (pl.mountedYoshi) {
+    const yoshiX = pl.x - 9;
+    const yoshiY = pl.y + pl.height - 48;
+    if (pl.powerState === 3) {
+      blit('cape_back_flutter', flip ? pl.x + 6 : pl.x - 16, yoshiY - 10, 32, 32, flip);
+    }
+    blit('hero_big_norm_idle', pl.x - 5, yoshiY - 16, 32, 48, flip);
+    blit('yoshi_idle', yoshiX, yoshiY, 40, 48, flip);
+  } else {
+    if (pl.powerState === 3) {
+      blit('cape_back_flutter', flip ? pl.x + 5 : pl.x - 15, pl.y + pl.height - 36, 32, 32, flip);
+    }
+    const heroKey = pl.powerState === 2 ? 'hero_big_fire_jump' : 'hero_big_norm_jump';
+    blit(heroKey, pl.x - 5, pl.y + pl.height - 48, 32, 48, flip);
+  }
+
+  // Overlay semi-transparent control footprints (iPhone 12 geometry) to prove zero occlusion
+  const blend = (x: number, y: number, rgb: [number, number, number], a: number) => {
+    if (x < 0 || y < 0 || x >= imgW || y >= imgH) return;
+    const i = (y * imgW + x) * 4;
+    rgba[i] = Math.round(rgba[i] * (1 - a) + rgb[0] * a);
+    rgba[i + 1] = Math.round(rgba[i + 1] * (1 - a) + rgb[1] * a);
+    rgba[i + 2] = Math.round(rgba[i + 2] * (1 - a) + rgb[2] * a);
+  };
+  const dpadX0 = 28;
+  const dpadY0 = imgH - 6 - 118 + 4;
+  for (let y = dpadY0; y < dpadY0 + 118; y++) {
+    for (let x = dpadX0; x < dpadX0 + 118; x++) {
+      const inV = x >= dpadX0 + 40 && x < dpadX0 + 78;
+      const inH = y >= dpadY0 + 40 && y < dpadY0 + 78;
+      if (inV || inH) blend(x, y, [15, 23, 42], 0.55);
+    }
+  }
+  const circle = (cx: number, cy: number, r: number, rgb: [number, number, number]) => {
+    for (let y = cy - r; y <= cy + r; y++) {
+      for (let x = cx - r; x <= cx + r; x++) {
+        if ((x - cx) ** 2 + (y - cy) ** 2 <= r * r) blend(x, y, rgb, 0.5);
+      }
+    }
+  };
+  const jx = imgW - 12 - 29 - 2;
+  const jy = imgH - 6 - 29 - 26;
+  circle(jx, jy, 29, [34, 197, 94]);
+  circle(jx - 60, imgH - 6 - 29 - 2, 29, [234, 179, 8]);
+  circle(jx - 78, imgH - 6 - 29 - 2 - 52, 23, [59, 130, 246]);
+  circle(jx - 20, jy - 52, 23, [239, 68, 68]);
+
+  if (leftEdgeShot) {
+    const heroScreenX = (pl.x - w.cameraX) * scale;
+    assert(
+      heroScreenX >= 185 && heroScreenX > dpadX0 + 118,
+      `[snapshot ${outName}] hero screenX ${heroScreenX.toFixed(1)} overlaps D-Pad`
+    );
+  }
 
   fs.writeFileSync(path.join(previewDir, outName), encodeRgbaPng(imgW, imgH, rgba));
 }
@@ -686,5 +1009,8 @@ function renderSnapshotPng(levelIdx: number, cameraTileCol: number, outName: str
 renderSnapshotPng(0, 12, 'frame_1_1_meadow.png');
 renderSnapshotPng(1, 24, 'frame_1_2_cavern.png');
 renderSnapshotPng(3, 102, 'frame_1_4_boss.png');
-console.log('   ✔ Rendered iPhone 12 frames: frame_1_1_meadow.png, frame_1_2_cavern.png, frame_1_4_boss.png');
+renderSnapshotPng(0, 0, 'frame_smw_y1_yoshi_cape.png', 'smw', true);
+renderSnapshotPng(0, 0, 'frame_classic_left_edge.png', 'classic', true);
+renderSnapshotPng(1, 14, 'frame_smw_y2_cape.png', 'smw');
+console.log('   ✔ Rendered iPhone 12 frames: frame_1_1_meadow, frame_1_2_cavern, frame_1_4_boss, frame_smw_y1_yoshi_cape, frame_classic_left_edge, frame_smw_y2_cape');
 console.log('\nALL AUTOMATED CHECKS PASSED 100%!');
