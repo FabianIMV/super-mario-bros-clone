@@ -84,6 +84,7 @@ interface SmwCtx {
   lavaCols: Set<number>;
   isFortress: boolean;
   isUnderground: boolean;
+  enemySeq: number;
 }
 
 function putBlock(
@@ -290,6 +291,35 @@ function carvePit(ctx: SmwCtx, startCol: number, widthCols: number, asLava = fal
 }
 
 // ============================================================================
+// WORLD ENEMY ROSTERS — each Dinosaur Island world fields its own foes.
+// ============================================================================
+const SMW_ROSTERS: EnemyType[][] = [
+  ['galoomba', 'rex', 'galoomba', 'koopa_green'], // Y: Isla de Yoshi
+  ['koopa_green', 'rex', 'paratroopa', 'galoomba'], // D: Llanura Rosquilla
+  ['spiny', 'koopa_red', 'galoomba', 'bullet_bill'], // V: Domo Vainilla
+  ['rex', 'paratroopa', 'chuck', 'koopa_red'], // B: Bosque Ilusión
+  ['chuck', 'spiny', 'rex', 'bullet_bill', 'koopa_red'], // K: Valle de Koopa
+];
+
+/** Next foe from the current world's roster (deterministic rotation). */
+function smwFoe(ctx: SmwCtx): EnemyType {
+  const roster = SMW_ROSTERS[Math.min(SMW_ROSTERS.length - 1, ctx.worldNum - 1)];
+  const type = roster[ctx.enemySeq % roster.length];
+  ctx.enemySeq++;
+  return type;
+}
+
+/** Spawn a roster foe; Bullet Bills fly at mid height instead of walking. */
+function addFoe(ctx: SmwCtx, col: number): void {
+  const type = smwFoe(ctx);
+  addEnemy(ctx, col, type === 'bullet_bill' ? 8 : GROUND_ROW - 1, type);
+}
+
+function smwVariant(ctx: SmwCtx, salt: number): number {
+  return (ctx.levelIndex * 5 + salt * 3 + ctx.worldNum) % 3;
+}
+
+// ============================================================================
 // CURATED SUPER MARIO WORLD SETPIECES
 // ============================================================================
 type SmwSetpiece =
@@ -300,21 +330,28 @@ type SmwSetpiece =
   | 'chuck_stadium'
   | 'bullet_bill_canyon'
   | 'vanilla_crystal_lifts'
-  | 'spiny_spinjump_bridge';
+  | 'spiny_spinjump_bridge'
+  | 'galoomba_meadow'
+  | 'rotating_staircase'
+  | 'pipe_valley'
+  | 'rex_hill'
+  | 'donut_lifts'
+  | 'feather_cloud_trail';
 
 function buildSmwSetpiece(ctx: SmwCtx, kind: SmwSetpiece, c: number): number {
+  const v = smwVariant(ctx, c);
   switch (kind) {
     case 'yoshi_berry_orchard': {
       // Yoshi Egg block + juicy red berries + Red Koopa (for Yoshi 3-fireball breath!)
       putBlock(ctx, c + 1, 8, 'rotating');
-      putBlock(ctx, c + 2, 8, 'question', 'yoshi_egg');
+      putBlock(ctx, c + 2, 8, 'question', v === 2 ? 'feather' : 'yoshi_egg');
       putBlock(ctx, c + 3, 8, 'rotating');
       addBerry(ctx, c + 5, 10.6);
-      addBerry(ctx, c + 8, 9.5);
+      addBerry(ctx, c + 8, 9.5 - v * 0.5);
       addBerry(ctx, c + 11, 10.6);
       addEnemy(ctx, c + 7, GROUND_ROW - 1, 'koopa_red');
-      addEnemy(ctx, c + 11, GROUND_ROW - 1, 'galoomba');
-      addEnemy(ctx, c + 13, GROUND_ROW - 1, 'rex');
+      addFoe(ctx, c + 11);
+      addFoe(ctx, c + 13);
       addCoinArc(ctx, c + 6, 5, 6.2);
       return 16;
     }
@@ -326,11 +363,12 @@ function buildSmwSetpiece(ctx: SmwCtx, kind: SmwSetpiece, c: number): number {
       for (let k = 0; k < 9; k++) {
         addCoin(ctx, c + 5 + k, 2.2 + (k % 2) * 0.4);
       }
+      const row = 4 + (v === 1 ? 1 : 0);
       for (let k = c + 7; k <= c + 12; k++) {
-        putBlock(ctx, k, 4, 'bridge');
+        putBlock(ctx, k, row, 'bridge');
       }
-      addEnemy(ctx, c + 9, GROUND_ROW - 1, 'rex');
-      addEnemy(ctx, c + 13, GROUND_ROW - 1, 'galoomba');
+      addFoe(ctx, c + 9);
+      addFoe(ctx, c + 13);
       return 17;
     }
 
@@ -341,21 +379,21 @@ function buildSmwSetpiece(ctx: SmwCtx, kind: SmwSetpiece, c: number): number {
         putBlock(ctx, c + 8, row, 'rotating');
       }
       for (let k = c + 2; k <= c + 8; k++) {
-        putBlock(ctx, k, 8, k === c + 5 ? 'question' : 'rotating', k === c + 5 ? 'feather' : null);
+        putBlock(ctx, k, 8, k === c + 5 ? 'question' : 'rotating', k === c + 5 ? (v === 1 ? 'star' : 'feather') : null);
       }
       addCoin(ctx, c + 4, 10);
       addCoin(ctx, c + 5, 10);
       addCoin(ctx, c + 6, 10);
-      addEnemy(ctx, c + 5, 7, 'rex');
-      addEnemy(ctx, c + 11, GROUND_ROW - 1, 'koopa_green');
+      addEnemy(ctx, c + 5, 7, v === 2 ? 'spiny' : 'rex');
+      addFoe(ctx, c + 11);
       return 14;
     }
 
     case 'rex_terrace_paratroopa': {
-      addPipe(ctx, c + 1, 2, false);
+      addPipe(ctx, c + 1, 2 + (v === 2 ? 1 : 0), false);
       addBerry(ctx, c + 4, 10.5);
       addEnemy(ctx, c + 5, GROUND_ROW - 1, 'rex');
-      addPipe(ctx, c + 7, 3, true);
+      addPipe(ctx, c + 7, 3 - (v === 1 ? 1 : 0), true);
       carvePit(ctx, c + 10, 3);
       for (let k = c + 10; k <= c + 13; k++) {
         putBlock(ctx, k, 8, 'bridge');
@@ -368,10 +406,11 @@ function buildSmwSetpiece(ctx: SmwCtx, kind: SmwSetpiece, c: number): number {
     case 'chuck_stadium': {
       // Chargin' Chuck defending an elevated rotating-block platform!
       putBlock(ctx, c + 2, 8, 'rotating');
-      putBlock(ctx, c + 3, 8, 'question', 'coin');
+      putBlock(ctx, c + 3, 8, 'question', v === 0 ? 'coin' : 'feather');
       putBlock(ctx, c + 4, 8, 'rotating', 'multi_coin');
       putBlock(ctx, c + 5, 8, 'rotating');
       addEnemy(ctx, c + 7, GROUND_ROW - 1, 'chuck');
+      if (v === 2) addFoe(ctx, c + 9);
       addSpring(ctx, c + 10, GROUND_ROW);
       for (let k = c + 12; k <= c + 15; k++) {
         putBlock(ctx, k, 6, 'bridge');
@@ -388,9 +427,9 @@ function buildSmwSetpiece(ctx: SmwCtx, kind: SmwSetpiece, c: number): number {
       putBlock(ctx, c + 5, 9, 'hard');
       putBlock(ctx, c + 6, 9, 'hard');
       carvePit(ctx, c + 7, 3);
-      addEnemy(ctx, c + 6, 6, 'bullet_bill');
+      addEnemy(ctx, c + 6, 6 + v, 'bullet_bill');
       addEnemy(ctx, c + 11, 8, 'bullet_bill');
-      addEnemy(ctx, c + 14, 5, 'bullet_bill');
+      addEnemy(ctx, c + 14, 5 + v, 'bullet_bill');
       addCoinArc(ctx, c + 3, 6, 5.5);
       return 16;
     }
@@ -398,11 +437,11 @@ function buildSmwSetpiece(ctx: SmwCtx, kind: SmwSetpiece, c: number): number {
     case 'vanilla_crystal_lifts': {
       carvePit(ctx, c + 2, 4);
       carvePit(ctx, c + 6, 3);
-      addPlatform(ctx, c + 4, 8.8, 3, 2.7, 0, 0.036, 0);
-      putBlock(ctx, c + 5, 4, 'question', 'one_up');
+      addPlatform(ctx, c + 4, 8.8 - v * 0.4, 3, 2.7, 0, 0.036 + v * 0.004, v);
+      putBlock(ctx, c + 5, 4, 'question', v === 1 ? 'feather' : 'one_up');
       addCoinArc(ctx, c + 3, 5, 5.2);
       addEnemy(ctx, c + 11, GROUND_ROW - 1, 'koopa_red');
-      addEnemy(ctx, c + 13, GROUND_ROW - 1, 'galoomba');
+      addFoe(ctx, c + 13);
       return 15;
     }
 
@@ -414,10 +453,98 @@ function buildSmwSetpiece(ctx: SmwCtx, kind: SmwSetpiece, c: number): number {
       }
       addEnemy(ctx, c + 6, 7, 'spiny');
       addEnemy(ctx, c + 9, 7, 'spiny');
-      addEnemy(ctx, c + 7, GROUND_ROW - 1, 'galoomba');
-      addEnemy(ctx, c + 10, GROUND_ROW - 1, 'rex');
+      addFoe(ctx, c + 7);
+      addFoe(ctx, c + 10);
       addCoinArc(ctx, c + 5, 5, 4.8);
       return 14;
+    }
+
+    case 'galoomba_meadow': {
+      // Rolling meadow: two rotating-block shelves, berries and a foe squad.
+      for (let k = c + 2; k <= c + 5; k++) putBlock(ctx, k, 8, k === c + 3 ? 'question' : 'rotating', k === c + 3 ? 'coin' : null);
+      for (let k = c + 8; k <= c + 11; k++) putBlock(ctx, k, 6 + v, k === c + 10 ? 'question' : 'rotating', k === c + 10 ? 'feather' : null);
+      addBerry(ctx, c + 6, 10.6);
+      addBerry(ctx, c + 13, 10.6);
+      addEnemy(ctx, c + 4, GROUND_ROW - 1, 'galoomba');
+      addFoe(ctx, c + 7);
+      addFoe(ctx, c + 10);
+      addEnemy(ctx, c + 12, GROUND_ROW - 1, 'galoomba');
+      addCoinArc(ctx, c + 7, 6, 5.0);
+      return 16;
+    }
+
+    case 'rotating_staircase': {
+      // Ascending rotating-block steps to a high prize, descending ramp after.
+      for (let i = 0; i < 4; i++) {
+        putBlock(ctx, c + 1 + i * 2, 10 - i * 2 + (v === 2 ? 1 : 0), 'rotating');
+        putBlock(ctx, c + 2 + i * 2, 10 - i * 2 + (v === 2 ? 1 : 0), 'rotating');
+        addCoin(ctx, c + 1 + i * 2, 8.6 - i * 2 + (v === 2 ? 1 : 0));
+      }
+      putBlock(ctx, c + 8, 1 + (v === 2 ? 1 : 0), 'question', v === 1 ? 'star' : 'one_up');
+      addFoe(ctx, c + 4);
+      addFoe(ctx, c + 11);
+      return 14;
+    }
+
+    case 'pipe_valley': {
+      const hs = [
+        [2, 3, 2],
+        [3, 2, 3],
+        [2, 4, 2],
+      ][v];
+      addPipe(ctx, c + 1, hs[0], false);
+      addFoe(ctx, c + 5);
+      addPipe(ctx, c + 7, hs[1], true);
+      putBlock(ctx, c + 10, 7, 'rotating');
+      putBlock(ctx, c + 11, 7, 'question', 'feather');
+      addBerry(ctx, c + 11, 10.5);
+      addFoe(ctx, c + 12);
+      addPipe(ctx, c + 14, hs[2], true);
+      return 18;
+    }
+
+    case 'rex_hill': {
+      // Stepped hill climbed by Rexes, coins along the crest.
+      const peak = 3 + (v === 1 ? 1 : 0);
+      for (let s = 0; s < peak; s++) {
+        for (let h = 0; h <= s; h++) putBlock(ctx, c + s * 2, GROUND_ROW - 1 - h, 'hard');
+        for (let h = 0; h <= s; h++) putBlock(ctx, c + s * 2 + 1, GROUND_ROW - 1 - h, 'hard');
+      }
+      for (let k = 0; k < 3; k++) {
+        for (let h = 0; h < peak; h++) putBlock(ctx, c + peak * 2 + k, GROUND_ROW - 1 - h, 'hard');
+        addCoin(ctx, c + peak * 2 + k, GROUND_ROW - 2.6 - peak);
+      }
+      addEnemy(ctx, c + peak * 2 + 1, GROUND_ROW - 1 - peak, 'rex');
+      addFoe(ctx, c + peak * 2 + 5);
+      return peak * 2 + 8;
+    }
+
+    case 'donut_lifts': {
+      putBlock(ctx, c, 11, 'hard');
+      carvePit(ctx, c + 1, 4);
+      carvePit(ctx, c + 5, 4);
+      addPlatform(ctx, c + 2, 9, 2, 1.5, 0, 0.034, 0);
+      addPlatform(ctx, c + 6, 8 - v * 0.5, 2, 0, 1.8, 0.038, 1.4);
+      putBlock(ctx, c + 4, 4, 'question', v === 0 ? 'one_up' : 'coin');
+      addCoinArc(ctx, c + 2, 6, 5.4);
+      addEnemy(ctx, c + 7, 7, 'paratroopa');
+      putBlock(ctx, c + 9, 11, 'hard');
+      addFoe(ctx, c + 12);
+      return 14;
+    }
+
+    case 'feather_cloud_trail': {
+      // Feather + spring up to a long cloud bridge high above foes.
+      putBlock(ctx, c + 1, 8, 'question', 'feather');
+      addSpring(ctx, c + 3, GROUND_ROW);
+      for (let k = c + 5; k <= c + 14; k++) {
+        putBlock(ctx, k, 5 - (v === 2 ? 1 : 0), 'bridge');
+        addCoin(ctx, k, 3.6 - (v === 2 ? 1 : 0));
+      }
+      addFoe(ctx, c + 8);
+      addFoe(ctx, c + 12);
+      if (v === 1) addEnemy(ctx, c + 10, 4, 'paratroopa');
+      return 17;
     }
   }
 }
@@ -505,61 +632,141 @@ function buildSmwStageY1(ctx: SmwCtx): number {
 }
 
 // ============================================================================
-// SMW FORTRESS STAGE BUILDER (Y-4, D-4, V-4, B-4, K-4)
+// SMW FORTRESS STAGE BUILDER (Y-4, D-4, V-4, B-4, K-4) — a distinct route per castle
 // ============================================================================
-function buildSmwFortressStage(ctx: SmwCtx): { totalCols: number; boss: FortressBoss } {
-  const totalCols = 136 + ctx.worldNum * 4;
+type SmwCastleSection =
+  | 'lava_trench'
+  | 'chuck_hallway'
+  | 'synced_lift'
+  | 'rotating_bridge'
+  | 'vertical_lift'
+  | 'thwomp_hall'
+  | 'magma_steps'
+  | 'bill_gallery'
+  | 'castle_supply';
 
-  for (let col = 0; col < totalCols; col++) {
-    putBlock(ctx, col, 0, 'hard');
+/** Builds one castle section; returns width and the column of its Dragon Coin. */
+function buildSmwCastleSection(
+  ctx: SmwCtx,
+  kind: SmwCastleSection,
+  c: number
+): { width: number; coinCol: number; coinRow: number } {
+  const w = ctx.worldNum;
+  switch (kind) {
+    case 'lava_trench': {
+      carvePit(ctx, c + 1, 3, true);
+      putBlock(ctx, c + 2, 9, 'hard');
+      addFoe(ctx, c + 6);
+      return { width: 8, coinCol: c + 2, coinRow: 6.2 };
+    }
+    case 'chuck_hallway': {
+      addEnemy(ctx, c + 1, GROUND_ROW - 1, 'chuck');
+      addEnemy(ctx, c + 6, GROUND_ROW - 1, 'spiny');
+      putBlock(ctx, c + 3, 7, 'rotating');
+      putBlock(ctx, c + 4, 7, 'question', 'coin');
+      putBlock(ctx, c + 5, 7, 'rotating');
+      return { width: 9, coinCol: c + 4, coinRow: 5.4 };
+    }
+    case 'synced_lift': {
+      carvePit(ctx, c + 1, 4, true);
+      carvePit(ctx, c + 5, 3, true);
+      addPlatform(ctx, c + 3, 9, 3, 2.8, 0, 0.038 + w * 0.003, 0.4);
+      return { width: 10, coinCol: c + 4, coinRow: 5.2 };
+    }
+    case 'rotating_bridge': {
+      carvePit(ctx, c + 2, 4, true);
+      for (let k = c + 1; k <= c + 7; k++) {
+        putBlock(ctx, k, 8, 'bridge');
+        if (k >= c + 3 && k <= c + 5) putBlock(ctx, k, 4, 'rotating');
+      }
+      addEnemy(ctx, c + 5, 7, 'paratroopa');
+      return { width: 10, coinCol: c + 4, coinRow: 5.6 };
+    }
+    case 'vertical_lift': {
+      carvePit(ctx, c + 1, 4, true);
+      addPlatform(ctx, c + 2, 8.5, 2, 0, 2.2, 0.042, 1.1);
+      putBlock(ctx, c + 7, 8, 'question', 'feather');
+      addFoe(ctx, c + 9);
+      return { width: 11, coinCol: c + 2, coinRow: 4.2 };
+    }
+    case 'thwomp_hall': {
+      // Low stone ceiling corridor packed with foes.
+      for (let k = c; k <= c + 10; k++) {
+        const isQ = k === c + 4;
+        putBlock(ctx, k, 7, isQ ? 'question' : 'hard', isQ ? 'feather' : null);
+      }
+      addFoe(ctx, c + 3);
+      addEnemy(ctx, c + 7, GROUND_ROW - 1, w >= 3 ? 'spiny' : 'galoomba');
+      addFoe(ctx, c + 10);
+      return { width: 13, coinCol: c + 8, coinRow: 10.2 };
+    }
+    case 'magma_steps': {
+      for (let s = 0; s < 3; s++) {
+        for (let h = 0; h <= s; h++) putBlock(ctx, c + s, GROUND_ROW - 1 - h, 'hard');
+      }
+      carvePit(ctx, c + 3, 3, true);
+      for (let s = 0; s < 3; s++) {
+        for (let h = 0; h <= 2 - s; h++) putBlock(ctx, c + 6 + s, GROUND_ROW - 1 - h, 'hard');
+      }
+      addFoe(ctx, c + 10);
+      return { width: 12, coinCol: c + 4, coinRow: 6.0 };
+    }
+    case 'bill_gallery': {
+      for (let i = 0; i < 3; i++) {
+        const col = c + 1 + i * 3;
+        putBlock(ctx, col, 11, 'hard');
+        putBlock(ctx, col, 10, 'hard');
+        carvePit(ctx, col + 1, 2, true);
+      }
+      putBlock(ctx, c + 10, 11, 'hard');
+      addEnemy(ctx, c + 8, 6, 'bullet_bill');
+      addEnemy(ctx, c + 12, 8, 'bullet_bill');
+      return { width: 13, coinCol: c + 4, coinRow: 7.2 };
+    }
+    case 'castle_supply': {
+      putBlock(ctx, c + 1, 8, 'question', 'feather');
+      putBlock(ctx, c + 2, 8, 'question', w >= 3 ? 'one_up' : 'coin');
+      addEnemy(ctx, c + 6, GROUND_ROW - 1, 'chuck');
+      return { width: 9, coinCol: c + 9, coinRow: 7.5 };
+    }
   }
+}
 
+const SMW_CASTLE_PLANS: SmwCastleSection[][] = [
+  ['lava_trench', 'chuck_hallway', 'synced_lift', 'rotating_bridge', 'vertical_lift', 'castle_supply'],
+  ['magma_steps', 'thwomp_hall', 'rotating_bridge', 'lava_trench', 'synced_lift', 'castle_supply'],
+  ['bill_gallery', 'synced_lift', 'thwomp_hall', 'magma_steps', 'vertical_lift', 'castle_supply'],
+  ['thwomp_hall', 'vertical_lift', 'bill_gallery', 'rotating_bridge', 'magma_steps', 'chuck_hallway', 'castle_supply'],
+  ['magma_steps', 'bill_gallery', 'chuck_hallway', 'synced_lift', 'thwomp_hall', 'rotating_bridge', 'lava_trench', 'castle_supply'],
+];
+
+/** Picks exactly 5 evenly spread indices out of n (n >= 5) for Dragon Coins. */
+function dragonCoinSlots(n: number): Set<number> {
+  const slots = new Set<number>();
+  for (let i = 0; i < 5; i++) slots.add(Math.round((i * (n - 1)) / 4));
+  return slots;
+}
+
+function buildSmwFortressStage(ctx: SmwCtx): { totalCols: number; boss: FortressBoss } {
   // SMW Castle Opening: Cape Feather + Rotating Blocks!
   putBlock(ctx, 8, 8, 'rotating');
   putBlock(ctx, 9, 8, 'question', 'feather');
   putBlock(ctx, 10, 8, 'rotating');
-  addEnemy(ctx, 14, GROUND_ROW - 1, 'rex');
+  addFoe(ctx, 14);
 
-  // Lava Trench 1 + Dragon Coin #1
-  carvePit(ctx, 19, 3, true);
-  putBlock(ctx, 20, 9, 'hard');
-  addDragonCoin(ctx, 20, 6.2);
+  const plan = SMW_CASTLE_PLANS[Math.min(SMW_CASTLE_PLANS.length - 1, ctx.worldNum - 1)];
+  const slots = dragonCoinSlots(plan.length);
+  let cursor = 18;
+  plan.forEach((section, i) => {
+    const res = buildSmwCastleSection(ctx, section, cursor);
+    if (slots.has(i)) addDragonCoin(ctx, res.coinCol, res.coinRow);
+    cursor += res.width + 2;
+  });
 
-  // Chargin' Chuck & Spiny Hallway
-  addEnemy(ctx, 26, GROUND_ROW - 1, 'chuck');
-  addEnemy(ctx, 31, GROUND_ROW - 1, 'spiny');
-  putBlock(ctx, 28, 7, 'rotating');
-  putBlock(ctx, 29, 7, 'question', 'coin');
-  putBlock(ctx, 30, 7, 'rotating');
-
-  // Lava Chasm 2 with Synced Moving Lift + Dragon Coin #2
-  carvePit(ctx, 36, 4, true);
-  carvePit(ctx, 40, 3, true);
-  addPlatform(ctx, 38, 9, 3, 2.8, 0, 0.038 + ctx.worldNum * 0.003, 0.4);
-  addDragonCoin(ctx, 39, 5.2);
-
-  // Midpoint Supply + Checkpoint Zone
-  putBlock(ctx, 48, 8, 'question', 'feather');
-  addEnemy(ctx, 56, GROUND_ROW - 1, 'koopa_red');
-  addEnemy(ctx, 60, GROUND_ROW - 1, 'rex');
-
-  // Rotating Block Bridge over Magma + Dragon Coin #3 & #4
-  carvePit(ctx, 65, 4, true);
-  for (let c = 64; c <= 70; c++) {
-    putBlock(ctx, c, 8, 'bridge');
-    if (c >= 66 && c <= 68) putBlock(ctx, c, 4, 'rotating');
+  const totalCols = cursor + 36;
+  for (let col = 0; col < totalCols; col++) {
+    if (!ctx.blockGrid.has(gridKey(col, 0))) putBlock(ctx, col, 0, 'hard');
   }
-  addDragonCoin(ctx, 67, 5.6);
-  addEnemy(ctx, 68, 7, 'paratroopa');
-
-  carvePit(ctx, 77, 4, true);
-  addPlatform(ctx, 78, 8.5, 2, 0, 2.2, 0.042, 1.1);
-  addDragonCoin(ctx, 78, 4.2);
-
-  putBlock(ctx, 86, 8, 'question', 'feather');
-  putBlock(ctx, 87, 8, 'question', 'one_up');
-  addEnemy(ctx, 91, GROUND_ROW - 1, 'chuck');
-  addDragonCoin(ctx, 94, 7.5); // Dragon Coin #5 before Boss!
 
   // Rey Koopa Castle Arena!
   const arenaStart = totalCols - 32;
@@ -616,24 +823,32 @@ function buildSmwFortressStage(ctx: SmwCtx): { totalCols: number; boss: Fortress
   return { totalCols, boss };
 }
 
+// One hand-picked route per SMW stage (keyed by level index); no two share a plan.
+const SMW_STAGE_PLANS: Record<number, SmwSetpiece[]> = {
+  // Y: Isla de Yoshi
+  1: ['cape_runway_skyway', 'galoomba_meadow', 'rotating_block_vault', 'yoshi_berry_orchard', 'rex_hill'],
+  2: ['yoshi_berry_orchard', 'pipe_valley', 'donut_lifts', 'rotating_staircase', 'chuck_stadium'],
+  // D: Llanura Rosquilla
+  4: ['galoomba_meadow', 'rex_terrace_paratroopa', 'feather_cloud_trail', 'donut_lifts', 'rex_hill'],
+  5: ['rotating_block_vault', 'vanilla_crystal_lifts', 'pipe_valley', 'spiny_spinjump_bridge', 'rotating_staircase'],
+  6: ['rex_hill', 'cape_runway_skyway', 'donut_lifts', 'yoshi_berry_orchard', 'bullet_bill_canyon', 'galoomba_meadow'],
+  // V: Domo Vainilla
+  8: ['spiny_spinjump_bridge', 'rotating_staircase', 'vanilla_crystal_lifts', 'pipe_valley', 'bullet_bill_canyon'],
+  9: ['pipe_valley', 'rotating_block_vault', 'donut_lifts', 'spiny_spinjump_bridge', 'vanilla_crystal_lifts', 'chuck_stadium'],
+  10: ['vanilla_crystal_lifts', 'yoshi_berry_orchard', 'rex_hill', 'bullet_bill_canyon', 'feather_cloud_trail'],
+  // B: Bosque Ilusión
+  12: ['rex_terrace_paratroopa', 'feather_cloud_trail', 'chuck_stadium', 'galoomba_meadow', 'donut_lifts', 'rex_hill'],
+  13: ['feather_cloud_trail', 'rex_hill', 'pipe_valley', 'rex_terrace_paratroopa', 'rotating_block_vault', 'cape_runway_skyway'],
+  14: ['donut_lifts', 'chuck_stadium', 'rotating_staircase', 'rex_terrace_paratroopa', 'spiny_spinjump_bridge', 'galoomba_meadow'],
+  // K: Valle de Koopa
+  16: ['bullet_bill_canyon', 'chuck_stadium', 'rex_hill', 'donut_lifts', 'spiny_spinjump_bridge', 'rotating_staircase', 'feather_cloud_trail'],
+  17: ['rotating_staircase', 'pipe_valley', 'bullet_bill_canyon', 'vanilla_crystal_lifts', 'chuck_stadium', 'rotating_block_vault'],
+  18: ['chuck_stadium', 'donut_lifts', 'spiny_spinjump_bridge', 'feather_cloud_trail', 'bullet_bill_canyon', 'rex_terrace_paratroopa', 'galoomba_meadow'],
+};
+
 function buildCuratedSmwStage(ctx: SmwCtx): number {
-  const blueprints: SmwSetpiece[][] = [
-    ['yoshi_berry_orchard', 'cape_runway_skyway', 'rex_terrace_paratroopa', 'rotating_block_vault', 'chuck_stadium'],
-    ['cape_runway_skyway', 'vanilla_crystal_lifts', 'yoshi_berry_orchard', 'spiny_spinjump_bridge', 'bullet_bill_canyon'],
-    ['rotating_block_vault', 'yoshi_berry_orchard', 'bullet_bill_canyon', 'cape_runway_skyway', 'chuck_stadium'],
-    ['yoshi_berry_orchard', 'spiny_spinjump_bridge', 'vanilla_crystal_lifts', 'rex_terrace_paratroopa', 'bullet_bill_canyon'],
-    ['chuck_stadium', 'cape_runway_skyway', 'yoshi_berry_orchard', 'bullet_bill_canyon', 'spiny_spinjump_bridge'],
-  ];
-
-  if (ctx.isUnderground) {
-    for (let col = 4; col < 108; col++) {
-      if (col % 19 !== 0 && col % 19 !== 1) {
-        putBlock(ctx, col, 0, 'brick');
-      }
-    }
-  }
-
-  const seq = blueprints[(ctx.levelIndex + ctx.worldNum) % blueprints.length];
+  const seq = SMW_STAGE_PLANS[ctx.levelIndex] ?? SMW_STAGE_PLANS[1];
+  const slots = dragonCoinSlots(seq.length);
   let cursor = 12;
 
   // Every SMW stage opens with a welcoming Yoshi Egg or Cape Feather block!
@@ -649,10 +864,12 @@ function buildCuratedSmwStage(ctx: SmwCtx): number {
   for (let i = 0; i < seq.length; i++) {
     const startC = cursor;
     const advance = buildSmwSetpiece(ctx, seq[i], cursor);
-    // Place 1 of the 5 stage Dragon Coins in each of the 5 major zones!
-    addDragonCoin(ctx, startC + Math.floor(advance * 0.5), ctx.isUnderground ? 5.2 : 3.6);
+    // Exactly 5 Dragon Coins per stage, spread across its zones.
+    if (slots.has(i)) {
+      addDragonCoin(ctx, startC + Math.floor(advance * 0.5), ctx.isUnderground ? 5.2 : 3.6);
+    }
     cursor += advance + 3;
-    if (i === 1) {
+    if (i === Math.floor(seq.length / 2) - 1) {
       cursor += 5; // Midpoint Checkpoint plaza
     }
   }
@@ -662,6 +879,14 @@ function buildCuratedSmwStage(ctx: SmwCtx): number {
   for (let s = 0; s < 5; s++) {
     for (let h = 0; h <= s; h++) {
       putBlock(ctx, rampStart + s, GROUND_ROW - 1 - h, 'hard');
+    }
+  }
+
+  if (ctx.isUnderground) {
+    for (let col = 4; col < rampStart; col++) {
+      if (col % 19 !== 0 && col % 19 !== 1 && !ctx.blockGrid.has(gridKey(col, 0))) {
+        putBlock(ctx, col, 0, 'brick');
+      }
     }
   }
 
@@ -707,6 +932,7 @@ export function buildSmwWorldState(
     lavaCols: new Set<number>(),
     isFortress: stageNum === 4,
     isUnderground: biome.underground,
+    enemySeq: 0,
   };
 
   let totalCols = 140;

@@ -125,6 +125,7 @@ interface BuilderCtx {
   lavaCols: Set<number>;
   isFortress: boolean;
   isUnderground: boolean;
+  enemySeq: number;
 }
 
 function putBlock(
@@ -297,6 +298,32 @@ function carvePit(ctx: BuilderCtx, startCol: number, widthCols: number, asLava =
 }
 
 // ============================================================================
+// WORLD ENEMY ROSTERS — each world fields its own mix of foes, so the same
+// architectural setpiece plays differently in 1-x than in 5-x.
+// ============================================================================
+const CLASSIC_ROSTERS: EnemyType[][] = [
+  ['goomba', 'goomba', 'koopa_green'], // World 1: Pradera
+  ['goomba', 'koopa_red', 'goomba', 'koopa_green'], // World 2: Dunas
+  ['koopa_green', 'paratroopa', 'goomba', 'koopa_red'], // World 3: Noche
+  ['spiny', 'goomba', 'koopa_red', 'paratroopa'], // World 4: Glaciar
+  ['koopa_red', 'spiny', 'paratroopa', 'goomba', 'spiny'], // World 5: Cañón/Mina
+  ['spiny', 'koopa_red', 'paratroopa', 'spiny', 'koopa_green'], // World 6: Cielo/Abismo
+];
+
+/** Next ground foe from the current world's roster (deterministic rotation). */
+function foe(ctx: BuilderCtx): EnemyType {
+  const roster = CLASSIC_ROSTERS[Math.min(CLASSIC_ROSTERS.length - 1, ctx.worldNum - 1)];
+  const type = roster[ctx.enemySeq % roster.length];
+  ctx.enemySeq++;
+  return type;
+}
+
+/** Stage-local variant 0..2 so a repeated setpiece is re-dressed per stage. */
+function variantOf(ctx: BuilderCtx, salt: number): number {
+  return (ctx.levelIndex * 7 + salt * 3 + ctx.worldNum) % 3;
+}
+
+// ============================================================================
 // CURATED ARCHITECTURAL SETPIECES (0% random procedural slop!)
 // ============================================================================
 type SetpieceKind =
@@ -307,50 +334,58 @@ type SetpieceKind =
   | 'spring_cliff_vault'
   | 'double_deck_secret'
   | 'pyramid_gauntlet'
-  | 'spiny_fire_alley';
+  | 'spiny_fire_alley'
+  | 'brick_ceiling_run'
+  | 'stepping_pillars'
+  | 'pipe_maze'
+  | 'coin_heaven_spring'
+  | 'twin_lifts'
+  | 'foe_parade'
+  | 'lift_wall'
+  | 'hidden_stairway';
 
 function buildSetpiece(ctx: BuilderCtx, kind: SetpieceKind, c: number): number {
+  const v = variantOf(ctx, c);
   switch (kind) {
     case 'shell_bowling': {
-      // Elevated [?] powerup + Green Koopa in front of 3 Goombas for satisfying shell combo!
-      putBlock(ctx, c + 1, 8, 'brick');
-      putBlock(ctx, c + 2, 8, 'question', 'powerup');
-      putBlock(ctx, c + 3, 8, 'brick');
-      addEnemy(ctx, c + 4, GROUND_ROW - 1, 'koopa_green');
-      addEnemy(ctx, c + 8, GROUND_ROW - 1, 'goomba');
+      // Elevated [?] powerup + Koopa in front of a line of foes for a shell combo!
+      const row = v === 2 ? 7 : 8;
+      putBlock(ctx, c + 1, row, 'brick');
+      putBlock(ctx, c + 2, row, 'question', v === 1 ? 'coin' : 'powerup');
+      putBlock(ctx, c + 3, row, v === 1 ? 'question' : 'brick', v === 1 ? 'powerup' : null);
+      addEnemy(ctx, c + 4, GROUND_ROW - 1, ctx.worldNum >= 3 ? 'koopa_red' : 'koopa_green');
+      addEnemy(ctx, c + 8, GROUND_ROW - 1, foe(ctx));
       addEnemy(ctx, c + 10, GROUND_ROW - 1, 'goomba');
-      addEnemy(ctx, c + 12, GROUND_ROW - 1, 'goomba');
-      putBlock(ctx, c + 14, 9, 'hard');
-      putBlock(ctx, c + 14, 10, 'hard');
-      putBlock(ctx, c + 14, 11, 'hard');
+      addEnemy(ctx, c + 12, GROUND_ROW - 1, foe(ctx));
+      for (let h = 0; h <= v; h++) putBlock(ctx, c + 14, GROUND_ROW - 1 - h, 'hard');
       addCoinArc(ctx, c + 7, 5, 6.2);
       return 17;
     }
 
     case 'piranha_terrace': {
-      addPipe(ctx, c + 1, 2, false);
+      const h = [2, 3, 2][v];
+      addPipe(ctx, c + 1, h, v === 2);
       addCoinArc(ctx, c + 3, 3, 7.2);
-      addPipe(ctx, c + 6, 3, true);
-      putBlock(ctx, c + 9, 7, 'question', 'coin');
+      addPipe(ctx, c + 6, h + 1, true);
+      putBlock(ctx, c + 9, 7, 'question', v === 0 ? 'coin' : 'powerup');
       putBlock(ctx, c + 10, 7, 'brick', 'multi_coin');
       putBlock(ctx, c + 11, 7, 'question', 'coin');
-      addEnemy(ctx, c + 10, GROUND_ROW - 1, 'koopa_red');
-      addPipe(ctx, c + 13, 4, true);
+      addEnemy(ctx, c + 10, GROUND_ROW - 1, foe(ctx));
+      addPipe(ctx, c + 13, v === 1 ? 2 : 4, true);
       return 17;
     }
 
     case 'sky_bridge_paratroopa': {
       carvePit(ctx, c + 2, 3);
       carvePit(ctx, c + 8, 3);
+      const row = v === 1 ? 7 : 8;
       for (let k = c + 1; k <= c + 11; k++) {
-        if (k !== c + 6) {
-          putBlock(ctx, k, 8, 'bridge');
-        }
+        if (k !== c + 6) putBlock(ctx, k, row, 'bridge');
       }
-      putBlock(ctx, c + 6, 4, 'question', 'powerup');
+      putBlock(ctx, c + 6, 4, 'question', v === 2 ? 'star' : 'powerup');
       addCoinArc(ctx, c + 3, 5, 5.2);
-      addEnemy(ctx, c + 5, 7, 'paratroopa');
-      addEnemy(ctx, c + 10, 7, 'koopa_red');
+      addEnemy(ctx, c + 5, row - 1, 'paratroopa');
+      addEnemy(ctx, c + 10, row - 1, foe(ctx));
       return 15;
     }
 
@@ -360,11 +395,11 @@ function buildSetpiece(ctx: BuilderCtx, kind: SetpieceKind, c: number): number {
       putBlock(ctx, c + 1, 11, 'hard');
       carvePit(ctx, c + 2, 4);
       carvePit(ctx, c + 6, 3);
-      addPlatform(ctx, c + 4, 8.5, 3, 2.6, 0, 0.036, 0);
+      addPlatform(ctx, c + 4, 8.5 - v * 0.5, 3 - (v === 2 ? 1 : 0), 2.6, 0, 0.036 + v * 0.004, v);
       addCoinArc(ctx, c + 3, 5, 5.0);
       putBlock(ctx, c + 9, 10, 'hard');
       putBlock(ctx, c + 9, 11, 'hard');
-      addEnemy(ctx, c + 11, GROUND_ROW - 1, 'paratroopa');
+      addEnemy(ctx, c + 11, GROUND_ROW - 1, v === 0 ? 'paratroopa' : foe(ctx));
       return 14;
     }
 
@@ -376,69 +411,174 @@ function buildSetpiece(ctx: BuilderCtx, kind: SetpieceKind, c: number): number {
       }
       addCoin(ctx, c + 2, 4.5);
       addCoin(ctx, c + 3, 3.5);
+      const prize: BlockContent = (['star', 'one_up', 'powerup'] as BlockContent[])[v];
       for (let k = c + 6; k <= c + 10; k++) {
-        putBlock(ctx, k, 6, k === c + 8 ? 'question' : 'brick', k === c + 8 ? 'star' : null);
+        putBlock(ctx, k, 6, k === c + 8 ? 'question' : 'brick', k === c + 8 ? prize : null);
         addCoin(ctx, k, 4.2);
       }
-      addEnemy(ctx, c + 8, GROUND_ROW - 1, 'koopa_green');
-      addEnemy(ctx, c + 11, GROUND_ROW - 1, 'goomba');
+      addEnemy(ctx, c + 8, GROUND_ROW - 1, foe(ctx));
+      addEnemy(ctx, c + 11, GROUND_ROW - 1, foe(ctx));
       return 14;
     }
 
     case 'double_deck_secret': {
       for (let k = c + 1; k <= c + 7; k++) {
-        putBlock(
-          ctx,
-          k,
-          8,
-          k === c + 4 ? 'question' : 'brick',
-          k === c + 4 ? 'powerup' : null
-        );
+        putBlock(ctx, k, 8, k === c + 4 ? 'question' : 'brick', k === c + 4 ? 'powerup' : null);
       }
       for (let k = c + 2; k <= c + 6; k++) {
-        putBlock(
-          ctx,
-          k,
-          4,
-          k === c + 4 ? 'question' : 'brick',
-          k === c + 4 ? 'one_up' : null
-        );
+        putBlock(ctx, k, 4, k === c + 4 ? 'question' : 'brick', k === c + 4 ? 'one_up' : null);
       }
-      addEnemy(ctx, c + 5, 7, 'koopa_red');
-      addEnemy(ctx, c + 3, GROUND_ROW - 1, 'goomba');
-      addEnemy(ctx, c + 7, GROUND_ROW - 1, 'goomba');
+      if (v > 0) putBlock(ctx, c + 9, 6, 'question', 'multi_coin');
+      addEnemy(ctx, c + 5, 7, ctx.worldNum >= 2 ? 'koopa_red' : 'goomba');
+      addEnemy(ctx, c + 3, GROUND_ROW - 1, foe(ctx));
+      addEnemy(ctx, c + 7, GROUND_ROW - 1, foe(ctx));
       return 11;
     }
 
     case 'pyramid_gauntlet': {
-      for (let s = 0; s < 4; s++) {
-        for (let h = 0; h <= s; h++) {
-          putBlock(ctx, c + s, GROUND_ROW - 1 - h, 'hard');
-        }
+      const peak = 3 + (v === 2 ? 1 : 0);
+      for (let s = 0; s < peak; s++) {
+        for (let h = 0; h <= s; h++) putBlock(ctx, c + s, GROUND_ROW - 1 - h, 'hard');
       }
-      carvePit(ctx, c + 4, 2);
-      addCoinArc(ctx, c + 3, 4, 5.2);
-      for (let s = 0; s < 4; s++) {
-        for (let h = 0; h <= 3 - s; h++) {
-          putBlock(ctx, c + 6 + s, GROUND_ROW - 1 - h, 'hard');
-        }
+      carvePit(ctx, c + peak, 2 + (v === 1 ? 1 : 0));
+      addCoinArc(ctx, c + peak - 1, 4, 5.2);
+      const down = c + peak + 2 + (v === 1 ? 1 : 0);
+      for (let s = 0; s < peak; s++) {
+        for (let h = 0; h <= peak - 1 - s; h++) putBlock(ctx, down + s, GROUND_ROW - 1 - h, 'hard');
       }
-      addEnemy(ctx, c + 11, GROUND_ROW - 1, 'koopa_green');
-      return 13;
+      addEnemy(ctx, down + peak + 1, GROUND_ROW - 1, foe(ctx));
+      return down + peak + 3 - c;
     }
 
     case 'spiny_fire_alley': {
       putBlock(ctx, c + 1, 8, 'question', 'powerup');
       putBlock(ctx, c + 2, 8, 'brick');
       putBlock(ctx, c + 3, 8, 'question', 'coin');
-      for (let k = c + 5; k <= c + 9; k++) {
-        putBlock(ctx, k, 8, 'brick');
-      }
+      for (let k = c + 5; k <= c + 9; k++) putBlock(ctx, k, 8, 'brick');
       addEnemy(ctx, c + 6, GROUND_ROW - 1, ctx.worldNum >= 2 ? 'spiny' : 'goomba');
-      addEnemy(ctx, c + 9, GROUND_ROW - 1, 'koopa_green');
+      addEnemy(ctx, c + 9, GROUND_ROW - 1, foe(ctx));
       addEnemy(ctx, c + 7, 7, 'goomba');
+      if (v === 2) addEnemy(ctx, c + 11, GROUND_ROW - 1, foe(ctx));
       addCoinArc(ctx, c + 5, 5, 5.3);
       return 13;
+    }
+
+    case 'brick_ceiling_run': {
+      // Long low brick ceiling with a coin lane underneath and foes patrolling it.
+      const row = v === 0 ? 8 : 7;
+      for (let k = c + 1; k <= c + 11; k++) {
+        const isQ = k === c + 3 || k === c + 9;
+        putBlock(ctx, k, row, isQ ? 'question' : 'brick', isQ ? (k === c + 3 ? 'powerup' : 'coin') : null);
+        if (k % 2 === 0) addCoin(ctx, k, 10.2);
+      }
+      putBlock(ctx, c + 6, row - 4, 'brick', 'multi_coin');
+      addEnemy(ctx, c + 5, GROUND_ROW - 1, foe(ctx));
+      addEnemy(ctx, c + 8, GROUND_ROW - 1, foe(ctx));
+      if (v !== 1) addEnemy(ctx, c + 7, row - 1, 'goomba');
+      return 14;
+    }
+
+    case 'stepping_pillars': {
+      // Rising/falling stone pillars separated by short pits.
+      const heights = [
+        [1, 2, 3, 2],
+        [2, 3, 2, 1],
+        [1, 3, 1, 2],
+      ][v];
+      let k = c + 1;
+      for (let i = 0; i < heights.length; i++) {
+        for (let h = 0; h < heights[i]; h++) putBlock(ctx, k, GROUND_ROW - 1 - h, 'hard');
+        addCoin(ctx, k, GROUND_ROW - 2.6 - heights[i]);
+        if (i < heights.length - 1) carvePit(ctx, k + 1, 2);
+        k += 3;
+      }
+      addEnemy(ctx, k + 1, GROUND_ROW - 1, foe(ctx));
+      return k + 3 - c;
+    }
+
+    case 'pipe_maze': {
+      const hs = [
+        [2, 3, 2],
+        [3, 2, 3],
+        [2, 2, 4],
+      ][v];
+      addPipe(ctx, c + 1, hs[0], v !== 0);
+      addEnemy(ctx, c + 5, GROUND_ROW - 1, foe(ctx));
+      putBlock(ctx, c + 5, 7, 'question', 'coin');
+      addPipe(ctx, c + 7, hs[1], true);
+      addEnemy(ctx, c + 11, GROUND_ROW - 1, foe(ctx));
+      putBlock(ctx, c + 10, 8, 'brick');
+      putBlock(ctx, c + 11, 8, 'question', v === 1 ? 'one_up' : 'powerup');
+      putBlock(ctx, c + 12, 8, 'brick');
+      addPipe(ctx, c + 14, hs[2], v === 2);
+      return 18;
+    }
+
+    case 'coin_heaven_spring': {
+      // Spring launch to a high brick walkway packed with coins.
+      addSpring(ctx, c + 1, GROUND_ROW);
+      const row = 4 - (v === 2 ? 1 : 0);
+      for (let k = c + 3; k <= c + 12; k++) {
+        putBlock(ctx, k, row, k === c + 8 ? 'question' : 'brick', k === c + 8 ? 'star' : null);
+        addCoin(ctx, k, row - 1.5);
+      }
+      putBlock(ctx, c + 6, 8, 'hidden', v === 0 ? 'one_up' : 'multi_coin');
+      addEnemy(ctx, c + 7, GROUND_ROW - 1, foe(ctx));
+      addEnemy(ctx, c + 10, GROUND_ROW - 1, foe(ctx));
+      return 15;
+    }
+
+    case 'twin_lifts': {
+      putBlock(ctx, c, 11, 'hard');
+      carvePit(ctx, c + 1, 4);
+      carvePit(ctx, c + 5, 4);
+      addPlatform(ctx, c + 2, 9, 2, 1.6, 0, 0.034, 0);
+      addPlatform(ctx, c + 6, 8 - v * 0.5, 2, 0, 1.8, 0.038, 1.4);
+      addCoinArc(ctx, c + 2, 6, 5.4);
+      putBlock(ctx, c + 4, 4, 'question', v === 1 ? 'one_up' : 'coin');
+      addEnemy(ctx, c + 7, 7, 'paratroopa');
+      putBlock(ctx, c + 9, 11, 'hard');
+      addEnemy(ctx, c + 12, GROUND_ROW - 1, foe(ctx));
+      return 14;
+    }
+
+    case 'foe_parade': {
+      // A marching squad under a brick escape ledge.
+      const n = 4 + v;
+      for (let i = 0; i < n; i++) addEnemy(ctx, c + 4 + i * 2, GROUND_ROW - 1, foe(ctx));
+      for (let k = c + 2; k <= c + 6; k++) {
+        putBlock(ctx, k, 8, k === c + 4 ? 'question' : 'brick', k === c + 4 ? 'powerup' : null);
+      }
+      for (let k = c + 9; k <= c + 12; k++) putBlock(ctx, k, 6, 'brick');
+      putBlock(ctx, c + 10, 6, 'brick', 'multi_coin');
+      addCoinArc(ctx, c + 9, 4, 4.6);
+      return 6 + n * 2;
+    }
+
+    case 'lift_wall': {
+      // Tall stone wall only scalable with a vertical lift.
+      addPlatform(ctx, c + 2, 9, 2, 0, 2.2, 0.035 + v * 0.004, v * 0.8);
+      for (let row = 7; row < GROUND_ROW; row++) {
+        putBlock(ctx, c + 5, row, 'hard');
+        putBlock(ctx, c + 6, row, 'hard');
+      }
+      addCoin(ctx, c + 5, 5.6);
+      addCoin(ctx, c + 6, 5.6);
+      putBlock(ctx, c + 9, 8, 'question', v === 2 ? 'star' : 'coin');
+      addEnemy(ctx, c + 10, GROUND_ROW - 1, foe(ctx));
+      return 13;
+    }
+
+    case 'hidden_stairway': {
+      // Invisible blocks form a secret stairway up to a 1-UP.
+      for (let i = 0; i < 4; i++) putBlock(ctx, c + 2 + i * 2, 9 - i, 'hidden', 'coin');
+      putBlock(ctx, c + 8, 2, 'question', 'one_up');
+      putBlock(ctx, c + 4, 8, 'brick');
+      putBlock(ctx, c + 5, 8, 'question', 'powerup');
+      addEnemy(ctx, c + 6, GROUND_ROW - 1, foe(ctx));
+      addEnemy(ctx, c + 11, GROUND_ROW - 1, foe(ctx));
+      addCoinArc(ctx, c + 7, 4, 7.0);
+      return 14;
     }
   }
 }
@@ -587,61 +727,132 @@ function buildStage1_2(ctx: BuilderCtx): number {
   return totalCols;
 }
 
-function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: FortressBoss } {
-  const totalCols = 132 + ctx.worldNum * 4;
+// ============================================================================
+// FORTRESS SECTIONS — every world's castle is assembled from its own route.
+// ============================================================================
+type FortressSection =
+  | 'lava_pillar'
+  | 'guard_corridor'
+  | 'lift_chasm'
+  | 'dual_route'
+  | 'vertical_lift'
+  | 'lava_staircase'
+  | 'cramped_hall'
+  | 'pillar_hops'
+  | 'supply_room';
 
-  // Ceiling masonry
-  for (let col = 0; col < totalCols; col++) {
-    putBlock(ctx, col, 0, 'hard');
+function buildFortressSection(ctx: BuilderCtx, kind: FortressSection, c: number): number {
+  const w = ctx.worldNum;
+  switch (kind) {
+    case 'lava_pillar': {
+      carvePit(ctx, c + 1, 3, true);
+      putBlock(ctx, c + 2, 9, 'hard');
+      addCoinArc(ctx, c + 1, 3, 6.5);
+      addEnemy(ctx, c + 6, GROUND_ROW - 1, foe(ctx));
+      return 8;
+    }
+    case 'guard_corridor': {
+      addEnemy(ctx, c + 1, GROUND_ROW - 1, 'koopa_red');
+      addEnemy(ctx, c + 5, GROUND_ROW - 1, w >= 2 ? 'spiny' : 'goomba');
+      putBlock(ctx, c + 3, 7, 'question', 'coin');
+      putBlock(ctx, c + 4, 7, 'question', w % 2 === 0 ? 'powerup' : 'coin');
+      if (w >= 4) addEnemy(ctx, c + 7, GROUND_ROW - 1, foe(ctx));
+      return 9;
+    }
+    case 'lift_chasm': {
+      carvePit(ctx, c + 1, 4, true);
+      carvePit(ctx, c + 5, 3, true);
+      addPlatform(ctx, c + 3, 9, 3, 2.8, 0, 0.036 + w * 0.003, 0.5);
+      addCoinArc(ctx, c + 2, 5, 5.8);
+      return 10;
+    }
+    case 'dual_route': {
+      carvePit(ctx, c + 2, 4, true);
+      for (let k = c + 1; k <= c + 7; k++) {
+        putBlock(ctx, k, 8, 'bridge');
+        if (k >= c + 3 && k <= c + 5) putBlock(ctx, k, 4, 'brick');
+      }
+      putBlock(ctx, c + 4, 4, 'question', 'one_up');
+      addEnemy(ctx, c + 5, 7, 'paratroopa');
+      return 10;
+    }
+    case 'vertical_lift': {
+      carvePit(ctx, c + 1, 4, true);
+      addPlatform(ctx, c + 2, 8.5, 2, 0, 2.2, 0.04, 1.2);
+      putBlock(ctx, c + 7, 8, 'question', 'powerup');
+      addEnemy(ctx, c + 9, GROUND_ROW - 1, foe(ctx));
+      return 11;
+    }
+    case 'lava_staircase': {
+      for (let s = 0; s < 3; s++) {
+        for (let h = 0; h <= s; h++) putBlock(ctx, c + s, GROUND_ROW - 1 - h, 'hard');
+      }
+      carvePit(ctx, c + 3, 3, true);
+      for (let s = 0; s < 3; s++) {
+        for (let h = 0; h <= 2 - s; h++) putBlock(ctx, c + 6 + s, GROUND_ROW - 1 - h, 'hard');
+      }
+      addCoinArc(ctx, c + 2, 5, 6.0);
+      addEnemy(ctx, c + 10, GROUND_ROW - 1, foe(ctx));
+      return 12;
+    }
+    case 'cramped_hall': {
+      // Low stone ceiling: foes in tight quarters, prizes embedded overhead.
+      for (let k = c; k <= c + 10; k++) {
+        const isQ = k === c + 3 || k === c + 8;
+        putBlock(ctx, k, 7, isQ ? 'question' : 'hard', isQ ? (k === c + 3 ? 'powerup' : 'coin') : null);
+      }
+      addEnemy(ctx, c + 5, GROUND_ROW - 1, w >= 3 ? 'spiny' : 'goomba');
+      addEnemy(ctx, c + 9, GROUND_ROW - 1, foe(ctx));
+      return 13;
+    }
+    case 'pillar_hops': {
+      for (let i = 0; i < 3; i++) {
+        const col = c + 1 + i * 3;
+        putBlock(ctx, col, 11, 'hard');
+        putBlock(ctx, col, 10, 'hard');
+        carvePit(ctx, col + 1, 2, true);
+        addCoin(ctx, col, 8.4);
+      }
+      putBlock(ctx, c + 10, 11, 'hard');
+      return 13;
+    }
+    case 'supply_room': {
+      putBlock(ctx, c + 1, 8, 'question', 'powerup');
+      putBlock(ctx, c + 2, 8, 'question', w >= 4 ? 'one_up' : 'coin');
+      addEnemy(ctx, c + 5, GROUND_ROW - 1, 'koopa_red');
+      return 8;
+    }
   }
+}
 
-  // Opening Fortress Hall + Powerup
+const FORTRESS_PLANS: FortressSection[][] = [
+  ['lava_pillar', 'guard_corridor', 'lift_chasm', 'dual_route', 'vertical_lift', 'supply_room'],
+  ['lava_staircase', 'cramped_hall', 'lift_chasm', 'guard_corridor', 'pillar_hops', 'supply_room'],
+  ['guard_corridor', 'pillar_hops', 'dual_route', 'lava_staircase', 'vertical_lift', 'supply_room'],
+  ['cramped_hall', 'lift_chasm', 'lava_pillar', 'pillar_hops', 'dual_route', 'guard_corridor', 'supply_room'],
+  ['pillar_hops', 'vertical_lift', 'cramped_hall', 'lava_staircase', 'lift_chasm', 'guard_corridor', 'supply_room'],
+  ['lava_staircase', 'dual_route', 'pillar_hops', 'cramped_hall', 'lift_chasm', 'vertical_lift', 'lava_pillar', 'supply_room'],
+];
+
+function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: FortressBoss } {
+  // Opening hall + powerup
   putBlock(ctx, 9, 8, 'brick');
   putBlock(ctx, 10, 8, 'question', 'powerup');
   putBlock(ctx, 11, 8, 'brick');
-  addEnemy(ctx, 15, GROUND_ROW - 1, 'goomba');
+  addEnemy(ctx, 15, GROUND_ROW - 1, foe(ctx));
 
-  // Lava Pit 1 with Stone Pillars
-  carvePit(ctx, 19, 3, true);
-  putBlock(ctx, 20, 9, 'hard');
-  addCoinArc(ctx, 19, 3, 6.5);
-
-  // Guarded Corridor
-  addEnemy(ctx, 26, GROUND_ROW - 1, 'koopa_red');
-  if (ctx.worldNum >= 2) {
-    addEnemy(ctx, 30, GROUND_ROW - 1, 'spiny');
-  } else {
-    addEnemy(ctx, 30, GROUND_ROW - 1, 'goomba');
+  const plan = FORTRESS_PLANS[Math.min(FORTRESS_PLANS.length - 1, ctx.worldNum - 1)];
+  let cursor = 18;
+  for (const section of plan) {
+    cursor += buildFortressSection(ctx, section, cursor) + 2;
   }
-  putBlock(ctx, 28, 7, 'question', 'coin');
-  putBlock(ctx, 29, 7, 'question', 'coin');
 
-  // Lava Chasm 2 with Moving Iron Lift
-  carvePit(ctx, 35, 4, true);
-  carvePit(ctx, 39, 3, true);
-  addPlatform(ctx, 37, 9, 3, 2.8, 0, 0.036 + ctx.worldNum * 0.003, 0.5);
-  addCoinArc(ctx, 36, 5, 5.8);
+  const totalCols = cursor + 36;
 
-  // Mid Fortress Gauntlet (Checkpoint placed around col 50)
-  putBlock(ctx, 46, 8, 'question', 'powerup');
-  addEnemy(ctx, 55, GROUND_ROW - 1, 'koopa_green');
-  addEnemy(ctx, 59, GROUND_ROW - 1, ctx.worldNum >= 2 ? 'spiny' : 'goomba');
-
-  // Dual Route over Lava Pit 3
-  carvePit(ctx, 64, 4, true);
-  for (let c = 63; c <= 69; c++) {
-    putBlock(ctx, c, 8, 'bridge');
-    if (c >= 65 && c <= 67) putBlock(ctx, c, 4, 'brick');
+  // Ceiling masonry
+  for (let col = 0; col < totalCols; col++) {
+    if (!ctx.blockGrid.has(gridKey(col, 0))) putBlock(ctx, col, 0, 'hard');
   }
-  putBlock(ctx, 66, 4, 'question', 'one_up');
-  addEnemy(ctx, 67, 7, 'paratroopa');
-
-  // Pre-Boss Supply Room + Vertical Synced Lift
-  carvePit(ctx, 76, 4, true);
-  addPlatform(ctx, 77, 8.5, 2, 0, 2.2, 0.04, 1.2);
-  putBlock(ctx, 85, 8, 'question', 'powerup');
-  putBlock(ctx, 86, 8, 'question', 'coin');
-  addEnemy(ctx, 89, GROUND_ROW - 1, 'koopa_red');
 
   // =========================================================================
   // REY KOOPA BOSS ARENA! Suspended Bridge over Wide Magma Pool + Golden Axe!
@@ -702,27 +913,45 @@ function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: Fortres
   return { totalCols, boss };
 }
 
-function buildCuratedWorldStage(ctx: BuilderCtx): number {
-  // Deterministic sequence of varied architectural setpieces per stage!
-  const blueprints: SetpieceKind[][] = [
-    ['piranha_terrace', 'shell_bowling', 'moving_lift_chasm', 'spring_cliff_vault', 'pyramid_gauntlet'],
-    ['double_deck_secret', 'sky_bridge_paratroopa', 'spiny_fire_alley', 'moving_lift_chasm', 'piranha_terrace'],
-    ['sky_bridge_paratroopa', 'spring_cliff_vault', 'shell_bowling', 'moving_lift_chasm', 'spiny_fire_alley'],
-    ['piranha_terrace', 'double_deck_secret', 'moving_lift_chasm', 'sky_bridge_paratroopa', 'pyramid_gauntlet'],
-    ['shell_bowling', 'spiny_fire_alley', 'spring_cliff_vault', 'sky_bridge_paratroopa', 'moving_lift_chasm'],
-  ];
+// One hand-picked route per stage (keyed by level index). No two stages share
+// a plan, and each world's foe roster re-dresses every setpiece it uses.
+const STAGE_PLANS: Record<number, SetpieceKind[]> = {
+  // World 1
+  2: ['sky_bridge_paratroopa', 'stepping_pillars', 'shell_bowling', 'moving_lift_chasm', 'coin_heaven_spring'],
+  // World 2
+  4: ['pipe_maze', 'foe_parade', 'pyramid_gauntlet', 'spring_cliff_vault', 'piranha_terrace'],
+  5: ['brick_ceiling_run', 'double_deck_secret', 'pipe_maze', 'hidden_stairway', 'stepping_pillars'],
+  6: ['twin_lifts', 'shell_bowling', 'lift_wall', 'sky_bridge_paratroopa', 'pyramid_gauntlet', 'foe_parade'],
+  // World 3
+  8: ['coin_heaven_spring', 'spiny_fire_alley', 'twin_lifts', 'piranha_terrace', 'stepping_pillars'],
+  9: ['hidden_stairway', 'brick_ceiling_run', 'moving_lift_chasm', 'foe_parade', 'double_deck_secret'],
+  10: ['stepping_pillars', 'sky_bridge_paratroopa', 'lift_wall', 'twin_lifts', 'spring_cliff_vault', 'shell_bowling'],
+  // World 4
+  12: ['foe_parade', 'lift_wall', 'piranha_terrace', 'pyramid_gauntlet', 'hidden_stairway', 'spiny_fire_alley'],
+  13: ['double_deck_secret', 'twin_lifts', 'brick_ceiling_run', 'spring_cliff_vault', 'pipe_maze'],
+  14: ['moving_lift_chasm', 'stepping_pillars', 'coin_heaven_spring', 'sky_bridge_paratroopa', 'foe_parade', 'lift_wall'],
+  // World 5
+  16: ['spring_cliff_vault', 'pyramid_gauntlet', 'twin_lifts', 'shell_bowling', 'piranha_terrace', 'stepping_pillars'],
+  17: ['pipe_maze', 'hidden_stairway', 'spiny_fire_alley', 'lift_wall', 'brick_ceiling_run', 'moving_lift_chasm'],
+  18: ['brick_ceiling_run', 'foe_parade', 'double_deck_secret', 'twin_lifts', 'coin_heaven_spring', 'pyramid_gauntlet'],
+  // World 6
+  20: ['lift_wall', 'sky_bridge_paratroopa', 'foe_parade', 'stepping_pillars', 'twin_lifts', 'spiny_fire_alley', 'piranha_terrace'],
+  21: ['spiny_fire_alley', 'pipe_maze', 'moving_lift_chasm', 'hidden_stairway', 'pyramid_gauntlet', 'brick_ceiling_run', 'shell_bowling'],
+  22: ['twin_lifts', 'coin_heaven_spring', 'lift_wall', 'foe_parade', 'sky_bridge_paratroopa', 'stepping_pillars', 'double_deck_secret'],
+};
 
-  const seq = blueprints[(ctx.levelIndex + ctx.worldNum) % blueprints.length];
+function buildCuratedWorldStage(ctx: BuilderCtx): number {
+  const seq = STAGE_PLANS[ctx.levelIndex] ?? STAGE_PLANS[2];
   let cursor = 11;
 
   // Welcoming starter block
-  putBlock(ctx, 9, 8, 'question', 'coin');
+  putBlock(ctx, 9, 8, 'question', ctx.levelIndex % 3 === 0 ? 'powerup' : 'coin');
 
   for (let i = 0; i < seq.length; i++) {
     const advance = buildSetpiece(ctx, seq[i], cursor);
     cursor += advance + 3;
     // Leave clean flat plaza around midpoint for the Checkpoint Pennant!
-    if (i === 1) {
+    if (i === Math.floor(seq.length / 2) - 1) {
       cursor += 5;
     }
   }
@@ -734,8 +963,16 @@ function buildCuratedWorldStage(ctx: BuilderCtx): number {
       putBlock(ctx, stairStart + s, GROUND_ROW - 1 - h, 'hard');
     }
   }
+  const totalCols = stairStart + 20;
 
-  return stairStart + 20;
+  // Underground stages get a brick roof (with skylights) like 1-2.
+  if (ctx.isUnderground) {
+    for (let col = 5; col < stairStart - 2; col++) {
+      if (col % 23 > 3 && !ctx.blockGrid.has(gridKey(col, 1))) putBlock(ctx, col, 1, 'brick');
+    }
+  }
+
+  return totalCols;
 }
 
 export function buildWorldState(
@@ -779,6 +1016,7 @@ export function buildWorldState(
     lavaCols: new Set<number>(),
     isFortress: biomeId === 'fortress',
     isUnderground: biome.underground,
+    enemySeq: 0,
   };
 
   let totalCols = 132;
