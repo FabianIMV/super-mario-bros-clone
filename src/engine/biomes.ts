@@ -60,9 +60,29 @@ export const EXP_WORLD_NAMES = [
   'C • VOLCÁN CRISTAL',
 ];
 
+// Partition 4: Plomero Dimensión (original, arte 3D — 4 mundos x 4 etapas = 16 niveles)
+export const DIM_WORLDS = 4;
+export const DIM_TOTAL_LEVELS = DIM_WORLDS * STAGES_PER_WORLD;
+export const DIM_WORLD_PREFIXES = ['J', 'T', 'P', 'F'];
+export const DIM_WORLD_NAMES = [
+  'J • JARDÍN ESTELAR',
+  'T • TALLER DE JUGUETES',
+  'P • POLO AURORA',
+  'F • FRAGUA LUNAR',
+];
+
 /** Cantidad de niveles de cada modo. */
 export function partitionTotalLevels(partition: GamePartition): number {
-  return partition === 'smw' ? SMW_TOTAL_LEVELS : partition === 'expedition' ? EXP_TOTAL_LEVELS : TOTAL_LEVELS;
+  switch (partition) {
+    case 'smw':
+      return SMW_TOTAL_LEVELS;
+    case 'expedition':
+      return EXP_TOTAL_LEVELS;
+    case 'dimension':
+      return DIM_TOTAL_LEVELS;
+    default:
+      return TOTAL_LEVELS;
+  }
 }
 
 // Camera & Vertical Framing Constants so Touch Controls NEVER cover Plomero in either game!
@@ -602,6 +622,138 @@ export const BIOMES: Record<BiomeId, BiomeDefinition> = {
     hasLava: false,
     bgm: 'exp_cave',
   },
+  starfield: {
+    id: 'starfield',
+    name: 'Jardín Estelar',
+    skyTop: '#0b1033',
+    skyBottom: '#3b2a7a',
+    distantHill: '#312e81',
+    nearHill: '#4338ca',
+    hillOutline: '#1e1b4b',
+    bushFill: '#34d399',
+    bushHighlight: '#a7f3d0',
+    cloudFill: '#c7d2fe',
+    cloudShadow: '#818cf8',
+    groundCap: '#34d399',
+    groundCapHighlight: '#a7f3d0',
+    groundMain: '#6d28d9',
+    groundShadow: '#4c1d95',
+    groundDark: '#1e1b4b',
+    brickLight: '#fde68a',
+    brickMain: '#f59e0b',
+    brickDark: '#92400e',
+    mortar: '#1e1b4b',
+    hardLight: '#e0e7ff',
+    hardMain: '#818cf8',
+    hardDark: '#3730a3',
+    pipeLight: '#f0abfc',
+    pipeMain: '#c026d3',
+    pipeDark: '#701a75',
+    underground: false,
+    slippery: false,
+    hasStars: true,
+    hasLava: false,
+    bgm: 'dim_theme',
+  },
+  toybox: {
+    id: 'toybox',
+    name: 'Taller de Juguetes',
+    skyTop: '#fda4af',
+    skyBottom: '#fef3c7',
+    distantHill: '#fb923c',
+    nearHill: '#f97316',
+    hillOutline: '#9a3412',
+    bushFill: '#60a5fa',
+    bushHighlight: '#bfdbfe',
+    cloudFill: '#ffffff',
+    cloudShadow: '#fde68a',
+    groundCap: '#facc15',
+    groundCapHighlight: '#fef08a',
+    groundMain: '#3b82f6',
+    groundShadow: '#1d4ed8',
+    groundDark: '#1e3a8a',
+    brickLight: '#fca5a5',
+    brickMain: '#ef4444',
+    brickDark: '#991b1b',
+    mortar: '#450a0a',
+    hardLight: '#bbf7d0',
+    hardMain: '#22c55e',
+    hardDark: '#166534',
+    pipeLight: '#c4b5fd',
+    pipeMain: '#8b5cf6',
+    pipeDark: '#4c1d95',
+    underground: false,
+    slippery: false,
+    hasStars: false,
+    hasLava: false,
+    bgm: 'dim_theme',
+  },
+  aurora: {
+    id: 'aurora',
+    name: 'Polo Aurora',
+    skyTop: '#022c22',
+    skyBottom: '#0e7490',
+    distantHill: '#065f46',
+    nearHill: '#0f766e',
+    hillOutline: '#022c22',
+    bushFill: '#5eead4',
+    bushHighlight: '#ccfbf1',
+    cloudFill: '#e0f2fe',
+    cloudShadow: '#7dd3fc',
+    groundCap: '#f0f9ff',
+    groundCapHighlight: '#ffffff',
+    groundMain: '#7dd3fc',
+    groundShadow: '#0284c7',
+    groundDark: '#0c4a6e',
+    brickLight: '#e0f2fe',
+    brickMain: '#38bdf8',
+    brickDark: '#075985',
+    mortar: '#082f49',
+    hardLight: '#ccfbf1',
+    hardMain: '#2dd4bf',
+    hardDark: '#115e59',
+    pipeLight: '#a5b4fc',
+    pipeMain: '#6366f1',
+    pipeDark: '#312e81',
+    underground: false,
+    slippery: true,
+    hasStars: true,
+    hasLava: false,
+    bgm: 'dim_theme',
+  },
+  ember: {
+    id: 'ember',
+    name: 'Fragua Lunar',
+    skyTop: '#1c1917',
+    skyBottom: '#57534e',
+    distantHill: '#44403c',
+    nearHill: '#57534e',
+    hillOutline: '#0c0a09',
+    bushFill: '#f97316',
+    bushHighlight: '#fed7aa',
+    cloudFill: '#78716c',
+    cloudShadow: '#44403c',
+    groundCap: '#a8a29e',
+    groundCapHighlight: '#e7e5e4',
+    groundMain: '#57534e',
+    groundShadow: '#292524',
+    groundDark: '#0c0a09',
+    brickLight: '#fdba74',
+    brickMain: '#ea580c',
+    brickDark: '#7c2d12',
+    mortar: '#0c0a09',
+    hardLight: '#e7e5e4',
+    hardMain: '#a8a29e',
+    hardDark: '#44403c',
+    pipeLight: '#fbbf24',
+    pipeMain: '#d97706',
+    pipeDark: '#78350f',
+    underground: false,
+    slippery: false,
+    hasStars: true,
+    hasLava: false,
+    bgm: 'dim_theme',
+  },
 };
 
 const SMW_WORLD_PREFIXES = ['Y', 'D', 'V', 'B', 'K'];
@@ -617,12 +769,22 @@ export function getWorldLabel(levelIndex: number, partition: GamePartition = 'cl
     const prefix = EXP_WORLD_PREFIXES[Math.min(EXP_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'X';
     return `${prefix}-${stageNum}`;
   }
+  if (partition === 'dimension') {
+    const prefix = DIM_WORLD_PREFIXES[Math.min(DIM_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'D';
+    return `${prefix}-${stageNum}`;
+  }
   return `${worldNum}-${stageNum}`;
 }
 
 export function getStageBiome(levelIndex: number, partition: GamePartition = 'classic'): BiomeId {
   const worldNum = Math.floor(levelIndex / STAGES_PER_WORLD) + 1;
   const stageNum = (levelIndex % STAGES_PER_WORLD) + 1;
+
+  if (partition === 'dimension') {
+    if (stageNum === 4) return 'fortress';
+    const dim: BiomeId[] = ['starfield', 'toybox', 'aurora', 'ember'];
+    return dim[Math.min(dim.length - 1, worldNum - 1)];
+  }
 
   if (partition === 'expedition') {
     if (stageNum === 4) return 'fortress';

@@ -1,5 +1,6 @@
 import {
   BIOMES,
+  DIM_TOTAL_LEVELS,
   EXP_TOTAL_LEVELS,
   GROUND_ROW,
   MIN_CAMERA_WORLD_X,
@@ -89,6 +90,26 @@ const EXP_STAGE_TITLES: string[] = [
   'Mina de Geodas',
   'Cráter Prismático',
   'Corazón del Volcán',
+];
+
+// Modo Dimensión 3D (original): títulos de sus 16 etapas
+const DIM_STAGE_TITLES: string[] = [
+  'Pradera de Constelaciones',
+  'Invernadero Orbital',
+  'Puente de Cometas',
+  'Observatorio del Eclipse',
+  'Mesa de Bloques',
+  'Tren de Cuerda',
+  'Repisa de Peluches',
+  'Caja de Música Gigante',
+  'Bahía de Témpanos',
+  'Cielo de Auroras',
+  'Faro del Polo',
+  'Ciudadela de Hielo',
+  'Yunque Plateado',
+  'Ríos de Metal',
+  'Cráteres Humeantes',
+  'Corazón de la Fragua',
 ];
 
 export function gridKey(col: number, row: number): number {
@@ -357,6 +378,13 @@ const CLASSIC_ROSTERS: EnemyType[][] = [
   ['spiny', 'koopa_red', 'paratroopa', 'spiny', 'koopa_green'], // World 6: Cielo/Abismo
 ];
 
+const DIM_ROSTERS: EnemyType[][] = [
+  ['galoomba', 'paratroopa', 'koopa_green', 'rex'], // J: Jardín Estelar
+  ['goomba', 'rex', 'koopa_red', 'chuck'], // T: Taller de Juguetes
+  ['spiny', 'koopa_green', 'paratroopa', 'galoomba'], // P: Polo Aurora
+  ['chuck', 'bullet_bill', 'spiny', 'rex', 'koopa_red'], // F: Fragua Lunar
+];
+
 const EXP_ROSTERS: EnemyType[][] = [
   ['galoomba', 'koopa_green', 'goomba', 'paratroopa'], // A: Arrecife Coral
   ['rex', 'koopa_red', 'galoomba', 'spiny'], // S: Selva Neón
@@ -367,7 +395,12 @@ const EXP_ROSTERS: EnemyType[][] = [
 
 /** Next ground foe from the current world's roster (deterministic rotation). */
 function foe(ctx: BuilderCtx): EnemyType {
-  const rosters = ctx.partition === 'expedition' ? EXP_ROSTERS : CLASSIC_ROSTERS;
+  const rosters =
+    ctx.partition === 'expedition'
+      ? EXP_ROSTERS
+      : ctx.partition === 'dimension'
+      ? DIM_ROSTERS
+      : CLASSIC_ROSTERS;
   const roster = rosters[Math.min(rosters.length - 1, ctx.worldNum - 1)];
   const type = roster[ctx.enemySeq % roster.length];
   ctx.enemySeq++;
@@ -898,6 +931,13 @@ const EXP_FORTRESS_PLANS: FortressSection[][] = [
   ['dual_route', 'cramped_hall', 'lava_staircase', 'pillar_hops', 'vertical_lift', 'guard_corridor', 'lift_chasm', 'supply_room'],
 ];
 
+const DIM_FORTRESS_PLANS: FortressSection[][] = [
+  ['lift_chasm', 'cramped_hall', 'pillar_hops', 'dual_route', 'supply_room'],
+  ['guard_corridor', 'vertical_lift', 'lava_staircase', 'lift_chasm', 'supply_room'],
+  ['pillar_hops', 'dual_route', 'lava_pillar', 'cramped_hall', 'vertical_lift', 'supply_room'],
+  ['lava_staircase', 'lift_chasm', 'guard_corridor', 'pillar_hops', 'dual_route', 'cramped_hall', 'supply_room'],
+];
+
 function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: FortressBoss } {
   // Opening hall + powerup
   putBlock(ctx, 9, 8, 'brick');
@@ -905,7 +945,12 @@ function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: Fortres
   putBlock(ctx, 11, 8, 'brick');
   addEnemy(ctx, 15, GROUND_ROW - 1, foe(ctx));
 
-  const plans = ctx.partition === 'expedition' ? EXP_FORTRESS_PLANS : FORTRESS_PLANS;
+  const plans =
+    ctx.partition === 'expedition'
+      ? EXP_FORTRESS_PLANS
+      : ctx.partition === 'dimension'
+      ? DIM_FORTRESS_PLANS
+      : FORTRESS_PLANS;
   const plan = plans[Math.min(plans.length - 1, ctx.worldNum - 1)];
   let cursor = 18;
   for (const section of plan) {
@@ -1029,10 +1074,32 @@ const EXP_STAGE_PLANS: Record<number, SetpieceKind[]> = {
   18: ['twin_lifts', 'shell_bowling', 'hidden_stairway', 'sky_bridge_paratroopa', 'pyramid_gauntlet', 'coin_heaven_spring', 'foe_parade'],
 };
 
+// Modo Dimensión 3D: un plan propio por etapa
+const DIM_STAGE_PLANS: Record<number, SetpieceKind[]> = {
+  // J: Jardín Estelar
+  0: ['stepping_pillars', 'coin_heaven_spring', 'foe_parade', 'twin_lifts'],
+  1: ['sky_bridge_paratroopa', 'lift_wall', 'hidden_stairway', 'pyramid_gauntlet', 'brick_ceiling_run'],
+  2: ['twin_lifts', 'double_deck_secret', 'moving_lift_chasm', 'stepping_pillars', 'spring_cliff_vault'],
+  // T: Taller de Juguetes
+  4: ['pipe_maze', 'foe_parade', 'coin_heaven_spring', 'shell_bowling', 'lift_wall'],
+  5: ['brick_ceiling_run', 'spring_cliff_vault', 'twin_lifts', 'hidden_stairway', 'piranha_terrace', 'stepping_pillars'],
+  6: ['double_deck_secret', 'pyramid_gauntlet', 'pipe_maze', 'sky_bridge_paratroopa', 'foe_parade'],
+  // P: Polo Aurora
+  8: ['moving_lift_chasm', 'spiny_fire_alley', 'stepping_pillars', 'coin_heaven_spring', 'twin_lifts', 'hidden_stairway'],
+  9: ['lift_wall', 'shell_bowling', 'sky_bridge_paratroopa', 'brick_ceiling_run', 'pyramid_gauntlet'],
+  10: ['twin_lifts', 'foe_parade', 'double_deck_secret', 'lift_wall', 'spiny_fire_alley', 'moving_lift_chasm'],
+  // F: Fragua Lunar
+  12: ['pyramid_gauntlet', 'pipe_maze', 'twin_lifts', 'stepping_pillars', 'piranha_terrace', 'foe_parade'],
+  13: ['spiny_fire_alley', 'lift_wall', 'hidden_stairway', 'moving_lift_chasm', 'shell_bowling', 'coin_heaven_spring', 'brick_ceiling_run'],
+  14: ['sky_bridge_paratroopa', 'twin_lifts', 'spring_cliff_vault', 'double_deck_secret', 'pyramid_gauntlet', 'lift_wall', 'stepping_pillars'],
+};
+
 function buildCuratedWorldStage(ctx: BuilderCtx): number {
   const seq =
     ctx.partition === 'expedition'
       ? EXP_STAGE_PLANS[ctx.levelIndex] ?? EXP_STAGE_PLANS[0]
+      : ctx.partition === 'dimension'
+      ? DIM_STAGE_PLANS[ctx.levelIndex] ?? DIM_STAGE_PLANS[0]
       : STAGE_PLANS[ctx.levelIndex] ?? STAGE_PLANS[2];
   let cursor = 11;
 
@@ -1089,12 +1156,15 @@ export function buildWorldState(
       )
     );
   }
-  const isExp = partition === 'expedition';
-  const totalStages = isExp ? EXP_TOTAL_LEVELS : TOTAL_LEVELS;
+  // Clásico, Expedición y Dimensión comparten este constructor
+  const isExp = partition === 'expedition' || partition === 'dimension';
+  const ownPartition: GamePartition = isExp ? partition : 'classic';
+  const totalStages =
+    partition === 'expedition' ? EXP_TOTAL_LEVELS : partition === 'dimension' ? DIM_TOTAL_LEVELS : TOTAL_LEVELS;
   const clampedIdx = Math.max(0, Math.min(levelIndex, totalStages - 1));
   const worldNum = Math.floor(clampedIdx / STAGES_PER_WORLD) + 1;
   const stageNum = (clampedIdx % STAGES_PER_WORLD) + 1;
-  const biomeId = getStageBiome(clampedIdx, isExp ? 'expedition' : 'classic');
+  const biomeId = getStageBiome(clampedIdx, ownPartition);
   const biome = BIOMES[biomeId];
 
   const ctx: BuilderCtx = {
@@ -1115,7 +1185,7 @@ export function buildWorldState(
     isFortress: biomeId === 'fortress',
     isUnderground: biome.underground,
     enemySeq: 0,
-    partition: isExp ? 'expedition' : 'classic',
+    partition: ownPartition,
   };
 
   let totalCols = 132;
@@ -1250,13 +1320,13 @@ export function buildWorldState(
   const startCameraX = Math.max(MIN_CAMERA_WORLD_X, player.x - 304);
 
   return applyStageObjective(applyAbilityChallenges(applyStageSecrets(applyStageMechanic({
-    partition: isExp ? 'expedition' : 'classic',
+    partition: ownPartition,
     totalStagesInPartition: totalStages,
     status: 'playing',
     levelIndex: clampedIdx,
     worldLabel: getWorldLabel(clampedIdx, ctx.partition),
     stageTitle:
-      (isExp ? EXP_STAGE_TITLES : STAGE_TITLES)[clampedIdx] ??
+      (partition === 'dimension' ? DIM_STAGE_TITLES : isExp ? EXP_STAGE_TITLES : STAGE_TITLES)[clampedIdx] ??
       `Etapa ${getWorldLabel(clampedIdx, ctx.partition)}`,
     biomeId,
     totalCols,

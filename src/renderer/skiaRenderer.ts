@@ -243,6 +243,37 @@ export class SkiaWorldRenderer {
     return this.recorder.finishRecordingAsPicture();
   }
 
+  /**
+   * Modo Dimensión 3D: solo los textos flotantes (carteles, puntajes), sin
+   * fondo, para dibujarse encima de la vista 3D. `project` convierte
+   * coordenadas del mundo a la pantalla según la cámara 3D.
+   */
+  renderOverlayTexts(
+    world: WorldState,
+    screenWidth: number,
+    screenHeight: number,
+    pixelFont: SkFont | null,
+    project: (x: number, y: number) => { x: number; y: number }
+  ): SkPicture {
+    const bounds = Skia.XYWHRect(0, 0, screenWidth, screenHeight);
+    const canvas = this.recorder.beginRecording(bounds);
+    if (pixelFont) {
+      const scale = screenHeight / LOGICAL_HEIGHT;
+      for (const ft of world.floatingTexts) {
+        const pt = project(ft.x, ft.y);
+        canvas.save();
+        canvas.translate(pt.x, pt.y);
+        canvas.scale(scale, scale);
+        this.fillPaint.setColor(Skia.Color('#090d16'));
+        canvas.drawText(ft.text, 2, 2, this.fillPaint, pixelFont);
+        this.fillPaint.setColor(Skia.Color(ft.color));
+        canvas.drawText(ft.text, 0, 0, this.fillPaint, pixelFont);
+        canvas.restore();
+      }
+    }
+    return this.recorder.finishRecordingAsPicture();
+  }
+
   private blitSprite(
     canvas: SkCanvas,
     atlas: SkiaSpriteAtlas,

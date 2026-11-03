@@ -58,6 +58,19 @@ const EXP_OBJECTIVES: Record<number, StageObjective> = {
   18: 'time_attack',
 };
 
+const DIM_OBJECTIVES: Record<number, StageObjective> = {
+  1: 'collect',
+  2: 'time_attack',
+  4: 'chase',
+  6: 'collect',
+  8: 'time_attack',
+  9: 'collect',
+  10: 'chase',
+  12: 'collect',
+  13: 'chase',
+  14: 'time_attack',
+};
+
 export const GEMS_PER_STAGE = 5;
 export const CLOCKS_PER_STAGE = 5;
 export const TIME_ATTACK_START = 75; // unidades del contador (1 unidad = 38 frames)
@@ -76,7 +89,13 @@ export const OBJECTIVE_LABELS: Record<StageObjective, { text: string; color: str
 
 export function getStageObjective(levelIndex: number, partition: GamePartition): StageObjective {
   const table =
-    partition === 'smw' ? SMW_OBJECTIVES : partition === 'expedition' ? EXP_OBJECTIVES : CLASSIC_OBJECTIVES;
+    partition === 'smw'
+      ? SMW_OBJECTIVES
+      : partition === 'expedition'
+      ? EXP_OBJECTIVES
+      : partition === 'dimension'
+      ? DIM_OBJECTIVES
+      : CLASSIC_OBJECTIVES;
   return table[levelIndex] ?? 'reach';
 }
 

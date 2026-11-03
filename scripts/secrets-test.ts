@@ -1,5 +1,5 @@
 // Pruebas de rutas y secretos (Fase 3), usando la física real a 60 Hz.
-import { GROUND_ROW, SMW_TOTAL_LEVELS, TILE, TOTAL_LEVELS, EXP_TOTAL_LEVELS } from '../src/engine/biomes';
+import { GROUND_ROW, SMW_TOTAL_LEVELS, TILE, TOTAL_LEVELS, EXP_TOTAL_LEVELS, DIM_TOTAL_LEVELS } from '../src/engine/biomes';
 import { stepWorld } from '../src/engine/physics';
 import { castleIndexOf, stageHasPortal, stageHasVault, VAULT_WIDTH } from '../src/engine/secrets';
 import type { GamePartition, InputState, WorldState } from '../src/engine/types';
@@ -44,7 +44,7 @@ console.log('8. Validando rutas y secretos...');
 
 // 8a. Cada nivel elegible tiene bóveda + llave alcanzable
 let vaults = 0;
-for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS]] as [GamePartition, number][]) {
+for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
   for (let i = 0; i < total; i++) {
     const w = buildWorldState(i, undefined, part);
     const door = vaultDoorCol(w);

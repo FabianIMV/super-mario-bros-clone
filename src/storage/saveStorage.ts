@@ -49,10 +49,15 @@ export async function loadProgress(): Promise<SaveProgress> {
       expUnlockedLevel: typeof parsed.expUnlockedLevel === 'number' ? parsed.expUnlockedLevel : 0,
       expClearedLevels: Array.isArray(parsed.expClearedLevels) ? parsed.expClearedLevels : [],
       expBestStageScores: parsed.expBestStageScores ?? {},
+      dimHighScore: typeof parsed.dimHighScore === 'number' ? parsed.dimHighScore : 0,
+      dimUnlockedLevel: typeof parsed.dimUnlockedLevel === 'number' ? parsed.dimUnlockedLevel : 0,
+      dimClearedLevels: Array.isArray(parsed.dimClearedLevels) ? parsed.dimClearedLevels : [],
+      dimBestStageScores: parsed.dimBestStageScores ?? {},
       lastPartition:
         parsed.lastPartition === 'classic' ||
         parsed.lastPartition === 'smw' ||
-        parsed.lastPartition === 'expedition'
+        parsed.lastPartition === 'expedition' ||
+        parsed.lastPartition === 'dimension'
           ? parsed.lastPartition
           : 'smw',
     };

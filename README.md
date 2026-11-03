@@ -47,6 +47,19 @@ Tercer modo con 5 mundos propios y 20 niveles, cada uno con su mecánica:
 
 Usa champiñón y flor de fuego (como el clásico), enemigos de ambos modos, dos pistas de música originales y todas las fases: objetivos, bóvedas, portales secretos, chimeneas y habilidades.
 
+### Modo 4: Plomero Dimensión 3D (nuevo, original)
+
+Cuarto modo con **arte 3D low-poly** (three.js sobre `expo-gl`): bloques con volumen, luces, colinas en profundidad y cámara en perspectiva, con el mismo movimiento lateral y la misma física que el resto del juego. 4 mundos y 16 niveles:
+
+| Mundo | Mecánica |
+|---|---|
+| **J • Jardín Estelar** | Gravedad baja |
+| **T • Taller de Juguetes** | Hongos trampolín |
+| **P • Polo Aurora** | Viento sobre hielo resbaladizo |
+| **F • Fragua Lunar** | Puentes frágiles |
+
+Si el 3D no puede iniciar en un equipo, el modo se juega automáticamente con el renderer 2D; los otros modos no dependen del 3D.
+
 ### Habilidades del plomero
 
 - **Llave inglesa (`X` sin flor ni capa; en el modo clásico también `Y`):** se lanza como bumerán y vuelve a tu mano. Derriba enemigos, golpea bloques, junta monedas y trae de vuelta gemas, relojes o llaves que estén lejos. Al jefe le quita 1 de vida por lanzamiento.

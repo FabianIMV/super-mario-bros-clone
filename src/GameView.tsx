@@ -8,6 +8,22 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { Canvas, Picture, createPicture, useFont } from '@shopify/react-native-skia';
+import { GL3DRenderer, type ExpoGLContext } from './renderer3d/glRenderer';
+
+// expo-gl se carga de forma protegida: si el módulo nativo no estuviera
+// disponible, el modo 3D se juega en 2D y el resto de la app no se entera.
+type GLViewProps = {
+  style?: unknown;
+  pointerEvents?: string;
+  onContextCreate: (gl: unknown) => void;
+};
+let GLViewComponent: React.ComponentType<GLViewProps> | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  GLViewComponent = require('expo-gl').GLView as React.ComponentType<GLViewProps>;
+} catch {
+  GLViewComponent = null;
+}
 import { PressStart2P_400Regular, useFonts } from '@expo-google-fonts/press-start-2p';
 import * as ScreenOrientation from 'expo-screen-orientation';
 import { useKeepAwake } from 'expo-keep-awake';
@@ -122,6 +138,22 @@ export const GameView: React.FC = () => {
   const [progress, setProgress] = useState<SaveProgress>(DEFAULT_PROGRESS);
   const [settings, setSettings] = useState<GameSettings>(DEFAULT_SETTINGS);
   const [inTitle, setInTitle] = useState(true);
+  // Modo Dimensión 3D: renderer three.js sobre expo-gl, con vuelta al 2D si falla
+  const gl3dRef = useRef<GL3DRenderer | null>(null);
+  const gl3dFailedRef = useRef(GLViewComponent === null);
+  const [gl3dFailed, setGl3dFailed] = useState(GLViewComponent === null);
+  // Al salir del modo 3D se desmonta la vista GL: liberar su renderer para no
+  // dibujar sobre un contexto que ya no existe (se crea otro al volver)
+  useEffect(() => {
+    if (partition !== 'dimension' && gl3dRef.current) {
+      try {
+        gl3dRef.current.dispose();
+      } catch {
+        // contexto ya liberado
+      }
+      gl3dRef.current = null;
+    }
+  }, [partition]);
   const [worldSelectOpen, setWorldSelectOpen] = useState(false);
   const [modalMode, setModalMode] = useState<'none' | 'pause' | 'settings'>('none');
   const [ignorePortraitHint, setIgnorePortraitHint] = useState(false);
@@ -278,13 +310,35 @@ export const GameView: React.FC = () => {
 
       // Record GPU SkPicture with zero React component re-renders!
       const activeWorld = worldRef.current;
-      framePicture.value = renderer.renderWorldPicture(
-        activeWorld,
-        width,
-        height,
-        skiaPixelFont,
-        settingsRef.current.crtScanlines
-      );
+      const gl3d = gl3dRef.current;
+      let drewIn3D = false;
+      if (activeWorld.partition === 'dimension' && gl3d && !gl3dFailedRef.current) {
+        try {
+          gl3d.render(activeWorld, width, height);
+          framePicture.value = renderer.renderOverlayTexts(
+            activeWorld,
+            width,
+            height,
+            skiaPixelFont,
+            (x, y) => gl3d.projectToScreen(x, y, width, height)
+          );
+          drewIn3D = true;
+        } catch {
+          // Si el 3D falla en este equipo, el modo sigue jugándose en 2D
+          gl3dFailedRef.current = true;
+          gl3dRef.current = null;
+          setGl3dFailed(true);
+        }
+      }
+      if (!drewIn3D) {
+        framePicture.value = renderer.renderWorldPicture(
+          activeWorld,
+          width,
+          height,
+          skiaPixelFont,
+          settingsRef.current.crtScanlines
+        );
+      }
 
       // Only update lightweight HUD React state when displayed values change
       if (!inTitleRef.current) {
@@ -486,8 +540,29 @@ export const GameView: React.FC = () => {
   const activeHighScore = getPartitionProgress(progress, hud.partition).highScore;
   const continueLevelIdx = getPartitionProgress(progress, partition).unlocked;
 
+  const show3D = partition === 'dimension' && !gl3dFailed && GLViewComponent !== null;
+  const GLViewC = GLViewComponent;
+
   return (
     <View style={styles.root}>
+      {/* Modo Dimensión: vista 3D debajo del canvas de Skia (que solo dibuja textos) */}
+      {show3D && GLViewC && (
+        <GLViewC
+          key="dimension-3d"
+          style={StyleSheet.absoluteFill}
+          pointerEvents="none"
+          onContextCreate={(gl) => {
+            try {
+              gl3dRef.current = new GL3DRenderer(gl as unknown as ExpoGLContext);
+            } catch {
+              gl3dFailedRef.current = true;
+              gl3dRef.current = null;
+              setGl3dFailed(true);
+            }
+          }}
+        />
+      )}
+
       {/* Full-Screen Hardware-Accelerated Skia 16-Bit Pixel Canvas */}
       <Canvas style={StyleSheet.absoluteFill} pointerEvents="none">
         <Picture picture={framePicture} />

@@ -6,7 +6,7 @@
 import { partitionTotalLevels } from './biomes';
 import type { GamePartition, SaveProgress } from './types';
 
-export const PARTITION_ORDER: GamePartition[] = ['classic', 'smw', 'expedition'];
+export const PARTITION_ORDER: GamePartition[] = ['classic', 'smw', 'expedition', 'dimension'];
 
 export interface PartitionInfo {
   tab: string;
@@ -54,6 +54,17 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     accent: '#7c3aed',
     subtitleColor: '#ddd6fe',
   },
+  dimension: {
+    tab: '🧊 DIMENSIÓN 3D (16)',
+    edition: 'NUEVO • MUNDOS EN 3D • 4 MUNDOS ORIGINALES',
+    subtitle: 'DIMENSIÓN 3D',
+    worldsLabel: '4 MUNDOS',
+    worldNoun: 'ZONA',
+    firstStage: 'J-1',
+    hint: 'Mundos con volumen y cámara en perspectiva  •  Mismos controles: A salta, X llave inglesa, ▼ barrida',
+    accent: '#0891b2',
+    subtitleColor: '#a5f3fc',
+  },
 };
 
 export interface PartitionProgress {
@@ -72,6 +83,15 @@ export function getPartitionProgress(prog: SaveProgress, part: GamePartition): P
       unlocked: prog.smwUnlockedLevel,
       cleared: prog.smwClearedLevels,
       best: prog.smwBestStageScores,
+      total,
+    };
+  }
+  if (part === 'dimension') {
+    return {
+      highScore: prog.dimHighScore ?? 0,
+      unlocked: prog.dimUnlockedLevel ?? 0,
+      cleared: prog.dimClearedLevels ?? [],
+      best: prog.dimBestStageScores ?? {},
       total,
     };
   }
@@ -105,6 +125,15 @@ export function withPartitionProgress(
       smwUnlockedLevel: next.unlocked,
       smwClearedLevels: next.cleared,
       smwBestStageScores: next.best,
+    };
+  }
+  if (part === 'dimension') {
+    return {
+      ...prog,
+      dimHighScore: next.highScore,
+      dimUnlockedLevel: next.unlocked,
+      dimClearedLevels: next.cleared,
+      dimBestStageScores: next.best,
     };
   }
   if (part === 'expedition') {

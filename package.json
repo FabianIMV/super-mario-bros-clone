@@ -12,6 +12,7 @@
     "expo-constants": "~58.0.14",
     "expo-file-system": "~58.0.13",
     "expo-font": "~58.0.11",
+    "expo-gl": "~58.0.4",
     "expo-haptics": "~58.0.7",
     "expo-keep-awake": "~58.0.3",
     "expo-linear-gradient": "~58.0.3",
@@ -23,11 +24,13 @@
     "react-native-gesture-handler": "~3.3.0",
     "react-native-reanimated": "4.7.1",
     "react-native-safe-area-context": "~5.10.1",
-    "react-native-worklets": "0.13.0"
+    "react-native-worklets": "0.13.0",
+    "three": "0.162.0"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
     "@types/react": "~19.3.0",
+    "@types/three": "0.162.0",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -36,7 +39,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "verify": "tsc --ignoreConfig --target ES2022 --module commonjs --esModuleInterop --skipLibCheck --types node --outDir /tmp/spb-verify scripts/verify-game.ts scripts/level-diversity.ts scripts/mechanics-test.ts scripts/objectives-test.ts scripts/secrets-test.ts scripts/abilities-test.ts scripts/expedition-test.ts && node /tmp/spb-verify/scripts/verify-game.js && node /tmp/spb-verify/scripts/level-diversity.js && node /tmp/spb-verify/scripts/mechanics-test.js && node /tmp/spb-verify/scripts/objectives-test.js && node /tmp/spb-verify/scripts/secrets-test.js && node /tmp/spb-verify/scripts/abilities-test.js && node /tmp/spb-verify/scripts/expedition-test.js"
+    "verify": "tsc --ignoreConfig --target ES2022 --module commonjs --esModuleInterop --skipLibCheck --types node --outDir /tmp/spb-verify scripts/verify-game.ts scripts/level-diversity.ts scripts/mechanics-test.ts scripts/objectives-test.ts scripts/secrets-test.ts scripts/abilities-test.ts scripts/expedition-test.ts scripts/scene3d-test.ts && node /tmp/spb-verify/scripts/verify-game.js && node /tmp/spb-verify/scripts/level-diversity.js && node /tmp/spb-verify/scripts/mechanics-test.js && node /tmp/spb-verify/scripts/objectives-test.js && node /tmp/spb-verify/scripts/secrets-test.js && node /tmp/spb-verify/scripts/abilities-test.js && node /tmp/spb-verify/scripts/expedition-test.js && NODE_PATH=./node_modules node /tmp/spb-verify/scripts/scene3d-test.js"
   },
   "private": true
 }

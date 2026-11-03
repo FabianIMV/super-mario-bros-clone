@@ -68,6 +68,8 @@ export const PauseModal: React.FC<PauseProps> = ({
               ? 'PAUSA • PLOMERO WORLD'
               : partition === 'expedition'
               ? 'PAUSA • EXPEDICIÓN'
+              : partition === 'dimension'
+              ? 'PAUSA • DIMENSIÓN 3D'
               : 'PAUSA • PLOMERO BROS'
             : 'AJUSTES ARCADE'}
         </Text>
@@ -144,6 +146,8 @@ export const PauseModal: React.FC<PauseProps> = ({
                     ? '🦕 IR A WORLD'
                     : partition === 'smw'
                     ? '🧭 IR A EXPEDICIÓN'
+                    : partition === 'expedition'
+                    ? '🧊 IR A DIMENSIÓN 3D'
                     : '🍄 IR A BROS'}
                 </Text>
               </Pressable>
@@ -198,7 +202,13 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
             styles.introEdition,
             {
               fontFamily,
-              color: isSmw ? '#4ade80' : partition === 'expedition' ? '#c4b5fd' : '#f87171',
+              color: isSmw
+                ? '#4ade80'
+                : partition === 'expedition'
+                ? '#c4b5fd'
+                : partition === 'dimension'
+                ? '#a5f3fc'
+                : '#f87171',
             },
           ]}
         >
@@ -206,6 +216,8 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
             ? '🦕 SUPER PLOMERO WORLD'
             : partition === 'expedition'
             ? '🧭 PLOMERO EXPEDICIÓN'
+            : partition === 'dimension'
+            ? '🧊 PLOMERO DIMENSIÓN 3D'
             : '🍄 SUPER PLOMERO BROS'}
         </Text>
         <Text style={[styles.introWorld, { fontFamily }]}>
@@ -238,6 +250,8 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
                 ? '¡CAMPEÓN DE PLOMERO WORLD!'
                 : partition === 'expedition'
                 ? '¡EXPEDICIÓN COMPLETADA!'
+                : partition === 'dimension'
+                ? '¡DIMENSIÓN CONQUISTADA!'
                 : '¡CAMPEÓN DE LOS 6 REINOS!'
               : 'FIN DE LA PARTIDA'}
           </Text>
@@ -248,6 +262,8 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
                 ? '¡Liberaste la Isla Dinosaurio y los 20 niveles junto a Yoshi y la Capa Dorada!'
                 : partition === 'expedition'
                 ? '¡Cruzaste el arrecife, la selva, la ciudad, las nubes y el volcán: 20 niveles!'
+                : partition === 'dimension'
+                ? '¡Recorriste el jardín estelar, el taller, el polo y la fragua: 16 niveles en 3D!'
                 : '¡Derrotaste al Rey Koopa en la Fortaleza Final y liberaste los 24 niveles!'
               : 'Has agotado tus vidas en esta incursión.'}
           </Text>

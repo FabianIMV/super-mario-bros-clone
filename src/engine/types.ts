@@ -1,4 +1,4 @@
-export type GamePartition = 'classic' | 'smw' | 'expedition';
+export type GamePartition = 'classic' | 'smw' | 'expedition' | 'dimension';
 
 export type BiomeId =
   | 'meadow'
@@ -17,7 +17,12 @@ export type BiomeId =
   | 'jungle'
   | 'clockwork'
   | 'cloudland'
-  | 'crystal';
+  | 'crystal'
+  // Modo Dimensión (3D, original)
+  | 'starfield'
+  | 'toybox'
+  | 'aurora'
+  | 'ember';
 
 export type BgmTrackId =
   | 'overworld'
@@ -28,7 +33,8 @@ export type BgmTrackId =
   | 'smw_overworld'
   | 'smw_athletic'
   | 'exp_overworld'
-  | 'exp_cave';
+  | 'exp_cave'
+  | 'dim_theme';
 
 export type SfxId =
   | 'jump'
@@ -581,6 +587,11 @@ export interface SaveProgress {
   expUnlockedLevel?: number;
   expClearedLevels?: number[];
   expBestStageScores?: Record<number, number>;
+  // Modo 4: Plomero Dimensión 3D (16 niveles)
+  dimHighScore?: number;
+  dimUnlockedLevel?: number;
+  dimClearedLevels?: number[];
+  dimBestStageScores?: Record<number, number>;
   lastPartition: GamePartition;
 }
 

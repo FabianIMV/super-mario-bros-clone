@@ -110,8 +110,14 @@ assert([...labels].join(' ').startsWith('A-1 A-2 A-3 A-4 S-1'), 'Etiquetas en or
   assert(getPartitionProgress(p2, 'expedition').highScore === 1234, 'El récord no baja');
   // Partidas guardadas antiguas (sin campos de Expedición) siguen funcionando
   assert(getPartitionProgress(base, 'expedition').unlocked === 0, 'Partidas antiguas: Expedición empieza en A-1');
-  assert(PARTITION_ORDER.length === 3, 'Hay 3 modos');
-  assert(nextPartition('classic') === 'smw' && nextPartition('smw') === 'expedition' && nextPartition('expedition') === 'classic', 'El cambio de modo recorre los 3');
+  assert(PARTITION_ORDER.length === 4, 'Hay 4 modos');
+  assert(
+    nextPartition('classic') === 'smw' &&
+      nextPartition('smw') === 'expedition' &&
+      nextPartition('expedition') === 'dimension' &&
+      nextPartition('dimension') === 'classic',
+    'El cambio de modo recorre los 4'
+  );
 }
 
 console.log(`   ✔ ${passed} comprobaciones del modo Expedición en verde (${[...labels][0]}..${[...labels].pop()}).`);

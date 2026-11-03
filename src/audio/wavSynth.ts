@@ -567,6 +567,33 @@ export function synthesizeBgmWav(track: BgmTrackId): Uint8Array {
   // -------------------------------------------------------------------------
   // Modo Expedición: dos pistas originales
   // -------------------------------------------------------------------------
+  if (track === 'dim_theme') {
+    // Original: fa mayor espacioso, acordes abiertos y campanas (64 pasos ≈ 9 s)
+    const step = 0.14;
+    const lead = [
+      77, 0, 0, 81, 0, 84, 0, 0, 82, 0, 81, 0, 79, 0, 0, 0,
+      77, 0, 79, 0, 81, 0, 0, 77, 0, 74, 0, 0, 72, 0, 0, 0,
+      77, 0, 0, 81, 0, 84, 0, 0, 89, 0, 88, 0, 86, 0, 84, 0,
+      82, 0, 81, 0, 79, 0, 0, 81, 77, 0, 0, 0, 0, 0, 0, 0,
+    ];
+    const chords = [53, 50, 46, 48];
+    for (let i = 0; i < lead.length; i++) {
+      if (lead[i] > 0) {
+        events.push({ wave: 'triangle', startSec: i * step, durSec: step * 2.2, freqStart: midiFreq(lead[i]), gain: 0.2 });
+        events.push({ wave: 'pulse12', startSec: i * step, durSec: step * 0.5, freqStart: midiFreq(lead[i] + 12), gain: 0.05 });
+      }
+      if (i % 16 === 0) {
+        const root = chords[(i / 16) % chords.length];
+        for (const iv of [0, 7, 12, 16]) {
+          events.push({ wave: 'pulse50', startSec: i * step, durSec: step * 15, freqStart: midiFreq(root + iv), gain: 0.035, decay: false });
+        }
+        events.push({ wave: 'triangle', startSec: i * step, durSec: step * 15, freqStart: midiFreq(root - 12), gain: 0.24, decay: false });
+      }
+      if (i % 8 === 4) events.push({ wave: 'noise', startSec: i * step, durSec: 0.05, freqStart: 2600, gain: 0.04 });
+    }
+    return renderToneEvents(events, lead.length * step);
+  }
+
   if (track === 'exp_overworld') {
     // Re lidio, sincopado y luminoso (64 pasos ≈ 7,7 s en bucle)
     const step = 0.12;

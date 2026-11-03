@@ -23,6 +23,8 @@ const SMW_MECHANICS: StageMechanic[] = ['bounce', 'wind', 'crumble', 'firefly', 
 // Expedición: arrecife flotante, selva de luciérnagas, ciudad de puentes frágiles,
 // nubes con viento y volcán de carámbanos de cristal
 const EXP_MECHANICS: StageMechanic[] = ['lowgrav', 'firefly', 'crumble', 'wind', 'icicles'];
+// Dimensión 3D: jardín sin gravedad, juguetes saltarines, polo con viento y fragua de puentes
+const DIM_MECHANICS: StageMechanic[] = ['lowgrav', 'bounce', 'wind', 'crumble'];
 
 export const MECHANIC_LABELS: Record<StageMechanic, { text: string; color: string }> = {
   none: { text: '', color: '#ffffff' },
@@ -40,7 +42,13 @@ export function getStageMechanic(levelIndex: number, partition: GamePartition): 
   const stageNum = (levelIndex % STAGES_PER_WORLD) + 1;
   if (stageNum === 4) return 'lava_tide';
   const table =
-    partition === 'smw' ? SMW_MECHANICS : partition === 'expedition' ? EXP_MECHANICS : CLASSIC_MECHANICS;
+    partition === 'smw'
+      ? SMW_MECHANICS
+      : partition === 'expedition'
+      ? EXP_MECHANICS
+      : partition === 'dimension'
+      ? DIM_MECHANICS
+      : CLASSIC_MECHANICS;
   return table[Math.min(table.length - 1, worldNum - 1)];
 }
 

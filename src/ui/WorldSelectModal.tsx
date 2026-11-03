@@ -3,6 +3,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   BIOMES,
+  DIM_WORLDS,
+  DIM_WORLD_NAMES,
   EXP_WORLDS,
   EXP_WORLD_NAMES,
   SMW_WORLDS,
@@ -51,8 +53,15 @@ export const WorldSelectModal: React.FC<Props> = ({
 
   const isSmw = partition === 'smw';
   const isExp = partition === 'expedition';
-  const worldCount = isSmw ? SMW_WORLDS : isExp ? EXP_WORLDS : TOTAL_WORLDS;
-  const worldNames = isSmw ? SMW_WORLD_NAMES : isExp ? EXP_WORLD_NAMES : CLASSIC_WORLD_NAMES;
+  const isDim = partition === 'dimension';
+  const worldCount = isSmw ? SMW_WORLDS : isExp ? EXP_WORLDS : isDim ? DIM_WORLDS : TOTAL_WORLDS;
+  const worldNames = isSmw
+    ? SMW_WORLD_NAMES
+    : isExp
+    ? EXP_WORLD_NAMES
+    : isDim
+    ? DIM_WORLD_NAMES
+    : CLASSIC_WORLD_NAMES;
   const pp = getPartitionProgress(progress, partition);
   const unlockedIdx = pp.unlocked;
   const clearedList = pp.cleared;
@@ -79,9 +88,16 @@ export const WorldSelectModal: React.FC<Props> = ({
                 { fontFamily },
                 isSmw && { color: '#86efac' },
                 isExp && { color: '#c4b5fd' },
+                isDim && { color: '#a5f3fc' },
               ]}
             >
-              {isSmw ? 'ISLA DINOSAURIO (20)' : isExp ? 'EXPEDICIÓN (20)' : '6 MUNDOS CLÁSICOS (24)'}
+              {isSmw
+                ? 'ISLA DINOSAURIO (20)'
+                : isExp
+                ? 'EXPEDICIÓN (20)'
+                : isDim
+                ? 'DIMENSIÓN 3D (16)'
+                : '6 MUNDOS CLÁSICOS (24)'}
             </Text>
           </View>
 
@@ -96,7 +112,13 @@ export const WorldSelectModal: React.FC<Props> = ({
                 ]}
               >
                 <Text style={[styles.chipText, { fontFamily }]}>
-                  {part === 'classic' ? '🍄 BROS' : part === 'smw' ? '🦕 WORLD' : '🧭 EXPED.'}
+                  {part === 'classic'
+                    ? '🍄 BROS'
+                    : part === 'smw'
+                    ? '🦕 WORLD'
+                    : part === 'expedition'
+                    ? '🧭 EXPED.'
+                    : '🧊 3D'}
                 </Text>
               </Pressable>
             ))}
