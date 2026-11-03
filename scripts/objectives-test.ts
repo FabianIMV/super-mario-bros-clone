@@ -67,6 +67,7 @@ for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS
     const w = buildWorldState(i, undefined, part);
     const gems = w.pickups!.filter((p) => p.kind === 'gem');
     assert(gems.length === GEMS_PER_STAGE, `${part} ${w.worldLabel}: debe tener ${GEMS_PER_STAGE} gemas (tiene ${gems.length})`);
+    assert(w.gemsNeeded === gems.length, `${part} ${w.worldLabel}: pide ${w.gemsNeeded} gemas pero hay ${gems.length}`);
     for (const g of gems) {
       const col = Math.floor((g.x + g.width / 2) / TILE);
       const row = Math.floor((g.y + g.height / 2) / TILE);
@@ -89,7 +90,7 @@ for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS
   w.player.y = GROUND_ROW * TILE - w.player.height;
   run(w, 40, { right: true });
   assert(w.status === 'playing' && w.player.x < goalX, 'Sin las gemas la meta no deja pasar');
-  for (const g of w.pickups!) {
+  for (const g of w.pickups!.filter((p) => p.kind === 'gem')) {
     w.player.x = g.x;
     w.player.y = g.y;
     w.player.vy = 0;
@@ -117,7 +118,7 @@ for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS
   const ref = buildWorldState(2);
   const cpX = ref.checkpoint!.x;
   const w = buildWorldState(2, { score: 0, highScore: 0, coins: 0, lives: 3, powerState: 0, checkpointX: cpX, checkpointY: 0 });
-  const behind = ref.pickups!.filter((g) => g.x < w.player.x).length;
+  const behind = ref.pickups!.filter((g) => g.kind === 'gem' && g.x < w.player.x).length;
   assert(w.gemsCollected === behind && behind > 0, `En el checkpoint las ${behind} gemas de atrás cuentan como tomadas`);
 }
 

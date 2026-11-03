@@ -698,6 +698,9 @@ export class SkiaWorldRenderer {
           case 'bridge':
             spriteKey = 'tile_bridge';
             break;
+          case 'lock':
+            spriteKey = `${prefix}_hard`;
+            break;
           default:
             spriteKey = `${prefix}_brick`;
         }
@@ -713,6 +716,22 @@ export class SkiaWorldRenderer {
         }
 
         this.blitSprite(canvas, atlas, spriteKey, b.x, b.y, TILE, TILE, false);
+
+        if (b.type === 'lock') {
+          // Puerta de bóveda: madera con cerradura dorada
+          this.fillPaint.setColor(Skia.Color('#78350f'));
+          canvas.drawRect(Skia.XYWHRect(b.x + 3, b.y + 2, TILE - 6, TILE - 4), this.fillPaint);
+          this.fillPaint.setColor(Skia.Color('#a16207'));
+          canvas.drawRect(Skia.XYWHRect(b.x + 6, b.y + 4, 4, TILE - 8), this.fillPaint);
+          canvas.drawRect(Skia.XYWHRect(b.x + 22, b.y + 4, 4, TILE - 8), this.fillPaint);
+          if (b.row === 10) {
+            this.fillPaint.setColor(Skia.Color('#facc15'));
+            canvas.drawRect(Skia.XYWHRect(b.x + 10, b.y + 12, 12, 14), this.fillPaint);
+            this.fillPaint.setColor(Skia.Color('#1c1917'));
+            canvas.drawCircle(b.x + 16, b.y + 17, 2.5, this.fillPaint);
+            canvas.drawRect(Skia.XYWHRect(b.x + 15, b.y + 18, 2, 5), this.fillPaint);
+          }
+        }
 
         // Extend deep ground 1 row lower so WORLD_VERTICAL_LIFT shows continuous earth to bottom of screen!
         if (row === GROUND_ROW + 1 && b.type === 'ground_deep') {
@@ -739,6 +758,18 @@ export class SkiaWorldRenderer {
       const bob = Math.sin(world.frameCount * 0.09 + pk.phase) * 2.5;
       const x = pk.x;
       const y = pk.y + bob;
+      if (pk.kind === 'key') {
+        this.drawKey(canvas, x, y, world.frameCount);
+        continue;
+      }
+      if (pk.kind === 'treasure') {
+        this.drawTreasure(canvas, pk.x, pk.y);
+        continue;
+      }
+      if (pk.kind === 'portal') {
+        this.drawPortal(canvas, pk.x, pk.y, pk.width, pk.height, world.frameCount);
+        continue;
+      }
       if (pk.kind === 'gem') {
         // Gema facetada en pixel-art
         const rows: Array<[number, number, string]> = [
@@ -779,6 +810,56 @@ export class SkiaWorldRenderer {
         canvas.drawRect(Skia.XYWHRect(cx - 1, cy - 5, 2, 6), this.fillPaint);
         canvas.drawRect(Skia.XYWHRect(cx - 1, cy - 1, 5, 2), this.fillPaint);
       }
+    }
+  }
+
+  private drawKey(canvas: SkCanvas, x: number, y: number, frame: number): void {
+    this.fillPaint.setColor(Skia.Color('#422006'));
+    canvas.drawCircle(x + 6, y + 7, 7.5, this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(x + 10, y + 4, 12, 6), this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(x + 15, y + 8, 7, 8), this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('#facc15'));
+    canvas.drawCircle(x + 6, y + 7, 5.5, this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(x + 10, y + 5, 11, 4), this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(x + 16, y + 8, 2, 6), this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(x + 19, y + 8, 2, 4), this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('#422006'));
+    canvas.drawCircle(x + 6, y + 7, 2, this.fillPaint);
+    if (frame % 40 < 8) {
+      this.fillPaint.setColor(Skia.Color('#ffffff'));
+      canvas.drawRect(Skia.XYWHRect(x + 2, y + 3, 3, 3), this.fillPaint);
+    }
+  }
+
+  private drawTreasure(canvas: SkCanvas, x: number, y: number): void {
+    // Cofre
+    this.fillPaint.setColor(Skia.Color('#1c1917'));
+    canvas.drawRect(Skia.XYWHRect(x - 1, y - 1, 26, 30), this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('#92400e'));
+    canvas.drawRect(Skia.XYWHRect(x + 1, y + 1, 22, 26), this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('#b45309'));
+    canvas.drawRect(Skia.XYWHRect(x + 1, y + 1, 22, 9), this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('#facc15'));
+    canvas.drawRect(Skia.XYWHRect(x + 1, y + 10, 22, 3), this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(x + 9, y + 8, 6, 8), this.fillPaint);
+  }
+
+  private drawPortal(canvas: SkCanvas, x: number, y: number, w: number, h: number, frame: number): void {
+    const cx = x + w / 2;
+    const cy = y + h / 2;
+    const rings = ['#3b0764', '#7e22ce', '#a855f7', '#e9d5ff'];
+    for (let i = 0; i < rings.length; i++) {
+      const pulse = Math.sin(frame * 0.12 + i) * 1.5;
+      this.fillPaint.setColor(Skia.Color(rings[i]));
+      canvas.drawOval(
+        Skia.XYWHRect(cx - w / 2 + i * 3 - pulse, cy - h / 2 + i * 5 - pulse, w - i * 6 + pulse * 2, h - i * 10 + pulse * 2),
+        this.fillPaint
+      );
+    }
+    this.fillPaint.setColor(Skia.Color('#ffffff'));
+    for (let i = 0; i < 4; i++) {
+      const a = frame * 0.08 + (i * Math.PI) / 2;
+      canvas.drawRect(Skia.XYWHRect(cx + Math.cos(a) * 9 - 1, cy + Math.sin(a) * 20 - 1, 3, 3), this.fillPaint);
     }
   }
 

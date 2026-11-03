@@ -333,7 +333,7 @@ export const GameView: React.FC = () => {
         const starActive = activeWorld.player.starTimer > 0;
         const pBucket = Math.floor(activeWorld.player.pMeter / 10);
         const yoshiFireReady = activeWorld.player.yoshiMouthItem === 'fire';
-        const hudKey = `${activeWorld.partition}|${activeWorld.status}|${activeWorld.score}|${activeWorld.coins}|${activeWorld.dragonCoinsCollected}|${activeWorld.worldLabel}|${activeWorld.timeLeft}|${activeWorld.lives}|${activeWorld.player.powerState}|${starActive}|${pBucket}|${activeWorld.player.mountedYoshi}|${yoshiFireReady}|${bossHp}|${activeWorld.gemsCollected ?? 0}|${activeWorld.objective ?? ''}`;
+        const hudKey = `${activeWorld.partition}|${activeWorld.status}|${activeWorld.score}|${activeWorld.coins}|${activeWorld.dragonCoinsCollected}|${activeWorld.worldLabel}|${activeWorld.timeLeft}|${activeWorld.lives}|${activeWorld.player.powerState}|${starActive}|${pBucket}|${activeWorld.player.mountedYoshi}|${yoshiFireReady}|${bossHp}|${activeWorld.gemsCollected ?? 0}|${activeWorld.objective ?? ''}|${activeWorld.hasKey ? 1 : 0}`;
         if (hudKey !== lastHudKey) {
           lastHudKey = hudKey;
           setUiStatus(activeWorld.status);
@@ -355,6 +355,7 @@ export const GameView: React.FC = () => {
             bossMaxHp,
             objective: objectiveHudLabel(activeWorld),
             timeAttack: activeWorld.objective === 'time_attack',
+            keyHeld: Boolean(activeWorld.hasKey),
           });
         }
       }
