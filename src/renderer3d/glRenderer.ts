@@ -6,7 +6,7 @@
 // ============================================================================
 import * as THREE from 'three';
 import type { WorldState } from '../engine/types';
-import { World3DScene } from './scene3d';
+import { World3DScene, configureRenderer } from './scene3d';
 
 /** Lo mínimo de expo-gl que usamos (evita importar tipos nativos en Node). */
 export interface ExpoGLContext extends WebGLRenderingContext {
@@ -38,6 +38,7 @@ export class GL3DRenderer {
       powerPreference: 'high-performance',
     });
     this.renderer.setPixelRatio(1);
+    configureRenderer(this.renderer);
     this.renderer.setSize(width, height, false);
   }
 

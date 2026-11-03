@@ -9,6 +9,7 @@
 // (mallas instanciadas), así el costo no crece con el largo del nivel.
 // ============================================================================
 import * as THREE from 'three';
+import { RoundedBoxGeometry } from 'three/examples/jsm/geometries/RoundedBoxGeometry.js';
 import { BIOMES, GROUND_ROW, LOGICAL_HEIGHT, TILE, WORLD_VERTICAL_LIFT } from '../engine/biomes';
 import { lavaTideRise, platformGlow } from '../engine/mechanics';
 import { isGoalLocked } from '../engine/objectives';
@@ -29,7 +30,13 @@ class Batch {
   private readonly dummy = new THREE.Object3D();
   private readonly color = new THREE.Color();
 
-  constructor(geometry: THREE.BufferGeometry, material: THREE.Material, readonly capacity: number) {
+  constructor(
+    geometry: THREE.BufferGeometry,
+    material: THREE.Material,
+    readonly capacity: number,
+    /** Variación leve de brillo por posición, para que el suelo no se vea repetido. */
+    private readonly jitter = false
+  ) {
     this.mesh = new THREE.InstancedMesh(geometry, material, capacity);
     this.mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
     this.mesh.setColorAt(0, new THREE.Color(1, 1, 1));
@@ -48,7 +55,7 @@ class Batch {
     sx: number,
     sy: number,
     sz: number,
-    color: string | number,
+    color: THREE.ColorRepresentation,
     rx = 0,
     ry = 0,
     rz = 0
@@ -59,7 +66,12 @@ class Batch {
     this.dummy.scale.set(sx, sy, sz);
     this.dummy.updateMatrix();
     this.mesh.setMatrixAt(this.n, this.dummy.matrix);
-    this.mesh.setColorAt(this.n, this.color.set(color));
+    this.color.set(color);
+    if (this.jitter) {
+      const j = Math.sin(x * 12.9898 + y * 78.233) * 43758.5453;
+      this.color.offsetHSL(0, 0, ((j - Math.floor(j)) - 0.5) * 0.07);
+    }
+    this.mesh.setColorAt(this.n, this.color);
     this.n += 1;
   }
 
@@ -74,18 +86,71 @@ class Batch {
   }
 }
 
+// Paleta de personajes: el rojo vivo queda reservado al plomero
+const HERO_RED = '#ef2b2d';
+/** El plomero se dibuja un 25% más grande que su caja de colisión. */
+const HERO_SCALE = 1.25;
+const OUTLINE = '#140c1f';
 const ENEMY_COLORS: Record<string, string> = {
-  goomba: '#a0522d',
-  galoomba: '#c2410c',
-  koopa_green: '#16a34a',
-  koopa_red: '#dc2626',
-  paratroopa: '#ef4444',
+  goomba: '#8b5a2b',
+  galoomba: '#c2662d',
+  koopa_green: '#22a35a',
+  koopa_red: '#f97316',
+  paratroopa: '#fb923c',
   piranha: '#22c55e',
-  spiny: '#e11d48',
+  spiny: '#c026d3',
   rex: '#7c3aed',
   chuck: '#2563eb',
   bullet_bill: '#1f2937',
 };
+
+/** Rampa de 3 tonos para el sombreado tipo cel (bandas duras de luz). */
+function toonRamp(): THREE.DataTexture {
+  const steps = new Uint8Array([110, 110, 110, 255, 185, 185, 185, 255, 255, 255, 255, 255]);
+  const tex = new THREE.DataTexture(steps, 3, 1, THREE.RGBAFormat);
+  tex.minFilter = THREE.NearestFilter;
+  tex.magFilter = THREE.NearestFilter;
+  tex.generateMipmaps = false;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** Degradado radial para sombras de contacto (generado, sin archivos). */
+function blobTexture(size = 32): THREE.DataTexture {
+  const data = new Uint8Array(size * size * 4);
+  for (let y = 0; y < size; y++) {
+    for (let x = 0; x < size; x++) {
+      const r = Math.hypot(x - size / 2 + 0.5, y - size / 2 + 0.5) / (size / 2);
+      const a = Math.max(0, 1 - r);
+      const i = (y * size + x) * 4;
+      data[i + 3] = Math.round(a * a * 150);
+    }
+  }
+  const tex = new THREE.DataTexture(data, size, size, THREE.RGBAFormat);
+  tex.minFilter = THREE.LinearFilter;
+  tex.magFilter = THREE.LinearFilter;
+  tex.needsUpdate = true;
+  return tex;
+}
+
+/** Oclusión ambiental falsa: oscurece la base de la geometría (vertex colors). */
+function withBottomShade(geo: THREE.BufferGeometry, min = 0.72): THREE.BufferGeometry {
+  const pos = geo.getAttribute('position');
+  const colors = new Float32Array(pos.count * 3);
+  for (let i = 0; i < pos.count; i++) {
+    const v = min + (1 - min) * Math.min(1, Math.max(0, pos.getY(i) + 0.5));
+    colors[i * 3] = colors[i * 3 + 1] = colors[i * 3 + 2] = v;
+  }
+  geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+  return geo;
+}
+
+/** Ajustes del renderer compartidos (app y pruebas en navegador). */
+export function configureRenderer(renderer: THREE.WebGLRenderer): void {
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+}
 
 export interface SceneStats {
   blocks: number;
@@ -104,10 +169,14 @@ export class World3DScene {
   private readonly sky: THREE.Mesh;
   private readonly hemi: THREE.HemisphereLight;
   private readonly sun: THREE.DirectionalLight;
+  private readonly rim: THREE.DirectionalLight;
 
   // Lotes (todos con color por instancia)
   private readonly blocks: Batch;
+  private readonly slabs: Batch;
   private readonly glowBlocks: Batch;
+  private readonly outlines: Batch;
+  private readonly blobs: Batch;
   private readonly cylinders: Batch;
   private readonly spheres: Batch;
   private readonly glowSpheres: Batch;
@@ -125,9 +194,15 @@ export class World3DScene {
   private readonly heroCap: THREE.Mesh;
   private readonly heroBrim: THREE.Mesh;
   private readonly heroCape: THREE.Mesh;
-  private readonly legMat: THREE.MeshLambertMaterial;
-  private readonly bodyMat: THREE.MeshLambertMaterial;
-  private readonly capMat: THREE.MeshLambertMaterial;
+  private readonly legMat: THREE.MeshToonMaterial;
+  private readonly bodyMat: THREE.MeshToonMaterial;
+  private readonly capMat: THREE.MeshToonMaterial;
+  private fogColor = new THREE.Color();
+  private hillLayers: [THREE.Color, THREE.Color, THREE.Color] = [
+    new THREE.Color(),
+    new THREE.Color(),
+    new THREE.Color(),
+  ];
 
   private readonly stars: THREE.Points;
   private readonly projectVec = new THREE.Vector3();
@@ -136,23 +211,41 @@ export class World3DScene {
 
   constructor() {
     const box = new THREE.BoxGeometry(1, 1, 1);
-    const cyl = new THREE.CylinderGeometry(0.5, 0.5, 1, 14);
-    const sph = new THREE.SphereGeometry(0.5, 14, 10);
-    const cone = new THREE.ConeGeometry(0.5, 1, 10);
+    // Formas: bloques biselados (captan luz en las aristas) con base sombreada
+    const bevelBox = withBottomShade(new RoundedBoxGeometry(1, 1, 1, 2, 0.09));
+    const slabBox = withBottomShade(new THREE.BoxGeometry(1, 1, 1), 0.6);
+    const cyl = withBottomShade(new THREE.CylinderGeometry(0.5, 0.5, 1, 16), 0.78);
+    const sph = withBottomShade(new THREE.SphereGeometry(0.5, 16, 12), 0.7);
+    const cone = withBottomShade(new THREE.ConeGeometry(0.5, 1, 7), 0.75);
     const oct = new THREE.OctahedronGeometry(0.5, 0);
     const torus = new THREE.TorusGeometry(0.4, 0.12, 8, 18);
 
-    const lambert = () => new THREE.MeshLambertMaterial({ color: 0xffffff });
-    const glow = () => new THREE.MeshBasicMaterial({ color: 0xffffff });
+    // Materiales: sombreado tipo cel con 3 bandas; los brillantes no pasan por el tone mapping
+    const ramp = toonRamp();
+    const toon = (vertexColors = true) =>
+      new THREE.MeshToonMaterial({ color: 0xffffff, gradientMap: ramp, vertexColors });
+    const glow = () => new THREE.MeshBasicMaterial({ color: 0xffffff, toneMapped: false });
 
-    this.blocks = new Batch(box, lambert(), 2600);
+    this.blocks = new Batch(bevelBox, toon(), 1400, true);
+    this.slabs = new Batch(slabBox, toon(), 2600, true);
     this.glowBlocks = new Batch(box, glow(), 400);
-    this.cylinders = new Batch(cyl, lambert(), 500);
-    this.spheres = new Batch(sph, lambert(), 900);
-    this.glowSpheres = new Batch(sph, glow(), 200);
-    this.cones = new Batch(cone, lambert(), 300);
-    this.gems = new Batch(oct, lambert(), 60);
-    this.rings = new Batch(torus, lambert(), 80);
+    this.cylinders = new Batch(cyl, toon(), 500);
+    this.spheres = new Batch(sph, toon(), 900);
+    this.glowSpheres = new Batch(sph, glow(), 300);
+    this.cones = new Batch(cone, toon(), 300);
+    this.gems = new Batch(oct, toon(false), 60);
+    this.rings = new Batch(torus, toon(false), 80);
+    // Contorno oscuro de personajes (casco invertido) y sombras de contacto
+    this.outlines = new Batch(
+      sph,
+      new THREE.MeshBasicMaterial({ color: 0xffffff, side: THREE.BackSide, toneMapped: false }),
+      300
+    );
+    this.blobs = new Batch(
+      new THREE.PlaneGeometry(1, 1).rotateX(-Math.PI / 2),
+      new THREE.MeshBasicMaterial({ map: blobTexture(), transparent: true, depthWrite: false, toneMapped: false }),
+      80
+    );
     this.ghost = new Batch(
       box,
       new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.16, depthWrite: false }),
@@ -161,6 +254,9 @@ export class World3DScene {
     this.bits = new Batch(box, glow(), 500);
     for (const b of [
       this.blocks,
+      this.slabs,
+      this.outlines,
+      this.blobs,
       this.glowBlocks,
       this.cylinders,
       this.spheres,
@@ -193,16 +289,19 @@ export class World3DScene {
     this.scene.add(this.stars);
 
     // Luces
-    this.hemi = new THREE.HemisphereLight(0xffffff, 0x888888, 1.25);
-    this.sun = new THREE.DirectionalLight(0xffffff, 1.9);
-    this.sun.position.set(-4, 8, 10);
-    this.scene.add(this.hemi, this.sun);
+    // Luz de tres puntos: principal cálida, relleno suave y contraluz fría
+    this.hemi = new THREE.HemisphereLight(0xffffff, 0x888888, 0.8);
+    this.sun = new THREE.DirectionalLight('#fff1d6', 2.4);
+    this.sun.position.set(-5, 9, 8);
+    this.rim = new THREE.DirectionalLight('#9ec5ff', 1.0);
+    this.rim.position.set(6, 4, -8);
+    this.scene.add(this.hemi, this.sun, this.rim);
 
     // Plomero
-    this.legMat = new THREE.MeshLambertMaterial({ color: '#1d4ed8' });
-    this.bodyMat = new THREE.MeshLambertMaterial({ color: '#dc2626' });
-    this.capMat = new THREE.MeshLambertMaterial({ color: '#dc2626' });
-    const skin = new THREE.MeshLambertMaterial({ color: '#fcd9b6' });
+    this.legMat = new THREE.MeshToonMaterial({ color: '#1d4ed8', gradientMap: ramp });
+    this.bodyMat = new THREE.MeshToonMaterial({ color: HERO_RED, gradientMap: ramp });
+    this.capMat = new THREE.MeshToonMaterial({ color: HERO_RED, gradientMap: ramp });
+    const skin = new THREE.MeshToonMaterial({ color: '#fcd9b6', gradientMap: ramp });
     this.heroLegs = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.32, 0.4, 12), this.legMat);
     this.heroBody = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.33, 0.4, 12), this.bodyMat);
     this.heroHead = new THREE.Mesh(new THREE.SphereGeometry(0.27, 14, 10), skin);
@@ -212,8 +311,15 @@ export class World3DScene {
     const moustache = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.26), new THREE.MeshLambertMaterial({ color: '#3f2a14' }));
     this.heroCape = new THREE.Mesh(
       new THREE.BoxGeometry(0.06, 0.6, 0.5),
-      new THREE.MeshLambertMaterial({ color: '#facc15' })
+      new THREE.MeshToonMaterial({ color: '#facc15', gradientMap: ramp })
     );
+    // Contorno del plomero: copia de cada pieza por dentro, un poco más grande
+    const heroOutline = new THREE.MeshBasicMaterial({ color: OUTLINE, side: THREE.BackSide, toneMapped: false });
+    for (const part of [this.heroLegs, this.heroBody, this.heroHead, this.heroCap]) {
+      const shell = new THREE.Mesh(part.geometry, heroOutline);
+      shell.scale.setScalar(1.12);
+      part.add(shell);
+    }
     this.hero.add(this.heroLegs, this.heroBody, this.heroHead, this.heroCap, this.heroBrim, nose, moustache, this.heroCape);
     nose.name = 'nose';
     moustache.name = 'moustache';
@@ -235,9 +341,15 @@ export class World3DScene {
     }
     colors.needsUpdate = true;
     this.scene.background = bottom.clone();
-    this.scene.fog = new THREE.Fog(bottom.getHex(), CAM_DIST + 12, CAM_DIST + 70);
-    this.hemi.color.set(b.cloudFill);
-    this.hemi.groundColor.set(b.groundDark);
+    // Perspectiva aérea: niebla con el color del horizonte, más cerca
+    this.fogColor = top.clone().lerp(bottom, 0.65);
+    this.scene.fog = new THREE.Fog(this.fogColor.getHex(), CAM_DIST + 4, CAM_DIST + 48);
+    this.hemi.color.set(b.skyBottom);
+    this.hemi.groundColor.set(new THREE.Color(b.skyBottom).multiplyScalar(0.45));
+    // Colinas en 3 capas: cuanto más lejos, más se funden con el cielo
+    const near = new THREE.Color(b.nearHill);
+    const far = new THREE.Color(b.distantHill);
+    this.hillLayers = [near, far.clone().lerp(this.fogColor, 0.3), far.clone().lerp(this.fogColor, 0.6)];
     this.stars.visible = b.hasStars || b.underground;
   }
 
@@ -271,6 +383,9 @@ export class World3DScene {
 
     const all = [
       this.blocks,
+      this.slabs,
+      this.outlines,
+      this.blobs,
       this.glowBlocks,
       this.cylinders,
       this.spheres,
@@ -287,18 +402,38 @@ export class World3DScene {
     const endCol = Math.min(world.totalCols - 1, Math.ceil((world.cameraX + viewW) / TILE) + 6);
     const inView = (px: number, w = TILE) => px + w > (startCol - 2) * TILE && px < (endCol + 2) * TILE;
 
-    // --- Decorado de fondo: colinas y nubes en profundidad (paralaje real) ---
-    for (const s of world.sceneries) {
+    // --- Decorado de fondo: 3 capas de colinas, nubes y arbustos ---
+    for (let si = 0; si < world.sceneries.length; si++) {
+      const s = world.sceneries[si];
       const sx = toX(s.x);
-      if (Math.abs(sx - cx) > 40) continue;
+      if (Math.abs(sx - cx) > 48) continue;
       if (s.kind === 'cloud') {
-        this.spheres.add(sx, toY(s.y) + 2, -14, 3.2 * s.scale, 1.1 * s.scale, 1.4, b.cloudFill);
-        this.spheres.add(sx + 1.4 * s.scale, toY(s.y) + 2.3, -14.2, 2.2 * s.scale, 1 * s.scale, 1.2, b.cloudFill);
+        if (b.hasStars) continue; // en los mundos oscuros, cielo limpio con estrellas
+        const cy0 = toY(s.y) + 2.4;
+        const k = s.scale;
+        this.spheres.add(sx, cy0, -16, 2.6 * k, 1.0 * k, 1.2, b.cloudFill);
+        this.spheres.add(sx + 1.2 * k, cy0 + 0.35 * k, -16.1, 2.0 * k, 1.1 * k, 1.1, b.cloudFill);
+        this.spheres.add(sx - 1.1 * k, cy0 - 0.05, -16.1, 1.7 * k, 0.8 * k, 1.0, b.cloudFill);
       } else if (s.kind === 'hill' || s.kind === 'dune' || s.kind === 'pine') {
-        const color = s.kind === 'pine' ? b.nearHill : b.distantHill;
-        this.cones.add(sx, -GROUND_ROW + 1.6 * s.scale, -7 - s.scale * 2, 3.4 * s.scale, 3.2 * s.scale, 3.4 * s.scale, color);
+        const layer = si % 3;
+        const z = [-10, -22, -40][layer];
+        const size = [0.75, 1.6, 2.4][layer] * (0.8 + 0.3 * s.scale);
+        const color = this.hillLayers[layer];
+        const lx = sx + layer * 3.5;
+        if (s.kind === 'pine') {
+          this.cones.add(lx, -GROUND_ROW + 2.4 * size, z, 2.4 * size, 4.8 * size, 2.4 * size, color, 0, si);
+        } else if (layer > 0 && (si >> 1) % 2 === 0) {
+          // Colina redondeada (media esfera aplastada)
+          this.spheres.add(lx, -GROUND_ROW - 0.4, z, 7 * size, 2.8 * size, 4 * size, color);
+        } else {
+          this.cones.add(lx, -GROUND_ROW + 1.9 * size, z, 4.2 * size, 3.8 * size, 4.2 * size, color, 0, si * 0.7);
+        }
       } else if (s.kind === 'bush') {
-        this.spheres.add(sx, -GROUND_ROW + 0.3, -2.4, 1.6 * s.scale, 0.9, 1, b.bushFill);
+        // Arbusto: grupo de 3 esferas detrás del camino
+        const k = 0.55 + 0.2 * s.scale;
+        this.spheres.add(sx, -GROUND_ROW + 0.35, -1.7, 1.1 * k, 0.9 * k, 0.9, b.bushFill);
+        this.spheres.add(sx + 0.6 * k, -GROUND_ROW + 0.25, -1.75, 0.9 * k, 0.7 * k, 0.8, b.bushFill);
+        this.spheres.add(sx - 0.55 * k, -GROUND_ROW + 0.22, -1.75, 0.8 * k, 0.6 * k, 0.8, b.bushHighlight);
       } else {
         // pilares / estandartes de cuevas y castillos
         this.cylinders.add(sx, -6, -6, 1.1, 14, 1.1, b.hardDark);
@@ -315,12 +450,12 @@ export class World3DScene {
         const y = -(row + 0.5) - (blk.bounceY ?? 0) * U;
         switch (blk.type) {
           case 'ground_top':
-            this.blocks.add(x, y - 0.05, -0.5, 1, 0.9, 3, b.groundMain);
-            this.blocks.add(x, y + 0.42, -0.5, 1.02, 0.2, 3.04, b.groundCap);
+            this.slabs.add(x, y - 0.05, -0.5, 1, 0.9, 3, b.groundMain);
+            this.slabs.add(x, y + 0.42, -0.5, 1.02, 0.22, 3.06, b.groundCap);
             break;
           case 'ground_deep':
-            this.blocks.add(x, y, -0.5, 1, 1, 3, b.groundShadow);
-            this.blocks.add(x, y - 1, -0.5, 1, 1, 3, b.groundDark);
+            this.slabs.add(x, y, -0.5, 1, 1, 3, b.groundShadow);
+            this.slabs.add(x, y - 1, -0.5, 1, 1, 3, b.groundDark);
             break;
           case 'brick':
             this.blocks.add(x, y, 0, 0.96, 0.96, 0.96, b.brickMain);
@@ -343,7 +478,7 @@ export class World3DScene {
             break;
           case 'bridge': {
             const shakeX = blk.crumbleTimer ? Math.sin(frame * 2.1) * 0.06 : 0;
-            this.blocks.add(x + shakeX, y + 0.3, 0, 1, 0.3, 1.4, blk.crumble ? '#a16207' : '#b45309');
+            this.slabs.add(x + shakeX, y + 0.3, 0, 1, 0.3, 1.4, blk.crumble ? '#a16207' : '#b45309');
             break;
           }
           case 'lock':
@@ -392,7 +527,7 @@ export class World3DScene {
         this.ghost.add(x, y, 0, pl.width * U, 0.3, 1.2, '#bef264');
         continue;
       }
-      this.blocks.add(x, y, 0, pl.width * U, 0.4, 1.3, glow < 1 ? '#57534e' : '#b45309');
+      this.slabs.add(x, y, 0, pl.width * U, 0.4, 1.3, glow < 1 ? '#57534e' : '#b45309');
       if (pl.blink) {
         for (let k = 0; k < Math.round(pl.width / 16); k++) {
           this.glowSpheres.add(toX(pl.x + 8 + k * 16), y + 0.45 + Math.sin(frame * 0.12 + k) * 0.08, 0.3, 0.12, 0.12, 0.12, '#d9f99d');
@@ -478,6 +613,7 @@ export class World3DScene {
     for (const en of world.enemies) {
       if (!inView(en.x, en.width)) continue;
       this.addEnemy(en, frame);
+      if (en.state !== 'knocked' && en.type !== 'piranha') this.addBlob(world, en.x + en.width / 2, en.y + en.height, en.width);
       enemyCount++;
     }
 
@@ -520,9 +656,9 @@ export class World3DScene {
       this.blocks.add(px - 0.5, toY(fp.flagY) - 0.3, 0, 0.9, 0.6, 0.06, '#22c55e');
       // Castillo
       const castleX = toX(fp.castleX) + 2;
-      this.blocks.add(castleX, -GROUND_ROW + 1.5, -1, 4, 3, 3, b.hardMain);
-      this.blocks.add(castleX, -GROUND_ROW + 3.6, -1, 2.6, 1.4, 2.4, b.hardMain);
-      this.blocks.add(castleX, -GROUND_ROW + 0.8, 0.52, 1, 1.6, 0.1, '#1c1917');
+      this.slabs.add(castleX, -GROUND_ROW + 1.5, -1, 4, 3, 3, b.hardMain);
+      this.slabs.add(castleX, -GROUND_ROW + 3.6, -1, 2.6, 1.4, 2.4, b.hardMain);
+      this.slabs.add(castleX, -GROUND_ROW + 0.8, 0.52, 1, 1.6, 0.1, '#1c1917');
       if (isGoalLocked(world)) {
         this.ghost.add(px, -7, 0, 0.5, 10, 1, '#a855f7');
         this.glowBlocks.add(px, -9, 0.6, 0.7, 0.6, 0.2, '#facc15');
@@ -538,7 +674,7 @@ export class World3DScene {
     // --- Sombra que persigue ---
     if (world.chase) {
       const edge = toX(world.chase.x);
-      this.blocks.add(edge - 20, -7, 0, 40, 20, 6, '#12061f');
+      this.slabs.add(edge - 20, -7, 0, 40, 20, 6, '#12061f');
       for (let k = 0; k < 12; k++) {
         const wave = Math.sin(frame * 0.15 + k) * 0.3;
         this.glowBlocks.add(edge + 0.2 + wave, -1 - k * 1.1, 2.6, 0.12, 0.6, 0.1, '#a855f7');
@@ -561,12 +697,13 @@ export class World3DScene {
       }
     }
 
-    // --- Plomero ---
+    // --- Plomero (con sombra de contacto) ---
     const playerVisible = this.syncHero(world, frame);
+    if (playerVisible) this.addBlob(world, world.player.x + world.player.width / 2, world.player.y + world.player.height, 30);
 
     for (const batch of all) batch.end();
     this.lastStats = {
-      blocks: this.blocks.count + this.glowBlocks.count,
+      blocks: this.blocks.count + this.slabs.count + this.glowBlocks.count,
       enemies: enemyCount,
       coins: coinCount,
       pickups: pickupCount,
@@ -574,12 +711,33 @@ export class World3DScene {
     };
   }
 
+  /** Sombra de contacto sobre el suelo que hay debajo (más tenue si está en el aire). */
+  private addBlob(world: WorldState, px: number, feetPy: number, widthPx: number): void {
+    const col = Math.floor(px / TILE);
+    let groundRow = -1;
+    for (let r = Math.max(0, Math.floor((feetPy - 2) / TILE)); r <= GROUND_ROW + 1; r++) {
+      const blk = world.blockGrid.get(r * 1024 + col);
+      if (blk && blk.type !== 'hidden') {
+        groundRow = r;
+        break;
+      }
+    }
+    if (groundRow < 0) return; // sobre un foso: sin sombra
+    const gap = groundRow * TILE - feetPy;
+    if (gap > 6 * TILE) return;
+    const fade = 1 - Math.min(1, gap / (6 * TILE)) * 0.6;
+    const size = (widthPx * U + 0.5) * fade;
+    this.blobs.add(toX(px), -groundRow + 0.03, 0.15, size, 1, size * 0.8, '#ffffff');
+  }
+
   private addEnemy(en: Enemy, frame: number): void {
-    const color = ENEMY_COLORS[en.type] ?? '#a0522d';
+    const color = ENEMY_COLORS[en.type] ?? '#8b5a2b';
+    // Un 15% más grandes que su caja de colisión para leerse mejor (pies fijos en el suelo)
+    const K = 1.15;
     const x = toX(en.x + en.width / 2);
-    const y = toY(en.y + en.height / 2);
-    const w = en.width * U;
-    const h = en.height * U;
+    const w = en.width * U * K;
+    const h = en.height * U * K;
+    const y = toY(en.y + en.height) + h / 2;
     const flip = en.state === 'knocked' ? Math.PI : 0;
     const face = en.facing === 1 ? 1 : -1;
     const step = Math.sin(frame * 0.3 + en.id) * 0.06;
@@ -608,16 +766,19 @@ export class World3DScene {
     }
     // Cuerpo, ojos y patas (low-poly)
     const isKoopa = en.type === 'koopa_green' || en.type === 'koopa_red' || en.type === 'paratroopa';
-    this.spheres.add(x, y - h * 0.08 + step * 0.3, 0, w * 1.05, h * (isKoopa ? 0.6 : 0.85), w, color, flip, 0, 0);
+    const bodyH = h * (isKoopa ? 0.6 : 0.85);
+    this.outlines.add(x, y - h * 0.08 + step * 0.3, 0, w * 1.05 + 0.12, bodyH + 0.12, w + 0.12, OUTLINE, flip, 0, 0);
+    this.spheres.add(x, y - h * 0.08 + step * 0.3, 0, w * 1.05, bodyH, w, color, flip, 0, 0);
     if (isKoopa) {
       this.spheres.add(x + face * w * 0.32, y + h * 0.32, 0.1, w * 0.55, h * 0.4, w * 0.55, '#fde68a', flip);
     }
     const eyeY = isKoopa ? y + h * 0.38 : y + h * 0.12;
     const eyeX = x + face * w * (isKoopa ? 0.42 : 0.22);
-    this.spheres.add(eyeX - 0.1, eyeY, 0.36, 0.16, 0.22, 0.1, '#ffffff', flip);
-    this.spheres.add(eyeX + 0.1, eyeY, 0.36, 0.16, 0.22, 0.1, '#ffffff', flip);
-    this.spheres.add(eyeX - 0.08 + face * 0.03, eyeY, 0.42, 0.07, 0.11, 0.05, '#111827', flip);
-    this.spheres.add(eyeX + 0.12 + face * 0.03, eyeY, 0.42, 0.07, 0.11, 0.05, '#111827', flip);
+    // Ojos grandes y expresivos
+    this.spheres.add(eyeX - 0.12, eyeY, 0.4, 0.22, 0.3, 0.12, '#ffffff', flip);
+    this.spheres.add(eyeX + 0.12, eyeY, 0.4, 0.22, 0.3, 0.12, '#ffffff', flip);
+    this.spheres.add(eyeX - 0.1 + face * 0.04, eyeY - 0.02, 0.47, 0.1, 0.15, 0.06, '#111827', flip);
+    this.spheres.add(eyeX + 0.14 + face * 0.04, eyeY - 0.02, 0.47, 0.1, 0.15, 0.06, '#111827', flip);
     this.spheres.add(x - w * 0.25, y - h * 0.45 + step, 0.1, w * 0.4, 0.18, 0.4, '#3f2a14', flip);
     this.spheres.add(x + w * 0.25, y - h * 0.45 - step, 0.1, w * 0.4, 0.18, 0.4, '#3f2a14', flip);
     if (en.type === 'paratroopa') {
@@ -640,10 +801,11 @@ export class World3DScene {
     this.hero.visible = !p.enteringCastle && !blink;
     if (!this.hero.visible) return false;
 
-    const h = p.height * U;
+    const h = (p.height * U) / HERO_SCALE;
     const x = toX(p.x + p.width / 2);
     const feet = toY(p.y + p.height);
     this.hero.position.set(x, feet, 0.2);
+    this.hero.scale.setScalar(HERO_SCALE);
     // Mirar hacia donde avanza, con un leve giro hacia la cámara
     this.hero.rotation.set(0, p.facing === 1 ? Math.PI / 2 - 0.45 : -Math.PI / 2 + 0.45, 0);
     if ((p.slideTimer ?? 0) > 0) this.hero.rotation.z = p.facing === 1 ? -0.9 : 0.9;
@@ -652,8 +814,8 @@ export class World3DScene {
     const star = p.starTimer > 0;
     const starColor = `hsl(${(frame * 12) % 360}, 90%, 60%)`;
     const fire = p.powerState === 2;
-    this.bodyMat.color.set(star ? starColor : fire ? '#ffffff' : '#dc2626');
-    this.capMat.color.set(star ? starColor : fire ? '#ffffff' : '#dc2626');
+    this.bodyMat.color.set(star ? starColor : fire ? '#ffffff' : HERO_RED);
+    this.capMat.color.set(star ? starColor : fire ? '#ffffff' : HERO_RED);
     this.legMat.color.set(fire ? '#dc2626' : '#1d4ed8');
 
     // Proporciones según el tamaño (chico, grande o agachado)
