@@ -33,6 +33,12 @@ El mando multitáctil lee todos los toques activos en paralelo (`onTouchStart` /
 - **Acorde `B + A` (Sprint + Salto con un solo pulgar):** La zona diagonal entre `B` y `A` activa **ambos botones simultáneamente** para correr a tope y saltar con la articulación del pulgar derecho sin soltar el sprint.
 - **Botón `X` (Fuego / Turbo):** Disparo directo de bolas de fuego cuando tienes la Flor de Fuego.
 
+### Habilidades del plomero
+
+- **Llave inglesa (`X` sin flor ni capa; en el modo clásico también `Y`):** se lanza como bumerán y vuelve a tu mano. Derriba enemigos, golpea bloques, junta monedas y trae de vuelta gemas, relojes o llaves que estén lejos. Al jefe le quita 1 de vida por lanzamiento.
+- **Salto en pared:** en el aire, empuja contra una pared para deslizarte lento por ella y pulsa `A` para rebotar hacia el lado contrario. Las **chimeneas** (dos paredes flotantes con monedas) esconden un cofre arriba que solo se alcanza así.
+- **Deslizarse:** corriendo, pulsa `▼` para barrerte por el suelo. Pasas por huecos bajos y derribas a los enemigos comunes (goombas, koopas, rex). Los Spinies y las plantas siguen haciendo daño.
+
 ---
 
 ## Características Principales

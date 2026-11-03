@@ -231,6 +231,23 @@ export interface ChaseWall {
   delay: number;
 }
 
+/** Llave inglesa lanzada como bumerán (Fase 4). */
+export interface Wrench {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  vx: number;
+  vy: number;
+  dir: 1 | -1;
+  phase: 'out' | 'back';
+  travelled: number;
+  timer: number;
+  spin: number;
+  carryId: number | null;
+  hitBoss: boolean;
+}
+
 export interface CrumbledBlock {
   block: Block;
   respawnTimer: number;
@@ -490,6 +507,17 @@ export interface Player {
   yoshiTonguePhase: number; // 0..18
   yoshiMouthItem: 'none' | 'fire';
   berriesEaten: number;
+  // Habilidades (Fase 4)
+  /** -1/1 = pegado a una pared a la izquierda/derecha en el aire; 0 = no. */
+  wallDir?: -1 | 0 | 1;
+  /** Frames en que se ignora volver hacia la pared tras un salto en pared. */
+  wallJumpLock?: number;
+  wallJumpLockDir?: -1 | 0 | 1;
+  /** Margen de frames para saltar en pared justo después de soltarla. */
+  wallCoyote?: number;
+  lastWallDir?: -1 | 0 | 1;
+  /** Frames restantes de deslizamiento por el suelo. */
+  slideTimer?: number;
 }
 
 export type WorldStatus =
@@ -594,4 +622,7 @@ export interface WorldState {
   vaultOpened?: boolean;
   /** Si existe, la salida lleva a este nivel en vez del siguiente (portal secreto). */
   warpTo?: number | null;
+  // Habilidades (Fase 4)
+  wrench?: Wrench | null;
+  shafts?: Array<{ x: number; y: number; hinted: boolean }>;
 }
