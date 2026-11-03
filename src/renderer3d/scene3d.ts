@@ -14,6 +14,7 @@ import { BIOMES, GROUND_ROW, LOGICAL_HEIGHT, TILE, WORLD_VERTICAL_LIFT } from '.
 import { lavaTideRise, platformGlow } from '../engine/mechanics';
 import { isGoalLocked } from '../engine/objectives';
 import type { BiomeId, Enemy, WorldState } from '../engine/types';
+import { HeroModel } from './heroModel';
 
 const U = 1 / TILE; // píxeles del mundo → unidades 3D
 const VIEW_ROWS = LOGICAL_HEIGHT / TILE; // 14 filas visibles
@@ -88,8 +89,8 @@ class Batch {
 
 // Paleta de personajes: el rojo vivo queda reservado al plomero
 const HERO_RED = '#ef2b2d';
-/** El plomero se dibuja un 25% más grande que su caja de colisión. */
-const HERO_SCALE = 1.25;
+/** El plomero se dibuja un 35% más grande que su caja de colisión. */
+const HERO_SCALE = 1.35;
 const OUTLINE = '#140c1f';
 const ENEMY_COLORS: Record<string, string> = {
   goomba: '#8b5a2b',
@@ -186,23 +187,15 @@ export class World3DScene {
   private readonly ghost: Batch;
   private readonly bits: Batch;
 
-  // Plomero (grupo propio para animarlo con detalle)
-  private readonly hero = new THREE.Group();
-  private readonly heroLegs: THREE.Mesh;
-  private readonly heroBody: THREE.Mesh;
-  private readonly heroHead: THREE.Mesh;
-  private readonly heroCap: THREE.Mesh;
-  private readonly heroBrim: THREE.Mesh;
-  private readonly heroCape: THREE.Mesh;
-  private readonly legMat: THREE.MeshToonMaterial;
-  private readonly bodyMat: THREE.MeshToonMaterial;
-  private readonly capMat: THREE.MeshToonMaterial;
+  // Plomero: modelo articulado propio
+  private readonly hero: HeroModel;
   private fogColor = new THREE.Color();
   private hillLayers: [THREE.Color, THREE.Color, THREE.Color] = [
     new THREE.Color(),
     new THREE.Color(),
     new THREE.Color(),
   ];
+  private readonly icos: Batch;
 
   private readonly stars: THREE.Points;
   private readonly projectVec = new THREE.Vector3();
@@ -233,7 +226,9 @@ export class World3DScene {
     this.spheres = new Batch(sph, toon(), 900);
     this.glowSpheres = new Batch(sph, glow(), 300);
     this.cones = new Batch(cone, toon(), 300);
-    this.gems = new Batch(oct, toon(false), 60);
+    this.gems = new Batch(oct, toon(false), 160);
+    // Copas facetadas de los árboles (icosaedro: caras planas, look low-poly)
+    this.icos = new Batch(new THREE.IcosahedronGeometry(0.5, 0), toon(false), 400);
     this.rings = new Batch(torus, toon(false), 80);
     // Contorno oscuro de personajes (casco invertido) y sombras de contacto
     this.outlines = new Batch(
@@ -263,6 +258,7 @@ export class World3DScene {
       this.glowSpheres,
       this.cones,
       this.gems,
+      this.icos,
       this.rings,
       this.ghost,
       this.bits,
@@ -298,32 +294,8 @@ export class World3DScene {
     this.scene.add(this.hemi, this.sun, this.rim);
 
     // Plomero
-    this.legMat = new THREE.MeshToonMaterial({ color: '#1d4ed8', gradientMap: ramp });
-    this.bodyMat = new THREE.MeshToonMaterial({ color: HERO_RED, gradientMap: ramp });
-    this.capMat = new THREE.MeshToonMaterial({ color: HERO_RED, gradientMap: ramp });
-    const skin = new THREE.MeshToonMaterial({ color: '#fcd9b6', gradientMap: ramp });
-    this.heroLegs = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.32, 0.4, 12), this.legMat);
-    this.heroBody = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.33, 0.4, 12), this.bodyMat);
-    this.heroHead = new THREE.Mesh(new THREE.SphereGeometry(0.27, 14, 10), skin);
-    this.heroCap = new THREE.Mesh(new THREE.SphereGeometry(0.28, 14, 8, 0, Math.PI * 2, 0, Math.PI / 2), this.capMat);
-    this.heroBrim = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.05, 0.3), this.capMat);
-    const nose = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 6), skin);
-    const moustache = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.06, 0.26), new THREE.MeshLambertMaterial({ color: '#3f2a14' }));
-    this.heroCape = new THREE.Mesh(
-      new THREE.BoxGeometry(0.06, 0.6, 0.5),
-      new THREE.MeshToonMaterial({ color: '#facc15', gradientMap: ramp })
-    );
-    // Contorno del plomero: copia de cada pieza por dentro, un poco más grande
-    const heroOutline = new THREE.MeshBasicMaterial({ color: OUTLINE, side: THREE.BackSide, toneMapped: false });
-    for (const part of [this.heroLegs, this.heroBody, this.heroHead, this.heroCap]) {
-      const shell = new THREE.Mesh(part.geometry, heroOutline);
-      shell.scale.setScalar(1.12);
-      part.add(shell);
-    }
-    this.hero.add(this.heroLegs, this.heroBody, this.heroHead, this.heroCap, this.heroBrim, nose, moustache, this.heroCape);
-    nose.name = 'nose';
-    moustache.name = 'moustache';
-    this.scene.add(this.hero);
+    this.hero = new HeroModel(ramp);
+    this.scene.add(this.hero.root);
   }
 
   /** Ajusta cielo, luces y niebla al bioma (solo cuando cambia). */
@@ -382,6 +354,7 @@ export class World3DScene {
     this.stars.position.x = cx * 0.9;
 
     const all = [
+      this.icos,
       this.blocks,
       this.slabs,
       this.outlines,
@@ -415,7 +388,7 @@ export class World3DScene {
         this.spheres.add(sx + 1.2 * k, cy0 + 0.35 * k, -16.1, 2.0 * k, 1.1 * k, 1.1, b.cloudFill);
         this.spheres.add(sx - 1.1 * k, cy0 - 0.05, -16.1, 1.7 * k, 0.8 * k, 1.0, b.cloudFill);
       } else if (s.kind === 'hill' || s.kind === 'dune' || s.kind === 'pine') {
-        const layer = si % 3;
+        const layer = 1 + (si % 2); // la capa cercana ahora son árboles de verdad
         const z = [-10, -22, -40][layer];
         const size = [0.75, 1.6, 2.4][layer] * (0.8 + 0.3 * s.scale);
         const color = this.hillLayers[layer];
@@ -440,6 +413,18 @@ export class World3DScene {
       }
     }
 
+    // --- Árboles sobre el suelo, detrás del camino (estilo según el mundo) ---
+    if (!b.underground && world.biomeId !== 'fortress') {
+      for (let col = startCol; col <= endCol; col++) {
+        const hash = Math.abs(Math.sin(col * 91.17 + 3.1) * 43758.5453) % 1;
+        if (hash > 0.17) continue;
+        if (!world.blockGrid.has(GROUND_ROW * 1024 + col) || !world.blockGrid.has(GROUND_ROW * 1024 + col + 1)) continue;
+        const depth = -3.4 - (hash * 37 % 1) * 2.2;
+        const size = 0.85 + (hash * 53 % 1) * 0.6;
+        this.addTree(world.biomeId, col + 0.5 + (hash * 7 % 1) * 0.5, -GROUND_ROW + 0.4, depth, size, col);
+      }
+    }
+
     // --- Bloques ---
     const lavaRise = lavaTideRise(world);
     for (let col = startCol; col <= endCol; col++) {
@@ -450,8 +435,9 @@ export class World3DScene {
         const y = -(row + 0.5) - (blk.bounceY ?? 0) * U;
         switch (blk.type) {
           case 'ground_top':
-            this.slabs.add(x, y - 0.05, -0.5, 1, 0.9, 3, b.groundMain);
-            this.slabs.add(x, y + 0.42, -0.5, 1.02, 0.22, 3.06, b.groundCap);
+            // El suelo sigue hacia el fondo para que los árboles se apoyen en él
+            this.slabs.add(x, y - 0.05, -2.5, 1, 0.9, 7, b.groundMain);
+            this.slabs.add(x, y + 0.42, -2.5, 1.02, 0.22, 7.04, b.groundCap);
             break;
           case 'ground_deep':
             this.slabs.add(x, y, -0.5, 1, 1, 3, b.groundShadow);
@@ -798,52 +784,87 @@ export class World3DScene {
   private syncHero(world: WorldState, frame: number): boolean {
     const p = world.player;
     const blink = p.invulnTimer > 0 && Math.floor(frame / 3) % 2 === 0;
-    this.hero.visible = !p.enteringCastle && !blink;
-    if (!this.hero.visible) return false;
-
-    const h = (p.height * U) / HERO_SCALE;
-    const x = toX(p.x + p.width / 2);
-    const feet = toY(p.y + p.height);
-    this.hero.position.set(x, feet, 0.2);
-    this.hero.scale.setScalar(HERO_SCALE);
-    // Mirar hacia donde avanza, con un leve giro hacia la cámara
-    this.hero.rotation.set(0, p.facing === 1 ? Math.PI / 2 - 0.45 : -Math.PI / 2 + 0.45, 0);
-    if ((p.slideTimer ?? 0) > 0) this.hero.rotation.z = p.facing === 1 ? -0.9 : 0.9;
-    else if (p.wallDir) this.hero.rotation.z = p.wallDir * 0.25;
-
+    this.hero.root.visible = !p.enteringCastle && !blink;
+    if (!this.hero.root.visible) return false;
     const star = p.starTimer > 0;
     const starColor = `hsl(${(frame * 12) % 360}, 90%, 60%)`;
     const fire = p.powerState === 2;
-    this.bodyMat.color.set(star ? starColor : fire ? '#ffffff' : HERO_RED);
-    this.capMat.color.set(star ? starColor : fire ? '#ffffff' : HERO_RED);
-    this.legMat.color.set(fire ? '#dc2626' : '#1d4ed8');
-
-    // Proporciones según el tamaño (chico, grande o agachado)
-    const unit = h / 1.0;
-    const legH = unit * 0.34;
-    const bodyH = unit * 0.32;
-    const headR = Math.min(0.32, unit * 0.27);
-    this.heroLegs.scale.set(1, legH / 0.4, 1);
-    this.heroLegs.position.set(0, legH / 2, 0);
-    this.heroBody.scale.set(1, bodyH / 0.4, 1);
-    this.heroBody.position.set(0, legH + bodyH / 2, 0);
-    const headY = legH + bodyH + headR * 0.9;
-    this.heroHead.scale.setScalar(headR / 0.27);
-    this.heroHead.position.set(0, headY, 0);
-    this.heroCap.scale.setScalar(headR / 0.27);
-    this.heroCap.position.set(0, headY + headR * 0.15, 0);
-    this.heroBrim.position.set(0, headY + headR * 0.25, headR * 0.9);
-    const nose = this.hero.getObjectByName('nose');
-    const moustache = this.hero.getObjectByName('moustache');
-    nose?.position.set(0, headY - headR * 0.05, headR * 1.0);
-    moustache?.position.set(0, headY - headR * 0.4, headR * 0.85);
-    // Brazos de la carrera: balanceo del cuerpo
-    const running = p.onGround && Math.abs(p.vx) > 0.4;
-    this.heroBody.rotation.x = running ? Math.sin(p.animTimer * 1.5) * 0.12 : 0;
-    // Capa (World) detrás de la espalda
-    this.heroCape.visible = p.powerState === 3;
-    this.heroCape.position.set(0, legH + bodyH * 0.6, -0.35);
-    this.heroCape.rotation.x = p.onGround ? 0.1 : -0.6;
+    this.hero.update(p, frame, toX(p.x + p.width / 2), toY(p.y + p.height), p.height * U * HERO_SCALE, {
+      shirt: star ? starColor : fire ? '#ffffff' : HERO_RED,
+      cap: star ? starColor : fire ? '#ffffff' : HERO_RED,
+      overalls: fire ? HERO_RED : '#2b59d9',
+    });
     return true;
+  }
+
+  /** Árbol low-poly con el estilo del mundo. */
+  private addTree(biome: BiomeId, x: number, y: number, z: number, s: number, seed: number): void {
+    const b = BIOMES[biome];
+    const turn = seed * 0.7;
+    switch (biome) {
+      case 'aurora':
+      case 'snowcap':
+      case 'glacier': {
+        // Pino nevado: 3 pisos de copa con puntas blancas
+        this.cylinders.add(x, y + 0.35 * s, z, 0.22 * s, 0.7 * s, 0.22 * s, '#5b3a1e');
+        for (let k = 0; k < 3; k++) {
+          const ty = y + (0.9 + k * 0.55) * s;
+          const w = (1.5 - k * 0.38) * s;
+          this.cones.add(x, ty, z, w, 0.9 * s, w, '#1f5f4a', 0, turn + k);
+          this.cones.add(x, ty + 0.28 * s, z, w * 0.55, 0.35 * s, w * 0.55, '#f4fbff', 0, turn + k);
+        }
+        break;
+      }
+      case 'toybox': {
+        // Árbol piruleta: palito y caramelo redondo con anillo
+        this.cylinders.add(x, y + 0.7 * s, z, 0.1 * s, 1.4 * s, 0.1 * s, '#fef3c7');
+        const candy = ['#f472b6', '#60a5fa', '#facc15', '#34d399'][seed % 4];
+        this.spheres.add(x, y + 1.75 * s, z, 1.1 * s, 1.1 * s, 0.45 * s, candy);
+        this.rings.add(x, y + 1.75 * s, z + 0.12 * s, 1.0 * s, 1.0 * s, 0.5 * s, '#ffffff');
+        break;
+      }
+      case 'prism':
+      case 'crystal': {
+        // Árbol de cristal: tronco oscuro y racimo de cristales facetados
+        this.cylinders.add(x, y + 0.45 * s, z, 0.18 * s, 0.9 * s, 0.18 * s, '#3b0764');
+        this.gems.add(x, y + 1.45 * s, z, 0.8 * s, 1.4 * s, 0.8 * s, b.bushFill, 0, turn);
+        this.gems.add(x - 0.4 * s, y + 1.1 * s, z + 0.1, 0.45 * s, 0.8 * s, 0.45 * s, b.hardLight, 0, turn + 1);
+        this.gems.add(x + 0.42 * s, y + 1.2 * s, z - 0.1, 0.5 * s, 0.9 * s, 0.5 * s, b.groundCap, 0, turn + 2);
+        break;
+      }
+      case 'starfield':
+      case 'cosmos': {
+        // Hongo gigante: tallo claro y sombrero ancho con lunares
+        this.cylinders.add(x, y + 0.6 * s, z, 0.32 * s, 1.2 * s, 0.32 * s, '#f5f3ff');
+        this.spheres.add(x, y + 1.3 * s, z, 1.6 * s, 0.75 * s, 1.6 * s, b.bushFill);
+        this.glowSpheres.add(x - 0.35 * s, y + 1.5 * s, z + 0.55 * s, 0.18 * s, 0.12 * s, 0.1, '#ffffff');
+        this.glowSpheres.add(x + 0.3 * s, y + 1.58 * s, z + 0.45 * s, 0.14 * s, 0.1 * s, 0.1, '#ffffff');
+        break;
+      }
+      case 'ember': {
+        // Árbol seco de la fragua con brasas en las ramas
+        this.cylinders.add(x, y + 0.7 * s, z, 0.2 * s, 1.4 * s, 0.2 * s, '#2a1a14');
+        this.cylinders.add(x - 0.3 * s, y + 1.25 * s, z, 0.09 * s, 0.7 * s, 0.09 * s, '#2a1a14', 0, 0, 0.8);
+        this.cylinders.add(x + 0.3 * s, y + 1.35 * s, z, 0.09 * s, 0.6 * s, 0.09 * s, '#2a1a14', 0, 0, -0.8);
+        this.glowSpheres.add(x - 0.55 * s, y + 1.55 * s, z, 0.16 * s, 0.16 * s, 0.16 * s, '#fb923c');
+        this.glowSpheres.add(x + 0.52 * s, y + 1.62 * s, z, 0.13 * s, 0.13 * s, 0.13 * s, '#fbbf24');
+        this.glowSpheres.add(x, y + 1.5 * s, z, 0.12 * s, 0.12 * s, 0.12 * s, '#f97316');
+        break;
+      }
+      case 'clockcore': {
+        // Árbol de latón: tronco de tubo y copa de engranajes
+        this.cylinders.add(x, y + 0.55 * s, z, 0.2 * s, 1.1 * s, 0.2 * s, '#78716c');
+        this.rings.add(x, y + 1.5 * s, z, 1.4 * s, 1.4 * s, 1.0 * s, '#d97706', 0, 0, turn);
+        this.icos.add(x, y + 1.5 * s, z, 0.7 * s, 0.7 * s, 0.7 * s, '#fbbf24', turn, turn, 0);
+        break;
+      }
+      default: {
+        // Árbol redondo: tronco y copa de 3 bolas facetadas en dos tonos
+        this.cylinders.add(x, y + 0.45 * s, z, 0.24 * s, 0.9 * s, 0.24 * s, '#6b4226');
+        this.icos.add(x, y + 1.35 * s, z, 1.3 * s, 1.2 * s, 1.2 * s, b.bushFill, turn, turn, 0);
+        this.icos.add(x - 0.45 * s, y + 1.05 * s, z + 0.15, 0.9 * s, 0.85 * s, 0.9 * s, b.bushHighlight, turn + 1, 0, 0);
+        this.icos.add(x + 0.5 * s, y + 1.1 * s, z - 0.1, 0.85 * s, 0.8 * s, 0.85 * s, b.bushFill, 0, turn + 2, 0);
+      }
+    }
   }
 }
