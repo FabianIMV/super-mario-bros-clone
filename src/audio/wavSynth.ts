@@ -515,14 +515,14 @@ export function synthesizeSfxWav(id: SfxId): Uint8Array {
       );
     }
     case 'die': {
+      // Original: caída cromática que se desinfla
       const melody: Array<[number, number, number]> = [
-        [71, 0.0, 0.1],
-        [77, 0.14, 0.11],
-        [77, 0.28, 0.11],
-        [77, 0.42, 0.12],
-        [76, 0.56, 0.12],
-        [74, 0.7, 0.12],
-        [72, 0.84, 0.28],
+        [76, 0.0, 0.12],
+        [75, 0.13, 0.12],
+        [74, 0.26, 0.12],
+        [70, 0.42, 0.18],
+        [69, 0.62, 0.14],
+        [64, 0.8, 0.4],
       ];
       return renderToneEvents(
         melody.map(([m, s, d]) => ({
@@ -559,7 +559,7 @@ export function synthesizeSfxWav(id: SfxId): Uint8Array {
 }
 
 // ============================================================================
-// 5 ORIGINAL MULTI-CHANNEL LOOPING CHIPTUNE BGM TRACKS
+// LOOPING CHIPTUNE BGM TRACKS (todas composiciones propias)
 // ============================================================================
 export function synthesizeBgmWav(track: BgmTrackId): Uint8Array {
   const events: ToneEvent[] = [];
@@ -615,18 +615,19 @@ export function synthesizeBgmWav(track: BgmTrackId): Uint8Array {
   }
 
   if (track === 'overworld') {
-    const step = 0.135; // ~111 BPM 16th-grid upbeat adventure groove (32 steps = 4.32s seamless loop)
+    // Original: sol mayor saltarín con respuesta en la segunda frase (64 pasos ≈ 8,3 s)
+    const step = 0.13;
     const lead = [
-      76, 76, 0, 76, 0, 72, 76, 0, 79, 0, 0, 0, 67, 0, 0, 0,
-      72, 0, 0, 67, 0, 0, 64, 0, 69, 0, 71, 0, 70, 69, 67, 0,
-      76, 0, 79, 81, 0, 77, 79, 0, 76, 0, 72, 74, 71, 0, 0, 0,
-      72, 0, 67, 0, 64, 0, 69, 71, 72, 0, 76, 0, 72, 0, 0, 0,
+      67, 0, 71, 74, 0, 72, 71, 0, 69, 0, 67, 0, 64, 0, 66, 67,
+      0, 0, 69, 71, 72, 0, 74, 0, 71, 0, 69, 0, 0, 0, 0, 0,
+      67, 0, 71, 74, 0, 79, 78, 0, 76, 0, 74, 0, 71, 0, 72, 74,
+      76, 0, 74, 72, 71, 0, 69, 0, 67, 0, 0, 0, 0, 0, 0, 0,
     ];
     const bass = [
-      48, 0, 55, 0, 60, 0, 55, 0, 43, 0, 50, 0, 55, 0, 50, 0,
-      48, 0, 52, 0, 55, 0, 52, 0, 41, 0, 45, 0, 43, 0, 47, 0,
-      48, 0, 55, 0, 60, 0, 55, 0, 41, 0, 48, 0, 43, 0, 50, 0,
-      48, 0, 52, 0, 41, 0, 43, 0, 48, 0, 55, 0, 48, 0, 43, 0,
+      43, 0, 50, 0, 47, 0, 50, 0, 48, 0, 55, 0, 52, 0, 55, 0,
+      50, 0, 57, 0, 54, 0, 57, 0, 43, 0, 50, 0, 47, 0, 50, 0,
+      43, 0, 50, 0, 47, 0, 50, 0, 48, 0, 55, 0, 52, 0, 55, 0,
+      50, 0, 57, 0, 54, 0, 50, 0, 43, 0, 47, 0, 50, 0, 43, 0,
     ];
     for (let i = 0; i < lead.length; i++) {
       if (lead[i] > 0) {
@@ -663,9 +664,10 @@ export function synthesizeBgmWav(track: BgmTrackId): Uint8Array {
 
   if (track === 'underground') {
     const step = 0.14;
+    // Original: mi menor sincopado, eco de cueva (32 pasos)
     const motif = [
-      60, 72, 57, 69, 58, 70, 0, 0, 0, 0, 0, 0, 60, 72, 57, 69,
-      58, 70, 0, 0, 0, 0, 53, 65, 50, 62, 51, 63, 0, 0, 0, 0,
+      64, 0, 67, 0, 71, 70, 0, 67, 0, 64, 0, 62, 64, 0, 0, 0,
+      59, 0, 62, 0, 66, 65, 0, 62, 0, 59, 0, 57, 59, 0, 0, 0,
     ];
     for (let i = 0; i < motif.length; i++) {
       if (motif[i] > 0) {
