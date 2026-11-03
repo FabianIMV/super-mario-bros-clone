@@ -14,6 +14,21 @@ import {
 } from './mechanics';
 import { enforceGoalLock, updateObjectives } from './objectives';
 import { updateSecrets } from './secrets';
+import {
+  SLIDE_FRAMES,
+  SLIDE_FRICTION,
+  SLIDE_HEIGHT,
+  SLIDE_KO,
+  SLIDE_MIN_SPEED,
+  WALL_COYOTE,
+  WALL_JUMP_LOCK,
+  WALL_JUMP_VX,
+  WALL_JUMP_VY,
+  WALL_SLIDE_SPEED,
+  throwWrench,
+  updateShaftHints,
+  updateWrench,
+} from './abilities';
 import { buildWorldState, gridKey } from '../levels/levelBuilder';
 import type {
   Block,
@@ -408,7 +423,16 @@ function knockEnemy(
 
 function syncStandingHeight(world: WorldState): void {
   const p = world.player;
-  const targetH = p.crouching ? 32 : p.mountedYoshi ? 52 : p.powerState > 0 ? 46 : 30;
+  const targetH =
+    (p.slideTimer ?? 0) > 0
+      ? SLIDE_HEIGHT
+      : p.crouching
+      ? 32
+      : p.mountedYoshi
+      ? 52
+      : p.powerState > 0
+      ? 46
+      : 30;
   p.y += p.height - targetH;
   p.height = targetH;
 }
@@ -836,9 +860,53 @@ export function stepWorld(
     p.y += ridingPlatform.vy;
   }
 
+  // Deslizarse (Fase 4): corriendo + abajo = barrida por el suelo
+  const sliding = (p.slideTimer ?? 0) > 0;
+  if (
+    !sliding &&
+    p.onGround &&
+    input.down &&
+    !p.mountedYoshi &&
+    !p.capeFlying &&
+    Math.abs(p.vx) >= SLIDE_MIN_SPEED
+  ) {
+    p.slideTimer = SLIDE_FRAMES;
+    p.crouching = true;
+    syncStandingHeight(world);
+    spawnDust(world, p.x + p.width / 2, p.y + p.height, 5);
+    events.push({ type: 'sfx', id: 'skid' });
+    events.push({ type: 'haptic', kind: 'light' });
+  } else if (sliding) {
+    p.slideTimer = (p.slideTimer ?? 0) - 1;
+    const wantsJump = input.jump && !world.prevJumpHeld;
+    if (p.slideTimer <= 0 || Math.abs(p.vx) < 1.0 || wantsJump) {
+      // Intentar ponerse de pie: si hay techo encima, sigue deslizándose
+      const keepCrouch = input.down && (p.powerState > 0 || p.mountedYoshi);
+      const fullH = keepCrouch ? 32 : p.mountedYoshi ? 52 : p.powerState > 0 ? 46 : 30;
+      const deltaH = fullH - p.height;
+      const testBox: Rect = { x: p.x + 2, y: p.y - deltaH, width: p.width - 4, height: deltaH };
+      const blocked =
+        deltaH > 0 &&
+        collectNearbySolids(world, testBox, false).some((s) => !s.platform && overlaps(testBox, s));
+      if (blocked) {
+        p.slideTimer = 2;
+        if (Math.abs(p.vx) < 1.6) p.vx = p.facing * 1.6;
+      } else {
+        p.slideTimer = 0;
+        p.crouching = keepCrouch;
+        syncStandingHeight(world);
+      }
+    }
+    if ((p.slideTimer ?? 0) > 0 && world.frameCount % 4 === 0) {
+      spawnDust(world, p.x + (p.facing === 1 ? 0 : p.width), p.y + p.height, 1);
+    }
+  }
+
   // Crouch handling
   const wantsCrouch = input.down && p.onGround && (p.powerState > 0 || p.mountedYoshi);
-  if (wantsCrouch && !p.crouching) {
+  if ((p.slideTimer ?? 0) > 0) {
+    // El deslizamiento controla la altura
+  } else if (wantsCrouch && !p.crouching) {
     p.crouching = true;
     syncStandingHeight(world);
   } else if (!input.down && p.crouching) {
@@ -919,6 +987,9 @@ export function stepWorld(
       bounces: 0,
       animFrame: 0,
     });
+  } else if (fireTriggered && !p.mountedYoshi && p.powerState <= 1) {
+    // Llave inglesa (Fase 4): el plomero sin flor ni capa también ataca
+    throwWrench(world, events);
   }
 
   // Active Cape Spin Hitbox: whacks enemies & flips adjacent Rotating/Brick blocks!
@@ -1036,6 +1107,14 @@ export function stepWorld(
     p.pMeter = Math.max(0, p.pMeter - 1.3);
   }
 
+  // Tras un salto en pared, unos frames sin poder volver hacia esa pared
+  if ((p.wallJumpLock ?? 0) > 0) {
+    p.wallJumpLock = (p.wallJumpLock ?? 0) - 1;
+    if (p.wallJumpLockDir === 1) input.right = false;
+    if (p.wallJumpLockDir === -1) input.left = false;
+  }
+  const slideVx = (p.slideTimer ?? 0) > 0 ? p.vx : null;
+
   p.skidding = false;
   if (!p.crouching) {
     // True SMW Cape Dive & Pull-Back Swoop when flying!
@@ -1094,6 +1173,9 @@ export function stepWorld(
     if (Math.abs(p.vx) < 0.08) p.vx = 0;
   }
 
+  // Deslizándose se conserva el impulso con poco roce
+  if (slideVx !== null) p.vx = slideVx * SLIDE_FRICTION;
+
   // Ráfagas de viento (Mundo 2): empujan más en el aire que en el suelo
   const windAccel = windPush(world, p.onGround);
   if (windAccel !== 0) {
@@ -1112,8 +1194,10 @@ export function stepWorld(
   }
 
   const horizSolids = collectNearbySolids(world, p, false);
+  let wallTouch: -1 | 0 | 1 = 0;
   for (const s of horizSolids) {
     if (overlaps(p, s)) {
+      if (!s.platform && p.vx !== 0) wallTouch = p.vx > 0 ? 1 : -1;
       if (p.vx > 0) {
         p.x = s.x - p.width;
         p.vx = 0;
@@ -1124,6 +1208,21 @@ export function stepWorld(
         p.capeFlying = false;
       }
     }
+  }
+
+  // Pegado a una pared en el aire (empujando hacia ella) -> puede saltar en pared
+  const pushingWall = (wallTouch === 1 && input.right) || (wallTouch === -1 && input.left);
+  p.wallDir =
+    !p.onGround && pushingWall && !p.mountedYoshi && !p.capeFlying && !((p.slideTimer ?? 0) > 0)
+      ? wallTouch
+      : 0;
+  if (p.wallDir) {
+    p.wallCoyote = WALL_COYOTE;
+    p.lastWallDir = p.wallDir;
+  } else if (!p.onGround && (p.wallCoyote ?? 0) > 0) {
+    p.wallCoyote = (p.wallCoyote ?? 0) - 1;
+  } else {
+    p.wallCoyote = 0;
   }
 
   // =========================================================================
@@ -1149,8 +1248,23 @@ export function stepWorld(
     p.jumpBufferTimer -= 1;
   }
 
-  // Optional Voluntary Yoshi Spring-Dismount (Up + Jump while riding Yoshi)
-  if (p.mountedYoshi && input.up && jumpJustPressed) {
+  // Salto en pared (Fase 4): rebota hacia el lado contrario
+  const wallJumpDir = p.wallDir || ((p.wallCoyote ?? 0) > 0 ? p.lastWallDir ?? 0 : 0);
+  if (jumpJustPressed && !p.onGround && p.coyoteTimer <= 0 && wallJumpDir) {
+    const away: -1 | 1 = wallJumpDir === 1 ? -1 : 1;
+    p.vy = WALL_JUMP_VY;
+    p.vx = away * WALL_JUMP_VX;
+    p.facing = away;
+    p.wallJumpLock = WALL_JUMP_LOCK;
+    p.wallJumpLockDir = wallJumpDir;
+    p.wallDir = 0;
+    p.wallCoyote = 0;
+    p.jumpBufferTimer = 0;
+    p.spinJumping = false;
+    spawnDust(world, p.x + (away === 1 ? 0 : p.width), p.y + p.height / 2, 4);
+    events.push({ type: 'sfx', id: 'jump' });
+    events.push({ type: 'haptic', kind: 'medium' });
+  } else if (p.mountedYoshi && input.up && jumpJustPressed) {
     p.mountedYoshi = false;
     syncStandingHeight(world);
     p.vy = -12.8;
@@ -1240,6 +1354,13 @@ export function stepWorld(
   const lowGrav = isInLowGrav(world, p.x + p.width / 2);
   if (lowGrav) gravity *= 0.5;
   p.vy = Math.min(p.vy + gravity, lowGrav ? 5.5 : 12.2);
+  // Deslizarse por la pared: cae lento
+  if (p.wallDir && p.vy > WALL_SLIDE_SPEED) {
+    p.vy = WALL_SLIDE_SPEED;
+    if (world.frameCount % 6 === 0) {
+      spawnDust(world, p.x + (p.wallDir === 1 ? p.width : 0), p.y + p.height * 0.6, 1);
+    }
+  }
 
   // SMW Cape Parachute Glide: holding A while falling billows the yellow cape!
   if (p.powerState === 3 && !p.onGround && input.jump && !p.capeFlying && p.vy > 1.85) {
@@ -1685,6 +1806,29 @@ export function stepWorld(
     }
   }
 
+  // Llave inglesa en vuelo (Fase 4)
+  updateWrench(world, events, {
+    knockEnemy: (en) => knockEnemy(world, en, 0, events),
+    collectCoin: (x, y) => awardCoin(world, x, y, events),
+    hitBlock: (b) => triggerBlockHit(world, b, true, events),
+    hitBoss: () => {
+      const boss = world.boss;
+      if (!boss) return;
+      boss.hp -= 1;
+      boss.hurtFlashTimer = 10;
+      events.push({ type: 'sfx', id: 'boss_hit' });
+      events.push({ type: 'haptic', kind: 'medium' });
+      if (boss.hp <= 0) {
+        boss.defeated = true;
+        addScore(world, 10000);
+        spawnText(world, boss.x, boss.y - 12, '+10000 ¡REY DERROTADO!', '#4ade80');
+        events.push({ type: 'sfx', id: 'boss_roar' });
+      }
+    },
+    sparks: (x, y, color, count) => spawnSparks(world, x, y, color, count),
+  });
+  updateShaftHints(world, (x, y, text, color) => spawnText(world, x, y, text, color));
+
   // =========================================================================
   // 7. ENEMIES (Classic + SMW Rex, Galoomba, Chargin' Chuck, Bullet Bill)
   // =========================================================================
@@ -1888,6 +2032,13 @@ export function stepWorld(
         spawnText(world, en.x, en.y - 8, '+400', '#38bdf8');
         events.push({ type: 'sfx', id: 'kick' });
         events.push({ type: 'haptic', kind: 'rigid' });
+        continue;
+      }
+
+      // Barrida (Fase 4): derriba a los enemigos comunes
+      if ((p.slideTimer ?? 0) > 0 && SLIDE_KO.has(en.type)) {
+        knockEnemy(world, en, p.stompCombo, events);
+        p.stompCombo += 1;
         continue;
       }
 

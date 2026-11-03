@@ -224,6 +224,9 @@ export class SkiaWorldRenderer {
       }
     }
 
+    // 15b. Llave inglesa en vuelo
+    this.drawWrench(canvas, world);
+
     // 16. Sombra que persigue (por encima de todo el mundo)
     this.drawChaseWall(canvas, world);
 
@@ -811,6 +814,29 @@ export class SkiaWorldRenderer {
         canvas.drawRect(Skia.XYWHRect(cx - 1, cy - 1, 5, 2), this.fillPaint);
       }
     }
+  }
+
+  private drawWrench(canvas: SkCanvas, world: WorldState): void {
+    const w = world.wrench;
+    if (!w) return;
+    const cx = w.x + w.width / 2;
+    const cy = w.y + w.height / 2;
+    canvas.save();
+    canvas.translate(cx, cy);
+    canvas.rotate((w.spin * 180) / Math.PI, 0, 0);
+    // Mango
+    this.fillPaint.setColor(Skia.Color('#1e293b'));
+    canvas.drawRect(Skia.XYWHRect(-3, -11, 6, 22), this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('#94a3b8'));
+    canvas.drawRect(Skia.XYWHRect(-2, -10, 4, 20), this.fillPaint);
+    // Boca abierta de la llave
+    this.fillPaint.setColor(Skia.Color('#1e293b'));
+    canvas.drawRect(Skia.XYWHRect(-7, -14, 14, 7), this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('#cbd5e1'));
+    canvas.drawRect(Skia.XYWHRect(-6, -13, 4, 5), this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(2, -13, 4, 5), this.fillPaint);
+    canvas.drawRect(Skia.XYWHRect(-6, -9, 12, 2), this.fillPaint);
+    canvas.restore();
   }
 
   private drawKey(canvas: SkCanvas, x: number, y: number, frame: number): void {
