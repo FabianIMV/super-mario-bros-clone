@@ -24,7 +24,18 @@ const SMW_MECHANICS: StageMechanic[] = ['bounce', 'wind', 'crumble', 'firefly', 
 // nubes con viento y volcán de carámbanos de cristal
 const EXP_MECHANICS: StageMechanic[] = ['lowgrav', 'firefly', 'crumble', 'wind', 'icicles'];
 // Dimensión 3D: jardín sin gravedad, juguetes saltarines, polo con viento y fragua de puentes
-const DIM_MECHANICS: StageMechanic[] = ['lowgrav', 'bounce', 'wind', 'crumble'];
+// Mundos 5-6: luces de prisma y setas con carámbanos. Mundos 7-8 (final):
+// cada etapa cambia de regla para poner a prueba todo lo aprendido.
+const DIM_MECHANICS: StageMechanic[] = ['lowgrav', 'bounce', 'wind', 'crumble', 'firefly', 'icicles'];
+const DIM_MIXED_WORLDS: Record<number, StageMechanic[]> = {
+  7: ['firefly', 'crumble', 'lowgrav'],
+  8: ['icicles', 'wind', 'bounce'],
+};
+
+/** Mundos cuyas etapas combinan mecánicas distintas (solo en Dimensión). */
+export function isMixedMechanicWorld(levelIndex: number, partition: GamePartition): boolean {
+  return partition === 'dimension' && (Math.floor(levelIndex / STAGES_PER_WORLD) + 1) in DIM_MIXED_WORLDS;
+}
 
 export const MECHANIC_LABELS: Record<StageMechanic, { text: string; color: string }> = {
   none: { text: '', color: '#ffffff' },
@@ -41,6 +52,9 @@ export function getStageMechanic(levelIndex: number, partition: GamePartition): 
   const worldNum = Math.floor(levelIndex / STAGES_PER_WORLD) + 1;
   const stageNum = (levelIndex % STAGES_PER_WORLD) + 1;
   if (stageNum === 4) return 'lava_tide';
+  if (partition === 'dimension' && DIM_MIXED_WORLDS[worldNum]) {
+    return DIM_MIXED_WORLDS[worldNum][stageNum - 1];
+  }
   const table =
     partition === 'smw'
       ? SMW_MECHANICS

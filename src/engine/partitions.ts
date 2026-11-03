@@ -55,10 +55,10 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     subtitleColor: '#ddd6fe',
   },
   dimension: {
-    tab: '🧊 DIMENSIÓN 3D (16)',
-    edition: 'NUEVO • MUNDOS EN 3D • 4 MUNDOS ORIGINALES',
+    tab: '🧊 DIMENSIÓN 3D (32)',
+    edition: 'NUEVO • MUNDOS EN 3D • 8 MUNDOS ORIGINALES',
     subtitle: 'DIMENSIÓN 3D',
-    worldsLabel: '4 MUNDOS',
+    worldsLabel: '8 MUNDOS',
     worldNoun: 'ZONA',
     firstStage: 'J-1',
     hint: 'Mundos con volumen y cámara en perspectiva  •  Mismos controles: A salta, X llave inglesa, ▼ barrida',

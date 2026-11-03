@@ -9,6 +9,7 @@ import {
   WIND_CALM,
   WIND_WARN,
   getStageMechanic,
+  isMixedMechanicWorld,
   lavaSurfaceY,
 } from '../src/engine/mechanics';
 import { stepWorld } from '../src/engine/physics';
@@ -87,6 +88,11 @@ for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS
     assert(w.mechanic === getStageMechanic(i, part), `${part} ${w.worldLabel} mecánica inconsistente`);
     if (i % 4 === 3) {
       assert(w.mechanic === 'lava_tide', `${part} ${w.worldLabel}: los castillos usan marea de lava`);
+    } else if (isMixedMechanicWorld(i, part)) {
+      // Mundos finales de Dimensión: cada etapa con una regla distinta
+      const stage = i % 4;
+      const others = [0, 1, 2].filter((s) => s !== stage).map((s) => getStageMechanic(i - stage + s, part));
+      assert(!others.includes(w.mechanic!), `${part} ${w.worldLabel}: en un mundo mixto cada etapa cambia de regla`);
     } else {
       const world = Math.floor(i / 4);
       const prev = seen.get(world);

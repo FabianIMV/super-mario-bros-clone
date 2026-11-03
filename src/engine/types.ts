@@ -22,7 +22,11 @@ export type BiomeId =
   | 'starfield'
   | 'toybox'
   | 'aurora'
-  | 'ember';
+  | 'ember'
+  | 'prism'
+  | 'snowcap'
+  | 'clockcore'
+  | 'cosmos';
 
 export type BgmTrackId =
   | 'overworld'
@@ -34,7 +38,8 @@ export type BgmTrackId =
   | 'smw_athletic'
   | 'exp_overworld'
   | 'exp_cave'
-  | 'dim_theme';
+  | 'dim_theme'
+  | 'dim_core';
 
 export type SfxId =
   | 'jump'

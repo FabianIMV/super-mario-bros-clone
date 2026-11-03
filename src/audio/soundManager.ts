@@ -62,6 +62,7 @@ const ALL_BGM: BgmTrackId[] = [
   'exp_overworld',
   'exp_cave',
   'dim_theme',
+  'dim_core',
 ];
 
 // Rapid-fire sound effects use a small round-robin player pool to prevent cutoffs

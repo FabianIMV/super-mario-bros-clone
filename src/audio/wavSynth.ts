@@ -567,6 +567,28 @@ export function synthesizeBgmWav(track: BgmTrackId): Uint8Array {
   // -------------------------------------------------------------------------
   // Modo Expedición: dos pistas originales
   // -------------------------------------------------------------------------
+  if (track === 'dim_core') {
+    // Original: re menor mecánico y urgente para los mundos finales (64 pasos ≈ 6,7 s)
+    const step = 0.105;
+    const lead = [
+      74, 0, 77, 0, 81, 0, 79, 77, 76, 0, 77, 0, 74, 0, 0, 0,
+      72, 0, 76, 0, 79, 0, 77, 76, 74, 0, 72, 0, 69, 0, 0, 0,
+      74, 0, 77, 81, 0, 86, 0, 84, 82, 0, 81, 0, 79, 0, 77, 0,
+      76, 0, 77, 79, 81, 0, 79, 0, 74, 0, 0, 0, 0, 0, 0, 0,
+    ];
+    const bass = [38, 38, 45, 38, 36, 36, 43, 36, 34, 34, 41, 34, 33, 33, 40, 45];
+    for (let i = 0; i < lead.length; i++) {
+      if (lead[i] > 0) {
+        events.push({ wave: 'pulse25', startSec: i * step, durSec: step * 0.85, freqStart: midiFreq(lead[i]), gain: 0.15 });
+        events.push({ wave: 'pulse12', startSec: i * step, durSec: step * 0.4, freqStart: midiFreq(lead[i] - 12), gain: 0.05 });
+      }
+      events.push({ wave: 'triangle', startSec: i * step, durSec: step * 0.9, freqStart: midiFreq(bass[(i >> 2) % bass.length] + (i % 2 ? 12 : 0)), gain: 0.22 });
+      if (i % 4 === 0) events.push({ wave: 'noise', startSec: i * step, durSec: 0.05, freqStart: 700, gain: 0.07 });
+      if (i % 2 === 1) events.push({ wave: 'noise', startSec: i * step, durSec: 0.015, freqStart: 3200, gain: 0.03 });
+    }
+    return renderToneEvents(events, lead.length * step);
+  }
+
   if (track === 'dim_theme') {
     // Original: fa mayor espacioso, acordes abiertos y campanas (64 pasos ≈ 9 s)
     const step = 0.14;

@@ -69,6 +69,17 @@ const DIM_OBJECTIVES: Record<number, StageObjective> = {
   12: 'collect',
   13: 'chase',
   14: 'time_attack',
+  16: 'chase',
+  17: 'collect',
+  18: 'time_attack',
+  20: 'collect',
+  21: 'chase',
+  24: 'time_attack',
+  25: 'collect',
+  26: 'chase',
+  28: 'collect',
+  29: 'time_attack',
+  30: 'chase',
 };
 
 export const GEMS_PER_STAGE = 5;

@@ -96,7 +96,7 @@ export const WorldSelectModal: React.FC<Props> = ({
                 : isExp
                 ? 'EXPEDICIÓN (20)'
                 : isDim
-                ? 'DIMENSIÓN 3D (16)'
+                ? 'DIMENSIÓN 3D (32)'
                 : '6 MUNDOS CLÁSICOS (24)'}
             </Text>
           </View>

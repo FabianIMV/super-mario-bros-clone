@@ -263,7 +263,7 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
                 : partition === 'expedition'
                 ? '¡Cruzaste el arrecife, la selva, la ciudad, las nubes y el volcán: 20 niveles!'
                 : partition === 'dimension'
-                ? '¡Recorriste el jardín estelar, el taller, el polo y la fragua: 16 niveles en 3D!'
+                ? '¡Cruzaste los 8 mundos de la Dimensión hasta el Núcleo Cósmico: 32 niveles en 3D!'
                 : '¡Derrotaste al Rey Koopa en la Fortaleza Final y liberaste los 24 niveles!'
               : 'Has agotado tus vidas en esta incursión.'}
           </Text>

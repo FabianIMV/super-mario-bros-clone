@@ -110,6 +110,22 @@ const DIM_STAGE_TITLES: string[] = [
   'Ríos de Metal',
   'Cráteres Humeantes',
   'Corazón de la Fragua',
+  'Vitral de Arcoíris',
+  'Pasillo de Espejos',
+  'Cúpula de Prismas',
+  'Salón del Caleidoscopio',
+  'Bosque de Sombreros',
+  'Ladera de Esporas',
+  'Cumbre del Hongo Blanco',
+  'Cueva de Hielo y Setas',
+  'Péndulos del Alba',
+  'Engranajes Colgantes',
+  'Campanario Suspendido',
+  'Maquinaria Central',
+  'Anillos de Saturno',
+  'Lluvia de Meteoros',
+  'Horizonte de Sucesos',
+  'Corazón del Cosmos',
 ];
 
 export function gridKey(col: number, row: number): number {
@@ -383,6 +399,10 @@ const DIM_ROSTERS: EnemyType[][] = [
   ['goomba', 'rex', 'koopa_red', 'chuck'], // T: Taller de Juguetes
   ['spiny', 'koopa_green', 'paratroopa', 'galoomba'], // P: Polo Aurora
   ['chuck', 'bullet_bill', 'spiny', 'rex', 'koopa_red'], // F: Fragua Lunar
+  ['paratroopa', 'galoomba', 'koopa_red', 'bullet_bill'], // G: Galería Prisma
+  ['goomba', 'spiny', 'rex', 'koopa_green'], // H: Hongar Nevado
+  ['bullet_bill', 'chuck', 'koopa_red', 'paratroopa', 'galoomba'], // R: Relojería Flotante
+  ['chuck', 'spiny', 'bullet_bill', 'rex', 'paratroopa', 'koopa_red'], // N: Núcleo Cósmico
 ];
 
 const EXP_ROSTERS: EnemyType[][] = [
@@ -936,6 +956,10 @@ const DIM_FORTRESS_PLANS: FortressSection[][] = [
   ['guard_corridor', 'vertical_lift', 'lava_staircase', 'lift_chasm', 'supply_room'],
   ['pillar_hops', 'dual_route', 'lava_pillar', 'cramped_hall', 'vertical_lift', 'supply_room'],
   ['lava_staircase', 'lift_chasm', 'guard_corridor', 'pillar_hops', 'dual_route', 'cramped_hall', 'supply_room'],
+  ['vertical_lift', 'lava_pillar', 'dual_route', 'pillar_hops', 'cramped_hall', 'supply_room'],
+  ['cramped_hall', 'lift_chasm', 'lava_staircase', 'guard_corridor', 'vertical_lift', 'pillar_hops', 'supply_room'],
+  ['dual_route', 'pillar_hops', 'vertical_lift', 'lift_chasm', 'lava_staircase', 'cramped_hall', 'supply_room'],
+  ['pillar_hops', 'lava_staircase', 'cramped_hall', 'lift_chasm', 'dual_route', 'vertical_lift', 'guard_corridor', 'lava_pillar', 'supply_room'],
 ];
 
 function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: FortressBoss } {
@@ -1092,6 +1116,22 @@ const DIM_STAGE_PLANS: Record<number, SetpieceKind[]> = {
   12: ['pyramid_gauntlet', 'pipe_maze', 'twin_lifts', 'stepping_pillars', 'piranha_terrace', 'foe_parade'],
   13: ['spiny_fire_alley', 'lift_wall', 'hidden_stairway', 'moving_lift_chasm', 'shell_bowling', 'coin_heaven_spring', 'brick_ceiling_run'],
   14: ['sky_bridge_paratroopa', 'twin_lifts', 'spring_cliff_vault', 'double_deck_secret', 'pyramid_gauntlet', 'lift_wall', 'stepping_pillars'],
+  // G: Galería Prisma
+  16: ['hidden_stairway', 'twin_lifts', 'brick_ceiling_run', 'moving_lift_chasm', 'coin_heaven_spring'],
+  17: ['double_deck_secret', 'lift_wall', 'foe_parade', 'twin_lifts', 'spiny_fire_alley', 'stepping_pillars'],
+  18: ['moving_lift_chasm', 'pipe_maze', 'sky_bridge_paratroopa', 'hidden_stairway', 'twin_lifts', 'pyramid_gauntlet'],
+  // H: Hongar Nevado
+  20: ['brick_ceiling_run', 'shell_bowling', 'stepping_pillars', 'spring_cliff_vault', 'foe_parade', 'double_deck_secret'],
+  21: ['coin_heaven_spring', 'pyramid_gauntlet', 'lift_wall', 'brick_ceiling_run', 'piranha_terrace', 'twin_lifts'],
+  22: ['foe_parade', 'hidden_stairway', 'double_deck_secret', 'pipe_maze', 'stepping_pillars', 'spiny_fire_alley', 'moving_lift_chasm'],
+  // R: Relojería Flotante
+  24: ['twin_lifts', 'stepping_pillars', 'lift_wall', 'moving_lift_chasm', 'sky_bridge_paratroopa', 'coin_heaven_spring'],
+  25: ['pipe_maze', 'twin_lifts', 'spiny_fire_alley', 'stepping_pillars', 'hidden_stairway', 'lift_wall', 'shell_bowling'],
+  26: ['spring_cliff_vault', 'moving_lift_chasm', 'brick_ceiling_run', 'twin_lifts', 'pyramid_gauntlet', 'foe_parade', 'double_deck_secret'],
+  // N: Núcleo Cósmico
+  28: ['lift_wall', 'twin_lifts', 'piranha_terrace', 'stepping_pillars', 'spiny_fire_alley', 'coin_heaven_spring', 'moving_lift_chasm'],
+  29: ['shell_bowling', 'sky_bridge_paratroopa', 'hidden_stairway', 'twin_lifts', 'foe_parade', 'pyramid_gauntlet', 'lift_wall'],
+  30: ['moving_lift_chasm', 'double_deck_secret', 'stepping_pillars', 'pipe_maze', 'twin_lifts', 'brick_ceiling_run', 'spring_cliff_vault', 'spiny_fire_alley'],
 };
 
 function buildCuratedWorldStage(ctx: BuilderCtx): number {

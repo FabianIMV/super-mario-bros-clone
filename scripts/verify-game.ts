@@ -788,6 +788,7 @@ const allBgm: BgmTrackId[] = [
   'exp_overworld',
   'exp_cave',
   'dim_theme',
+  'dim_core',
 ];
 
 function checkWav(name: string, bytes: Uint8Array): void {

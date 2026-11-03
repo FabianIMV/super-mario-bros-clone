@@ -49,7 +49,7 @@ Usa champiñón y flor de fuego (como el clásico), enemigos de ambos modos, dos
 
 ### Modo 4: Plomero Dimensión 3D (nuevo, original)
 
-Cuarto modo con **arte 3D low-poly** (three.js sobre `expo-gl`): bloques con volumen, luces, colinas en profundidad y cámara en perspectiva, con el mismo movimiento lateral y la misma física que el resto del juego. 4 mundos y 16 niveles:
+Cuarto modo con **arte 3D low-poly** (three.js sobre `expo-gl`): bloques con volumen, luces, colinas en profundidad y cámara en perspectiva, con el mismo movimiento lateral y la misma física que el resto del juego. 8 mundos y 32 niveles:
 
 | Mundo | Mecánica |
 |---|---|
@@ -57,6 +57,10 @@ Cuarto modo con **arte 3D low-poly** (three.js sobre `expo-gl`): bloques con vol
 | **T • Taller de Juguetes** | Hongos trampolín |
 | **P • Polo Aurora** | Viento sobre hielo resbaladizo |
 | **F • Fragua Lunar** | Puentes frágiles |
+| **G • Galería Prisma** | Luces que se apagan |
+| **H • Hongar Nevado** | Carámbanos sobre hielo |
+| **R • Relojería Flotante** | Mixto: luces, puentes frágiles y gravedad baja |
+| **N • Núcleo Cósmico** | Mixto final: carámbanos, viento y hongos trampolín |
 
 Si el 3D no puede iniciar en un equipo, el modo se juega automáticamente con el renderer 2D; los otros modos no dependen del 3D.
 
