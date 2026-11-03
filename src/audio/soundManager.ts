@@ -33,6 +33,22 @@ const ALL_SFX: SfxId[] = [
   'stage_clear',
   'die',
   'gameover',
+  'wind_gust',
+  'icicle_crack',
+  'crumble',
+  'key_get',
+  'vault_open',
+  'treasure',
+  'portal',
+  'wrench_throw',
+  'wrench_catch',
+  'wall_jump',
+  'slide',
+  'gem',
+  'clock',
+  'chase_growl',
+  'lava_rise',
+  'goal_locked',
 ];
 
 const ALL_BGM: BgmTrackId[] = [
@@ -43,6 +59,8 @@ const ALL_BGM: BgmTrackId[] = [
   'starman',
   'smw_overworld',
   'smw_athletic',
+  'exp_overworld',
+  'exp_cave',
 ];
 
 // Rapid-fire sound effects use a small round-robin player pool to prevent cutoffs
@@ -59,6 +77,11 @@ const POOL_SIZES: Partial<Record<SfxId, number>> = {
   break_block: 2,
   fireball: 2,
   kick: 2,
+  wrench_throw: 2,
+  wrench_catch: 2,
+  wall_jump: 2,
+  gem: 2,
+  clock: 2,
 };
 
 class RetroSoundManager {

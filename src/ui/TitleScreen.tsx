@@ -2,6 +2,7 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { getWorldLabel } from '../engine/biomes';
+import { PARTITION_INFO, PARTITION_ORDER, getPartitionProgress } from '../engine/partitions';
 import type { GamePartition, SaveProgress } from '../engine/types';
 
 interface Props {
@@ -28,11 +29,12 @@ export const TitleScreen: React.FC<Props> = ({
   const insets = useSafeAreaInsets();
   const fontFamily = pixelFontLoaded ? 'PressStart2P_400Regular' : undefined;
 
-  const isSmw = partition === 'smw';
-  const unlockedIdx = isSmw ? progress.smwUnlockedLevel : progress.unlockedLevel;
-  const clearedCount = isSmw ? progress.smwClearedLevels.length : progress.clearedLevels.length;
-  const highScore = isSmw ? progress.smwHighScore : progress.highScore;
-  const totalCount = isSmw ? 20 : 24;
+  const info = PARTITION_INFO[partition];
+  const pp = getPartitionProgress(progress, partition);
+  const unlockedIdx = pp.unlocked;
+  const clearedCount = pp.cleared.length;
+  const highScore = pp.highScore;
+  const totalCount = pp.total;
   const hasSavedStage = unlockedIdx > 0;
 
   return (
@@ -47,58 +49,52 @@ export const TitleScreen: React.FC<Props> = ({
         },
       ]}
     >
-      {/* Dual-Cartridge Partition Switcher */}
+      {/* Selector de modo (3 cartuchos) */}
       <View style={styles.partitionBar}>
-        <Pressable
-          onPress={() => onSelectPartition('classic')}
-          style={[
-            styles.partitionTab,
-            !isSmw && styles.partitionTabClassicActive,
-          ]}
-        >
-          <Text
-            style={[
-              styles.partitionTabText,
-              { fontFamily },
-              !isSmw && styles.partitionTabTextActive,
-            ]}
-          >
-            🍄 PLOMERO BROS (24)
-          </Text>
-        </Pressable>
-
-        <Pressable
-          onPress={() => onSelectPartition('smw')}
-          style={[
-            styles.partitionTab,
-            isSmw && styles.partitionTabSmwActive,
-          ]}
-        >
-          <Text
-            style={[
-              styles.partitionTabText,
-              { fontFamily },
-              isSmw && styles.partitionTabTextActive,
-            ]}
-          >
-            🦕 PLOMERO WORLD (20)
-          </Text>
-        </Pressable>
+        {PARTITION_ORDER.map((part) => {
+          const active = part === partition;
+          return (
+            <Pressable
+              key={part}
+              onPress={() => onSelectPartition(part)}
+              style={[
+                styles.partitionTab,
+                active && { backgroundColor: PARTITION_INFO[part].accent },
+              ]}
+            >
+              <Text
+                style={[
+                  styles.partitionTabText,
+                  { fontFamily },
+                  active && styles.partitionTabTextActive,
+                ]}
+              >
+                {PARTITION_INFO[part].tab}
+              </Text>
+            </Pressable>
+          );
+        })}
       </View>
 
       {/* Cartridge Signboard Logo */}
-      <View style={[styles.signBoard, isSmw && styles.signBoardSmw]}>
+      <View
+        style={[
+          styles.signBoard,
+          partition === 'smw' && styles.signBoardSmw,
+          partition === 'expedition' && styles.signBoardExp,
+        ]}
+      >
         <View style={styles.rivetRow}>
           <View style={styles.rivet} />
           <Text style={[styles.editionTag, { fontFamily }]}>
-            {isSmw ? '16-BIT ISLA DINOSAURIO • YOSHI & CAPA' : '16-BIT CONSOLE EDITION • CLÁSICO'}
+            {info.edition}
           </Text>
           <View style={styles.rivet} />
         </View>
 
         <Text style={[styles.logoSuper, { fontFamily }]}>SUPER PLOMERO</Text>
-        <Text style={[styles.logoBros, { fontFamily }, isSmw && { color: '#bbf7d0' }]}>
-          {isSmw ? 'WORLD • 20 NIVELES' : 'BROS. DELUXE'}
+        <Text style={[styles.logoBros, { fontFamily }, partition !== 'classic' && { color: info.subtitleColor }]}>
+          {info.subtitle}
         </Text>
 
         <View style={styles.rivetRowBottom}>
@@ -131,7 +127,7 @@ export const TitleScreen: React.FC<Props> = ({
           style={({ pressed }) => [styles.btnPrimaryGold, pressed && styles.btnPressed]}
         >
           <Text style={[styles.btnDarkText, { fontFamily }]}>
-            {hasSavedStage ? 'NUEVA PARTIDA' : isSmw ? '▶ JUGAR Y-1' : '▶ JUGAR 1-1'}
+            {hasSavedStage ? 'NUEVA PARTIDA' : `▶ JUGAR ${info.firstStage}`}
           </Text>
         </Pressable>
 
@@ -140,7 +136,7 @@ export const TitleScreen: React.FC<Props> = ({
           style={({ pressed }) => [styles.btnSecondary, pressed && styles.btnPressed]}
         >
           <Text style={[styles.btnLightText, { fontFamily }]}>
-            {isSmw ? '5 MUNDOS' : '6 MUNDOS'}
+            {info.worldsLabel}
           </Text>
         </Pressable>
 
@@ -153,9 +149,7 @@ export const TitleScreen: React.FC<Props> = ({
       </View>
 
       <Text style={styles.hintFooter}>
-        {isSmw
-          ? 'Yoshi: pulsa Y para Lengua/Fuego  •  Capa: corre con B hasta llenar [P] y salta con A para volar'
-          : 'Desliza el pulgar en la cruceta  •  Mantén B para correr y rueda el pulgar hacia A para gran salto'}
+        {info.hint}
       </Text>
     </View>
   );
@@ -215,6 +209,10 @@ const styles = StyleSheet.create({
   signBoardSmw: {
     backgroundColor: '#065f46',
     borderColor: '#fde047',
+  },
+  signBoardExp: {
+    backgroundColor: '#3b0764',
+    borderColor: '#67e8f9',
   },
   rivetRow: {
     width: '100%',

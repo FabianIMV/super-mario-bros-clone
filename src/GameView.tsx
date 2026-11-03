@@ -44,6 +44,12 @@ import {
 } from './storage/saveStorage';
 import { HudOverlay, type HudSnapshot } from './ui/HudOverlay';
 import { objectiveHudLabel } from './engine/objectives';
+import {
+  getPartitionProgress,
+  nextPartition,
+  recordStageClear,
+  withPartitionProgress,
+} from './engine/partitions';
 import { PauseModal, StageStatusOverlay } from './ui/PauseModal';
 import { TitleScreen } from './ui/TitleScreen';
 import { WorldSelectModal } from './ui/WorldSelectModal';
@@ -56,7 +62,7 @@ function createAttractWorld(partition: GamePartition, prog: SaveProgress): World
     0,
     {
       score: 0,
-      highScore: isSmw ? prog.smwHighScore : prog.highScore,
+      highScore: getPartitionProgress(prog, partition).highScore,
       coins: 0,
       lives: 3,
       powerState: isSmw ? 3 : 1,
@@ -176,8 +182,7 @@ export const GameView: React.FC = () => {
       if (inTitleRef.current) {
         worldRef.current = createAttractWorld(activePart, loadedProg);
       } else {
-        worldRef.current.highScore =
-          activePart === 'smw' ? loadedProg.smwHighScore : loadedProg.highScore;
+        worldRef.current.highScore = getPartitionProgress(loadedProg, activePart).highScore;
       }
       worldRef.current.doubleJumpAssist = loadedSet.doubleJumpAssist;
       soundManager.setPreferences(loadedSet.soundEnabled, loadedSet.musicEnabled);
@@ -214,62 +219,18 @@ export const GameView: React.FC = () => {
         haptics.trigger(ev.kind);
       } else if (ev.type === 'stage_cleared' && !silentDemo) {
         const cur = progressRef.current;
-        if (ev.partition === 'smw') {
-          const clearedSet = new Set(cur.smwClearedLevels);
-          clearedSet.add(ev.levelIndex);
-          const nextUnlocked = Math.min(
-            SMW_TOTAL_LEVELS - 1,
-            Math.max(cur.smwUnlockedLevel, ev.levelIndex + 1)
-          );
-          const prevBest = cur.smwBestStageScores[ev.levelIndex] ?? 0;
-          const updated: SaveProgress = {
-            ...cur,
-            smwHighScore: Math.max(cur.smwHighScore, ev.score),
-            smwUnlockedLevel: nextUnlocked,
-            smwClearedLevels: Array.from(clearedSet).sort((a, b) => a - b),
-            smwBestStageScores: {
-              ...cur.smwBestStageScores,
-              [ev.levelIndex]: Math.max(prevBest, ev.score),
-            },
-            totalCoins: cur.totalCoins + ev.coins,
-            lastPartition: 'smw',
-          };
-          progressRef.current = updated;
-          setProgress(updated);
-          void saveProgress(updated);
-        } else {
-          const clearedSet = new Set(cur.clearedLevels);
-          clearedSet.add(ev.levelIndex);
-          const nextUnlocked = Math.min(
-            TOTAL_LEVELS - 1,
-            Math.max(cur.unlockedLevel, ev.levelIndex + 1)
-          );
-          const prevBest = cur.bestStageScores[ev.levelIndex] ?? 0;
-          const updated: SaveProgress = {
-            ...cur,
-            highScore: Math.max(cur.highScore, ev.score),
-            unlockedLevel: nextUnlocked,
-            clearedLevels: Array.from(clearedSet).sort((a, b) => a - b),
-            bestStageScores: {
-              ...cur.bestStageScores,
-              [ev.levelIndex]: Math.max(prevBest, ev.score),
-            },
-            totalCoins: cur.totalCoins + ev.coins,
-            lastPartition: 'classic',
-          };
-          progressRef.current = updated;
-          setProgress(updated);
-          void saveProgress(updated);
-        }
+        const updated: SaveProgress = {
+          ...recordStageClear(cur, ev.partition, ev.levelIndex, ev.score),
+          totalCoins: cur.totalCoins + ev.coins,
+        };
+        progressRef.current = updated;
+        setProgress(updated);
+        void saveProgress(updated);
       } else if (ev.type === 'game_over' && !silentDemo) {
         const cur = progressRef.current;
-        if (ev.partition === 'smw' && ev.score > cur.smwHighScore) {
-          const updated: SaveProgress = { ...cur, smwHighScore: ev.score };
-          progressRef.current = updated;
-          setProgress(updated);
-          void saveProgress(updated);
-        } else if (ev.partition === 'classic' && ev.score > cur.highScore) {
-          const updated: SaveProgress = { ...cur, highScore: ev.score };
+        const pp = getPartitionProgress(cur, ev.partition);
+        if (ev.score > pp.highScore) {
+          const updated = withPartitionProgress(cur, ev.partition, { ...pp, highScore: ev.score });
           progressRef.current = updated;
           setProgress(updated);
           void saveProgress(updated);
@@ -404,7 +365,7 @@ export const GameView: React.FC = () => {
       levelIndex,
       {
         score: 0,
-        highScore: activePart === 'smw' ? updatedProg.smwHighScore : updatedProg.highScore,
+        highScore: getPartitionProgress(updatedProg, activePart).highScore,
         coins: 0,
         lives: 3,
         powerState: 0,
@@ -460,8 +421,7 @@ export const GameView: React.FC = () => {
       idx,
       {
         score: 0,
-        highScore:
-          activePart === 'smw' ? progressRef.current.smwHighScore : progressRef.current.highScore,
+        highScore: getPartitionProgress(progressRef.current, activePart).highScore,
         coins: 0,
         lives: 3,
         powerState: 0,
@@ -493,7 +453,7 @@ export const GameView: React.FC = () => {
   }, []);
 
   const handleSwitchPartitionFromPause = useCallback(() => {
-    const nextPart: GamePartition = partitionRef.current === 'smw' ? 'classic' : 'smw';
+    const nextPart: GamePartition = nextPartition(partitionRef.current);
     soundManager.playBgm(null);
     pausedRef.current = false;
     inTitleRef.current = true;
@@ -523,10 +483,8 @@ export const GameView: React.FC = () => {
       uiStatus === 'boss_collapse');
 
   const isPortrait = height > width * 1.05 && !ignorePortraitHint;
-  const activeHighScore =
-    hud.partition === 'smw' ? progress.smwHighScore : progress.highScore;
-  const continueLevelIdx =
-    partition === 'smw' ? progress.smwUnlockedLevel : progress.unlockedLevel;
+  const activeHighScore = getPartitionProgress(progress, hud.partition).highScore;
+  const continueLevelIdx = getPartitionProgress(progress, partition).unlocked;
 
   return (
     <View style={styles.root}>

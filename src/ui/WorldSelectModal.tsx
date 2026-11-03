@@ -3,6 +3,8 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   BIOMES,
+  EXP_WORLDS,
+  EXP_WORLD_NAMES,
   SMW_WORLDS,
   STAGES_PER_WORLD,
   TOTAL_WORLDS,
@@ -11,6 +13,7 @@ import {
 } from '../engine/biomes';
 import type { GamePartition, SaveProgress } from '../engine/types';
 import { SMW_WORLD_NAMES } from '../levels/smwLevelBuilder';
+import { PARTITION_INFO, PARTITION_ORDER, getPartitionProgress } from '../engine/partitions';
 
 interface Props {
   visible: boolean;
@@ -47,10 +50,13 @@ export const WorldSelectModal: React.FC<Props> = ({
   if (!visible) return null;
 
   const isSmw = partition === 'smw';
-  const worldCount = isSmw ? SMW_WORLDS : TOTAL_WORLDS;
-  const worldNames = isSmw ? SMW_WORLD_NAMES : CLASSIC_WORLD_NAMES;
-  const unlockedIdx = isSmw ? progress.smwUnlockedLevel : progress.unlockedLevel;
-  const clearedList = isSmw ? progress.smwClearedLevels : progress.clearedLevels;
+  const isExp = partition === 'expedition';
+  const worldCount = isSmw ? SMW_WORLDS : isExp ? EXP_WORLDS : TOTAL_WORLDS;
+  const worldNames = isSmw ? SMW_WORLD_NAMES : isExp ? EXP_WORLD_NAMES : CLASSIC_WORLD_NAMES;
+  const pp = getPartitionProgress(progress, partition);
+  const unlockedIdx = pp.unlocked;
+  const clearedList = pp.cleared;
+  const accent = PARTITION_INFO[partition].accent;
 
   return (
     <View
@@ -64,34 +70,36 @@ export const WorldSelectModal: React.FC<Props> = ({
         },
       ]}
     >
-      <View style={[styles.panel, isSmw && { borderColor: '#4ade80' }]}>
+      <View style={[styles.panel, partition !== 'classic' && { borderColor: accent }]}>
         <View style={styles.header}>
           <View style={styles.titleBlock}>
-            <Text style={[styles.title, { fontFamily }, isSmw && { color: '#86efac' }]}>
-              {isSmw ? 'ISLA DINOSAURIO (20)' : '6 MUNDOS CLÁSICOS (24)'}
+            <Text
+              style={[
+                styles.title,
+                { fontFamily },
+                isSmw && { color: '#86efac' },
+                isExp && { color: '#c4b5fd' },
+              ]}
+            >
+              {isSmw ? 'ISLA DINOSAURIO (20)' : isExp ? 'EXPEDICIÓN (20)' : '6 MUNDOS CLÁSICOS (24)'}
             </Text>
           </View>
 
           <View style={styles.headerActions}>
-            <Pressable
-              onPress={() => onSelectPartition('classic')}
-              style={[
-                styles.partChip,
-                !isSmw && styles.partChipClassicActive,
-              ]}
-            >
-              <Text style={[styles.chipText, { fontFamily }]}>🍄 BROS</Text>
-            </Pressable>
-
-            <Pressable
-              onPress={() => onSelectPartition('smw')}
-              style={[
-                styles.partChip,
-                isSmw && styles.partChipSmwActive,
-              ]}
-            >
-              <Text style={[styles.chipText, { fontFamily }]}>🦕 WORLD</Text>
-            </Pressable>
+            {PARTITION_ORDER.map((part) => (
+              <Pressable
+                key={part}
+                onPress={() => onSelectPartition(part)}
+                style={[
+                  styles.partChip,
+                  part === partition && { backgroundColor: PARTITION_INFO[part].accent },
+                ]}
+              >
+                <Text style={[styles.chipText, { fontFamily }]}>
+                  {part === 'classic' ? '🍄 BROS' : part === 'smw' ? '🦕 WORLD' : '🧭 EXPED.'}
+                </Text>
+              </Pressable>
+            ))}
 
             <Pressable
               onPress={() => setFreePlay((v) => !v)}

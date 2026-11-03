@@ -20,6 +20,9 @@ const key = (col: number, row: number): number => row * 1024 + col;
 
 const CLASSIC_MECHANICS: StageMechanic[] = ['bounce', 'wind', 'firefly', 'icicles', 'crumble', 'lowgrav'];
 const SMW_MECHANICS: StageMechanic[] = ['bounce', 'wind', 'crumble', 'firefly', 'lowgrav'];
+// Expedición: arrecife flotante, selva de luciérnagas, ciudad de puentes frágiles,
+// nubes con viento y volcán de carámbanos de cristal
+const EXP_MECHANICS: StageMechanic[] = ['lowgrav', 'firefly', 'crumble', 'wind', 'icicles'];
 
 export const MECHANIC_LABELS: Record<StageMechanic, { text: string; color: string }> = {
   none: { text: '', color: '#ffffff' },
@@ -36,7 +39,8 @@ export function getStageMechanic(levelIndex: number, partition: GamePartition): 
   const worldNum = Math.floor(levelIndex / STAGES_PER_WORLD) + 1;
   const stageNum = (levelIndex % STAGES_PER_WORLD) + 1;
   if (stageNum === 4) return 'lava_tide';
-  const table = partition === 'smw' ? SMW_MECHANICS : CLASSIC_MECHANICS;
+  const table =
+    partition === 'smw' ? SMW_MECHANICS : partition === 'expedition' ? EXP_MECHANICS : CLASSIC_MECHANICS;
   return table[Math.min(table.length - 1, worldNum - 1)];
 }
 
@@ -325,6 +329,7 @@ export function updateMechanics(
       } else if (w.phase === 'warn') {
         w.phase = 'gust';
         w.timer = WIND_GUST;
+        events.push({ type: 'sfx', id: 'wind_gust' });
         events.push({ type: 'haptic', kind: 'medium' });
       } else {
         w.phase = 'calm';
@@ -358,7 +363,7 @@ export function updateMechanics(
         if (Math.abs(pc - (ic.x + ic.width / 2)) < 56 && p.y > ic.y) {
           ic.state = 'shake';
           ic.timer = 26;
-          events.push({ type: 'sfx', id: 'bump' });
+          events.push({ type: 'sfx', id: 'icicle_crack' });
         }
       } else if (ic.state === 'shake') {
         ic.timer -= 1;
@@ -404,7 +409,7 @@ export function updateMechanics(
         cb.removeBlock(b);
         world.crumbled!.push({ block: b, respawnTimer: CRUMBLE_RESPAWN });
         cb.sparks(b.x + TILE / 2, b.y + TILE / 2, '#d6a26a', 6);
-        events.push({ type: 'sfx', id: 'break_block' });
+        events.push({ type: 'sfx', id: 'crumble' });
       }
     }
     const crumbled = world.crumbled!;
@@ -417,6 +422,11 @@ export function updateMechanics(
         crumbled.splice(i, 1);
       }
     }
+  }
+
+  // --- Marea de lava: aviso sonoro al empezar a burbujear ---
+  if (world.lavaTide && world.frameCount % LAVA_TIDE_PERIOD === 105) {
+    events.push({ type: 'sfx', id: 'lava_rise' });
   }
 
   // --- Marea de lava: burbujas de aviso antes de subir ---

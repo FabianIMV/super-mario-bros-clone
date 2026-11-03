@@ -112,6 +112,160 @@ function midiFreq(midi: number): number {
 
 export function synthesizeSfxWav(id: SfxId): Uint8Array {
   switch (id) {
+
+    // ---------------------------------------------------------------------
+    // Efectos de mecánicas, objetivos, secretos y habilidades (originales)
+    // ---------------------------------------------------------------------
+    case 'wind_gust':
+      return renderToneEvents(
+        [
+          { wave: 'noise', startSec: 0, durSec: 0.55, freqStart: 300, freqEnd: 1500, gain: 0.16 },
+          { wave: 'noise', startSec: 0.3, durSec: 0.5, freqStart: 1500, freqEnd: 400, gain: 0.12 },
+          { wave: 'triangle', startSec: 0, durSec: 0.7, freqStart: 180, freqEnd: 260, gain: 0.1 },
+        ],
+        0.82
+      );
+    case 'icicle_crack':
+      return renderToneEvents(
+        [
+          { wave: 'noise', startSec: 0, durSec: 0.05, freqStart: 3000, gain: 0.2 },
+          { wave: 'pulse12', startSec: 0.02, durSec: 0.12, freqStart: 1900, freqEnd: 2600, gain: 0.16 },
+          { wave: 'pulse12', startSec: 0.1, durSec: 0.1, freqStart: 2300, freqEnd: 1700, gain: 0.12 },
+        ],
+        0.22
+      );
+    case 'crumble':
+      return renderToneEvents(
+        [
+          { wave: 'noise', startSec: 0, durSec: 0.32, freqStart: 420, freqEnd: 110, gain: 0.26 },
+          { wave: 'triangle', startSec: 0, durSec: 0.3, freqStart: 140, freqEnd: 55, gain: 0.22 },
+        ],
+        0.34
+      );
+    case 'key_get':
+      return renderToneEvents(
+        [
+          { wave: 'pulse25', startSec: 0, durSec: 0.07, freqStart: midiFreq(81), gain: 0.22 },
+          { wave: 'pulse25', startSec: 0.06, durSec: 0.07, freqStart: midiFreq(86), gain: 0.22 },
+          { wave: 'pulse25', startSec: 0.12, durSec: 0.16, freqStart: midiFreq(90), gain: 0.22 },
+          { wave: 'pulse12', startSec: 0.12, durSec: 0.2, freqStart: midiFreq(98), gain: 0.1 },
+        ],
+        0.34
+      );
+    case 'vault_open':
+      return renderToneEvents(
+        [
+          { wave: 'triangle', startSec: 0, durSec: 0.26, freqStart: 98, freqEnd: 196, gain: 0.3 },
+          { wave: 'noise', startSec: 0, durSec: 0.1, freqStart: 800, gain: 0.12 },
+          { wave: 'pulse50', startSec: 0.22, durSec: 0.32, freqStart: midiFreq(62), gain: 0.14 },
+          { wave: 'pulse25', startSec: 0.22, durSec: 0.32, freqStart: midiFreq(66), gain: 0.14 },
+          { wave: 'pulse25', startSec: 0.22, durSec: 0.32, freqStart: midiFreq(69), gain: 0.14 },
+        ],
+        0.56
+      );
+    case 'treasure': {
+      const notes = [74, 78, 81, 86, 90];
+      return renderToneEvents(
+        [
+          ...notes.map((n, i) => ({
+            wave: 'pulse25' as WaveKind,
+            startSec: i * 0.07,
+            durSec: i === notes.length - 1 ? 0.3 : 0.08,
+            freqStart: midiFreq(n),
+            gain: 0.2,
+          })),
+          { wave: 'triangle', startSec: 0, durSec: 0.6, freqStart: midiFreq(50), gain: 0.22, decay: false },
+        ],
+        0.65
+      );
+    }
+    case 'portal':
+      return renderToneEvents(
+        [
+          { wave: 'pulse12', startSec: 0, durSec: 0.7, freqStart: 180, freqEnd: 1700, gain: 0.16 },
+          { wave: 'triangle', startSec: 0, durSec: 0.7, freqStart: 90, freqEnd: 720, gain: 0.2 },
+          { wave: 'pulse25', startSec: 0.5, durSec: 0.3, freqStart: midiFreq(93), freqEnd: midiFreq(81), gain: 0.12 },
+        ],
+        0.85
+      );
+    case 'wrench_throw':
+      return renderToneEvents(
+        [
+          { wave: 'noise', startSec: 0, durSec: 0.12, freqStart: 1800, freqEnd: 600, gain: 0.14 },
+          { wave: 'pulse12', startSec: 0, durSec: 0.1, freqStart: 520, freqEnd: 880, gain: 0.14 },
+        ],
+        0.14
+      );
+    case 'wrench_catch':
+      return renderToneEvents(
+        [
+          { wave: 'pulse25', startSec: 0, durSec: 0.05, freqStart: 1046, gain: 0.18 },
+          { wave: 'pulse12', startSec: 0.04, durSec: 0.08, freqStart: 1568, gain: 0.14 },
+        ],
+        0.13
+      );
+    case 'wall_jump':
+      return renderToneEvents(
+        [
+          { wave: 'noise', startSec: 0, durSec: 0.03, freqStart: 2200, gain: 0.16 },
+          { wave: 'pulse25', startSec: 0.01, durSec: 0.13, freqStart: 340, freqEnd: 980, gain: 0.3 },
+        ],
+        0.15
+      );
+    case 'slide':
+      return renderToneEvents(
+        [
+          { wave: 'noise', startSec: 0, durSec: 0.28, freqStart: 1100, freqEnd: 260, gain: 0.16 },
+          { wave: 'triangle', startSec: 0, durSec: 0.2, freqStart: 220, freqEnd: 130, gain: 0.12 },
+        ],
+        0.3
+      );
+    case 'gem':
+      return renderToneEvents(
+        [
+          { wave: 'pulse25', startSec: 0, durSec: 0.06, freqStart: midiFreq(88), gain: 0.2 },
+          { wave: 'pulse25', startSec: 0.05, durSec: 0.06, freqStart: midiFreq(93), gain: 0.2 },
+          { wave: 'pulse25', startSec: 0.1, durSec: 0.22, freqStart: midiFreq(96), gain: 0.2 },
+          { wave: 'triangle', startSec: 0.1, durSec: 0.22, freqStart: midiFreq(72), gain: 0.18 },
+        ],
+        0.34
+      );
+    case 'clock':
+      return renderToneEvents(
+        [
+          { wave: 'pulse12', startSec: 0, durSec: 0.03, freqStart: 1250, gain: 0.2 },
+          { wave: 'pulse12', startSec: 0.11, durSec: 0.03, freqStart: 940, gain: 0.2 },
+          { wave: 'pulse25', startSec: 0.2, durSec: 0.22, freqStart: midiFreq(91), gain: 0.16 },
+        ],
+        0.44
+      );
+    case 'chase_growl':
+      return renderToneEvents(
+        [
+          { wave: 'pulse50', startSec: 0, durSec: 0.6, freqStart: 78, freqEnd: 52, gain: 0.22 },
+          { wave: 'pulse25', startSec: 0, durSec: 0.6, freqStart: 82, freqEnd: 55, gain: 0.14 },
+          { wave: 'noise', startSec: 0.05, durSec: 0.45, freqStart: 260, gain: 0.1 },
+        ],
+        0.66
+      );
+    case 'lava_rise':
+      return renderToneEvents(
+        [
+          { wave: 'triangle', startSec: 0, durSec: 0.7, freqStart: 55, freqEnd: 150, gain: 0.3 },
+          { wave: 'noise', startSec: 0.1, durSec: 0.08, freqStart: 500, gain: 0.12 },
+          { wave: 'noise', startSec: 0.3, durSec: 0.08, freqStart: 650, gain: 0.12 },
+          { wave: 'noise', startSec: 0.5, durSec: 0.08, freqStart: 800, gain: 0.12 },
+        ],
+        0.74
+      );
+    case 'goal_locked':
+      return renderToneEvents(
+        [
+          { wave: 'pulse50', startSec: 0, durSec: 0.12, freqStart: 220, gain: 0.2 },
+          { wave: 'pulse50', startSec: 0.14, durSec: 0.18, freqStart: 175, gain: 0.2 },
+        ],
+        0.34
+      );
     case 'jump':
       return renderToneEvents(
         [{ wave: 'pulse25', startSec: 0, durSec: 0.17, freqStart: 220, freqEnd: 640, gain: 0.36 }],
@@ -409,6 +563,56 @@ export function synthesizeSfxWav(id: SfxId): Uint8Array {
 // ============================================================================
 export function synthesizeBgmWav(track: BgmTrackId): Uint8Array {
   const events: ToneEvent[] = [];
+
+  // -------------------------------------------------------------------------
+  // Modo Expedición: dos pistas originales
+  // -------------------------------------------------------------------------
+  if (track === 'exp_overworld') {
+    // Re lidio, sincopado y luminoso (64 pasos ≈ 7,7 s en bucle)
+    const step = 0.12;
+    const lead = [
+      74, 0, 76, 78, 0, 81, 0, 78, 80, 0, 81, 0, 0, 0, 76, 0,
+      74, 0, 71, 0, 73, 74, 0, 76, 0, 0, 0, 0, 69, 0, 71, 73,
+      74, 0, 76, 78, 0, 83, 0, 81, 80, 0, 78, 0, 76, 0, 78, 0,
+      81, 0, 0, 80, 78, 0, 76, 0, 74, 0, 0, 0, 0, 0, 0, 0,
+    ];
+    const bass = [50, 57, 62, 57, 52, 59, 64, 59, 47, 54, 59, 54, 45, 52, 57, 52];
+    for (let i = 0; i < lead.length; i++) {
+      if (lead[i] > 0) {
+        events.push({ wave: 'pulse25', startSec: i * step, durSec: step * 0.9, freqStart: midiFreq(lead[i]), gain: 0.16 });
+        events.push({ wave: 'pulse12', startSec: i * step + step * 0.5, durSec: step * 0.6, freqStart: midiFreq(lead[i] + 12), gain: 0.04 });
+      }
+      if (i % 2 === 0) {
+        events.push({ wave: 'triangle', startSec: i * step, durSec: step * 1.8, freqStart: midiFreq(bass[(i >> 1) % bass.length]), gain: 0.25, decay: false });
+      }
+      if (i % 4 === 0) events.push({ wave: 'noise', startSec: i * step, durSec: 0.04, freqStart: 900, gain: 0.06 });
+      if (i % 4 === 2) events.push({ wave: 'noise', startSec: i * step, durSec: 0.02, freqStart: 2400, gain: 0.04 });
+    }
+    return renderToneEvents(events, lead.length * step);
+  }
+
+  if (track === 'exp_cave') {
+    // La menor misterioso con arpegios que caen (48 pasos ≈ 7,7 s en bucle)
+    const step = 0.16;
+    const arp = [
+      69, 72, 76, 81, 76, 72, 67, 71, 74, 79, 74, 71,
+      65, 69, 72, 77, 72, 69, 64, 68, 71, 76, 71, 68,
+      69, 72, 76, 81, 84, 81, 67, 71, 74, 79, 83, 79,
+      65, 69, 72, 77, 81, 77, 64, 68, 71, 76, 0, 0,
+    ];
+    const roots = [45, 43, 41, 40];
+    for (let i = 0; i < arp.length; i++) {
+      if (arp[i] > 0) {
+        events.push({ wave: 'pulse12', startSec: i * step, durSec: step * 0.85, freqStart: midiFreq(arp[i]), gain: 0.12 });
+        events.push({ wave: 'pulse12', startSec: i * step + step * 0.5, durSec: step * 0.5, freqStart: midiFreq(arp[i]), gain: 0.04 });
+      }
+      if (i % 6 === 0) {
+        events.push({ wave: 'triangle', startSec: i * step, durSec: step * 5.6, freqStart: midiFreq(roots[(i / 6) % roots.length]), gain: 0.27, decay: false });
+      }
+      if (i % 12 === 9) events.push({ wave: 'noise', startSec: i * step, durSec: 0.06, freqStart: 300, gain: 0.05 });
+    }
+    return renderToneEvents(events, arp.length * step);
+  }
 
   if (track === 'overworld') {
     const step = 0.135; // ~111 BPM 16th-grid upbeat adventure groove (32 steps = 4.32s seamless loop)

@@ -760,6 +760,22 @@ const allSfx: SfxId[] = [
   'yoshi_tongue',
   'yoshi_swallow',
   'yoshi_spit',
+  'wind_gust',
+  'icicle_crack',
+  'crumble',
+  'key_get',
+  'vault_open',
+  'treasure',
+  'portal',
+  'wrench_throw',
+  'wrench_catch',
+  'wall_jump',
+  'slide',
+  'gem',
+  'clock',
+  'chase_growl',
+  'lava_rise',
+  'goal_locked',
 ];
 const allBgm: BgmTrackId[] = [
   'overworld',
@@ -769,6 +785,8 @@ const allBgm: BgmTrackId[] = [
   'starman',
   'smw_overworld',
   'smw_athletic',
+  'exp_overworld',
+  'exp_cave',
 ];
 
 function checkWav(name: string, bytes: Uint8Array): void {

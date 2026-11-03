@@ -33,6 +33,20 @@ El mando multitáctil lee todos los toques activos en paralelo (`onTouchStart` /
 - **Acorde `B + A` (Sprint + Salto con un solo pulgar):** La zona diagonal entre `B` y `A` activa **ambos botones simultáneamente** para correr a tope y saltar con la articulación del pulgar derecho sin soltar el sprint.
 - **Botón `X` (Fuego / Turbo):** Disparo directo de bolas de fuego cuando tienes la Flor de Fuego.
 
+### Modo 3: Plomero Expedición (nuevo, original)
+
+Tercer modo con 5 mundos propios y 20 niveles, cada uno con su mecánica:
+
+| Mundo | Mecánica |
+|---|---|
+| **A • Arrecife Coral** | Gravedad baja sobre los fosos (saltos flotantes) |
+| **S • Selva Neón** | Plataformas de luciérnagas que se apagan |
+| **E • Ciudad Engranaje** | Puentes frágiles que se desmoronan |
+| **N • Reino de Algodón** | Ráfagas de viento |
+| **C • Volcán Cristal** | Carámbanos de cristal que caen |
+
+Usa champiñón y flor de fuego (como el clásico), enemigos de ambos modos, dos pistas de música originales y todas las fases: objetivos, bóvedas, portales secretos, chimeneas y habilidades.
+
 ### Habilidades del plomero
 
 - **Llave inglesa (`X` sin flor ni capa; en el modo clásico también `Y`):** se lanza como bumerán y vuelve a tu mano. Derriba enemigos, golpea bloques, junta monedas y trae de vuelta gemas, relojes o llaves que estén lejos. Al jefe le quita 1 de vida por lanzamiento.

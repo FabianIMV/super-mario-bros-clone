@@ -274,7 +274,7 @@ export const ArcadeTouchControls: React.FC<Props> = ({
         if (distSpin <= auxHalo) {
           next.spin = true;
           next.run = true;
-          if (partition === 'classic') {
+          if (partition !== 'smw') {
             next.fire = true;
           }
         }
@@ -316,7 +316,7 @@ export const ArcadeTouchControls: React.FC<Props> = ({
     ? 'CAPA'
     : powerState === 2
     ? 'FUEGO'
-    : 'TURBO';
+    : 'LLAVE';
   const yLabel = mountedYoshi
     ? 'LENGUA'
     : partition === 'smw'

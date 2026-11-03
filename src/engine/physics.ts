@@ -354,7 +354,7 @@ function triggerBlockHit(
       } else if (content === 'one_up') {
         kind = 'one_up';
       } else if (content === 'feather') {
-        kind = world.player.powerState === 0 && world.partition === 'classic' ? 'mushroom' : 'feather';
+        kind = world.player.powerState === 0 && world.partition !== 'smw' ? 'mushroom' : 'feather';
       } else if (world.player.powerState >= 1) {
         kind = world.partition === 'smw' ? 'feather' : 'flower';
       } else {
@@ -874,7 +874,7 @@ export function stepWorld(
     p.crouching = true;
     syncStandingHeight(world);
     spawnDust(world, p.x + p.width / 2, p.y + p.height, 5);
-    events.push({ type: 'sfx', id: 'skid' });
+    events.push({ type: 'sfx', id: 'slide' });
     events.push({ type: 'haptic', kind: 'light' });
   } else if (sliding) {
     p.slideTimer = (p.slideTimer ?? 0) - 1;
@@ -1262,7 +1262,7 @@ export function stepWorld(
     p.jumpBufferTimer = 0;
     p.spinJumping = false;
     spawnDust(world, p.x + (away === 1 ? 0 : p.width), p.y + p.height / 2, 4);
-    events.push({ type: 'sfx', id: 'jump' });
+    events.push({ type: 'sfx', id: 'wall_jump' });
     events.push({ type: 'haptic', kind: 'medium' });
   } else if (p.mountedYoshi && input.up && jumpJustPressed) {
     p.mountedYoshi = false;

@@ -14,6 +14,10 @@ export const DEFAULT_PROGRESS: SaveProgress = {
   smwUnlockedLevel: 0,
   smwClearedLevels: [],
   smwBestStageScores: {},
+  expHighScore: 0,
+  expUnlockedLevel: 0,
+  expClearedLevels: [],
+  expBestStageScores: {},
   lastPartition: 'smw',
 };
 
@@ -41,8 +45,14 @@ export async function loadProgress(): Promise<SaveProgress> {
       smwUnlockedLevel: typeof parsed.smwUnlockedLevel === 'number' ? parsed.smwUnlockedLevel : 0,
       smwClearedLevels: Array.isArray(parsed.smwClearedLevels) ? parsed.smwClearedLevels : [],
       smwBestStageScores: parsed.smwBestStageScores ?? {},
+      expHighScore: typeof parsed.expHighScore === 'number' ? parsed.expHighScore : 0,
+      expUnlockedLevel: typeof parsed.expUnlockedLevel === 'number' ? parsed.expUnlockedLevel : 0,
+      expClearedLevels: Array.isArray(parsed.expClearedLevels) ? parsed.expClearedLevels : [],
+      expBestStageScores: parsed.expBestStageScores ?? {},
       lastPartition:
-        parsed.lastPartition === 'classic' || parsed.lastPartition === 'smw'
+        parsed.lastPartition === 'classic' ||
+        parsed.lastPartition === 'smw' ||
+        parsed.lastPartition === 'expedition'
           ? parsed.lastPartition
           : 'smw',
     };

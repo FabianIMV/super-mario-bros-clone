@@ -1,4 +1,4 @@
-export type GamePartition = 'classic' | 'smw';
+export type GamePartition = 'classic' | 'smw' | 'expedition';
 
 export type BiomeId =
   | 'meadow'
@@ -11,7 +11,13 @@ export type BiomeId =
   | 'donut_plains'
   | 'vanilla_dome'
   | 'forest_illusion'
-  | 'valley_koopa';
+  | 'valley_koopa'
+  // Modo Expedición (original)
+  | 'reef'
+  | 'jungle'
+  | 'clockwork'
+  | 'cloudland'
+  | 'crystal';
 
 export type BgmTrackId =
   | 'overworld'
@@ -20,7 +26,9 @@ export type BgmTrackId =
   | 'fortress'
   | 'starman'
   | 'smw_overworld'
-  | 'smw_athletic';
+  | 'smw_athletic'
+  | 'exp_overworld'
+  | 'exp_cave';
 
 export type SfxId =
   | 'jump'
@@ -51,7 +59,24 @@ export type SfxId =
   | 'bridge_collapse'
   | 'stage_clear'
   | 'die'
-  | 'gameover';
+  | 'gameover'
+  // Mecánicas, objetivos, secretos y habilidades
+  | 'wind_gust'
+  | 'icicle_crack'
+  | 'crumble'
+  | 'key_get'
+  | 'vault_open'
+  | 'treasure'
+  | 'portal'
+  | 'wrench_throw'
+  | 'wrench_catch'
+  | 'wall_jump'
+  | 'slide'
+  | 'gem'
+  | 'clock'
+  | 'chase_growl'
+  | 'lava_rise'
+  | 'goal_locked';
 
 export type HapticKind =
   | 'tick'
@@ -551,6 +576,11 @@ export interface SaveProgress {
   smwUnlockedLevel: number;
   smwClearedLevels: number[];
   smwBestStageScores: Record<number, number>;
+  // Modo 3: Plomero Expedición (20 niveles)
+  expHighScore?: number;
+  expUnlockedLevel?: number;
+  expClearedLevels?: number[];
+  expBestStageScores?: Record<number, number>;
   lastPartition: GamePartition;
 }
 

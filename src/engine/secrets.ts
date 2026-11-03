@@ -205,14 +205,14 @@ export function updateSecrets(
         world.hasKey = true;
         cb.text(pk.x - 24, pk.y - 10, '¡LLAVE!', '#fde047');
         cb.sparks(pk.x + 10, pk.y + 10, '#fde047', 10);
-        events.push({ type: 'sfx', id: 'powerup_collect' });
+        events.push({ type: 'sfx', id: 'key_get' });
         events.push({ type: 'haptic', kind: 'success' });
       } else if (pk.kind === 'treasure') {
         world.lives += 1;
         world.score += TREASURE_SCORE;
         cb.text(pk.x - 30, pk.y - 14, '¡TESORO! +1 VIDA', '#4ade80');
         cb.sparks(pk.x + 12, pk.y + 12, '#4ade80', 12);
-        events.push({ type: 'sfx', id: 'one_up' });
+        events.push({ type: 'sfx', id: 'treasure' });
         events.push({ type: 'haptic', kind: 'success' });
       } else {
         // Portal secreto: atajo al castillo del mundo
@@ -225,7 +225,7 @@ export function updateSecrets(
         cb.text(pk.x - 50, pk.y - 20, '¡PORTAL SECRETO!', '#c084fc');
         cb.sparks(pk.x + 12, pk.y + 30, '#c084fc', 16);
         events.push({ type: 'bgm', track: null });
-        events.push({ type: 'sfx', id: 'stage_clear' });
+        events.push({ type: 'sfx', id: 'portal' });
         events.push({ type: 'haptic', kind: 'success' });
         return;
       }
@@ -244,7 +244,7 @@ export function updateSecrets(
       world.vaultOpened = true;
       world.hasKey = false;
       cb.text(p.x - 30, p.y - 20, '¡BÓVEDA ABIERTA!', '#fde047');
-      events.push({ type: 'sfx', id: 'break_block' });
+      events.push({ type: 'sfx', id: 'vault_open' });
       events.push({ type: 'haptic', kind: 'heavy' });
     }
   }

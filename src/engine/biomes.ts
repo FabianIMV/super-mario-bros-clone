@@ -48,6 +48,23 @@ export const TOTAL_LEVELS = TOTAL_WORLDS * STAGES_PER_WORLD;
 export const SMW_WORLDS = 5;
 export const SMW_TOTAL_LEVELS = SMW_WORLDS * STAGES_PER_WORLD; // 20 stages!
 
+// Partition 3: Plomero Expedición (original — 5 mundos x 4 etapas = 20 niveles)
+export const EXP_WORLDS = 5;
+export const EXP_TOTAL_LEVELS = EXP_WORLDS * STAGES_PER_WORLD;
+export const EXP_WORLD_PREFIXES = ['A', 'S', 'E', 'N', 'C'];
+export const EXP_WORLD_NAMES = [
+  'A • ARRECIFE CORAL',
+  'S • SELVA NEÓN',
+  'E • CIUDAD ENGRANAJE',
+  'N • REINO DE ALGODÓN',
+  'C • VOLCÁN CRISTAL',
+];
+
+/** Cantidad de niveles de cada modo. */
+export function partitionTotalLevels(partition: GamePartition): number {
+  return partition === 'smw' ? SMW_TOTAL_LEVELS : partition === 'expedition' ? EXP_TOTAL_LEVELS : TOTAL_LEVELS;
+}
+
 // Camera & Vertical Framing Constants so Touch Controls NEVER cover Plomero in either game!
 export const MIN_CAMERA_WORLD_X = -7 * TILE; // -224: keeps col 0 at screenX >= 195px (clear right of D-Pad!)
 export const WORLD_VERTICAL_LIFT = 22; // Shifts rendered ground 22 logical px upward above lower bezel!
@@ -420,6 +437,171 @@ export const BIOMES: Record<BiomeId, BiomeDefinition> = {
     hasLava: false,
     bgm: 'smw_athletic',
   },
+  reef: {
+    id: 'reef',
+    name: 'Arrecife Coral',
+    skyTop: '#0e7490',
+    skyBottom: '#67e8f9',
+    distantHill: '#0f766e',
+    nearHill: '#14b8a6',
+    hillOutline: '#134e4a',
+    bushFill: '#f472b6',
+    bushHighlight: '#fbcfe8',
+    cloudFill: '#ecfeff',
+    cloudShadow: '#a5f3fc',
+    groundCap: '#fb7185',
+    groundCapHighlight: '#fecdd3',
+    groundMain: '#fde68a',
+    groundShadow: '#d4a24c',
+    groundDark: '#7c4a12',
+    brickLight: '#fda4af',
+    brickMain: '#f43f5e',
+    brickDark: '#9f1239',
+    mortar: '#4c0519',
+    hardLight: '#99f6e4',
+    hardMain: '#2dd4bf',
+    hardDark: '#0f766e',
+    pipeLight: '#fdba74',
+    pipeMain: '#f97316',
+    pipeDark: '#9a3412',
+    underground: false,
+    slippery: false,
+    hasStars: false,
+    hasLava: false,
+    bgm: 'exp_overworld',
+  },
+  jungle: {
+    id: 'jungle',
+    name: 'Selva Neón',
+    skyTop: '#1e1b4b',
+    skyBottom: '#4c1d95',
+    distantHill: '#14532d',
+    nearHill: '#166534',
+    hillOutline: '#052e16',
+    bushFill: '#a3e635',
+    bushHighlight: '#ecfccb',
+    cloudFill: '#6d28d9',
+    cloudShadow: '#4c1d95',
+    groundCap: '#4ade80',
+    groundCapHighlight: '#bbf7d0',
+    groundMain: '#3f6212',
+    groundShadow: '#1a2e05',
+    groundDark: '#0b1402',
+    brickLight: '#bef264',
+    brickMain: '#65a30d',
+    brickDark: '#365314',
+    mortar: '#0b1402',
+    hardLight: '#e879f9',
+    hardMain: '#a21caf',
+    hardDark: '#581c87',
+    pipeLight: '#67e8f9',
+    pipeMain: '#06b6d4',
+    pipeDark: '#155e75',
+    underground: false,
+    slippery: false,
+    hasStars: true,
+    hasLava: false,
+    bgm: 'exp_overworld',
+  },
+  clockwork: {
+    id: 'clockwork',
+    name: 'Ciudad Engranaje',
+    skyTop: '#334155',
+    skyBottom: '#94a3b8',
+    distantHill: '#475569',
+    nearHill: '#64748b',
+    hillOutline: '#1e293b',
+    bushFill: '#d97706',
+    bushHighlight: '#fcd34d',
+    cloudFill: '#cbd5e1',
+    cloudShadow: '#94a3b8',
+    groundCap: '#f59e0b',
+    groundCapHighlight: '#fde68a',
+    groundMain: '#78716c',
+    groundShadow: '#57534e',
+    groundDark: '#1c1917',
+    brickLight: '#fdba74',
+    brickMain: '#c2410c',
+    brickDark: '#7c2d12',
+    mortar: '#1c1917',
+    hardLight: '#e2e8f0',
+    hardMain: '#94a3b8',
+    hardDark: '#475569',
+    pipeLight: '#fcd34d',
+    pipeMain: '#b45309',
+    pipeDark: '#78350f',
+    underground: false,
+    slippery: false,
+    hasStars: false,
+    hasLava: false,
+    bgm: 'exp_cave',
+  },
+  cloudland: {
+    id: 'cloudland',
+    name: 'Reino de Algodón',
+    skyTop: '#c4b5fd',
+    skyBottom: '#fbcfe8',
+    distantHill: '#ddd6fe',
+    nearHill: '#f5d0fe',
+    hillOutline: '#a78bfa',
+    bushFill: '#f9a8d4',
+    bushHighlight: '#fdf2f8',
+    cloudFill: '#ffffff',
+    cloudShadow: '#ede9fe',
+    groundCap: '#fdf2f8',
+    groundCapHighlight: '#ffffff',
+    groundMain: '#f9a8d4',
+    groundShadow: '#e879f9',
+    groundDark: '#86198f',
+    brickLight: '#ffffff',
+    brickMain: '#f0abfc',
+    brickDark: '#c026d3',
+    mortar: '#701a75',
+    hardLight: '#fef9c3',
+    hardMain: '#fde047',
+    hardDark: '#ca8a04',
+    pipeLight: '#a5f3fc',
+    pipeMain: '#22d3ee',
+    pipeDark: '#0e7490',
+    underground: false,
+    slippery: false,
+    hasStars: false,
+    hasLava: false,
+    bgm: 'exp_overworld',
+  },
+  crystal: {
+    id: 'crystal',
+    name: 'Volcán Cristal',
+    skyTop: '#1a0526',
+    skyBottom: '#4a044e',
+    distantHill: '#3b0764',
+    nearHill: '#581c87',
+    hillOutline: '#120320',
+    bushFill: '#f0abfc',
+    bushHighlight: '#fdf4ff',
+    cloudFill: '#4c1d95',
+    cloudShadow: '#2e1065',
+    groundCap: '#e879f9',
+    groundCapHighlight: '#fae8ff',
+    groundMain: '#4c0519',
+    groundShadow: '#2a0412',
+    groundDark: '#0d0106',
+    brickLight: '#d8b4fe',
+    brickMain: '#9333ea',
+    brickDark: '#581c87',
+    mortar: '#0d0106',
+    hardLight: '#a5f3fc',
+    hardMain: '#22d3ee',
+    hardDark: '#155e75',
+    pipeLight: '#fda4af',
+    pipeMain: '#e11d48',
+    pipeDark: '#881337',
+    underground: true,
+    slippery: false,
+    hasStars: false,
+    hasLava: false,
+    bgm: 'exp_cave',
+  },
 };
 
 const SMW_WORLD_PREFIXES = ['Y', 'D', 'V', 'B', 'K'];
@@ -431,12 +613,32 @@ export function getWorldLabel(levelIndex: number, partition: GamePartition = 'cl
     const prefix = SMW_WORLD_PREFIXES[Math.min(SMW_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'W';
     return `${prefix}-${stageNum}`;
   }
+  if (partition === 'expedition') {
+    const prefix = EXP_WORLD_PREFIXES[Math.min(EXP_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'X';
+    return `${prefix}-${stageNum}`;
+  }
   return `${worldNum}-${stageNum}`;
 }
 
 export function getStageBiome(levelIndex: number, partition: GamePartition = 'classic'): BiomeId {
   const worldNum = Math.floor(levelIndex / STAGES_PER_WORLD) + 1;
   const stageNum = (levelIndex % STAGES_PER_WORLD) + 1;
+
+  if (partition === 'expedition') {
+    if (stageNum === 4) return 'fortress';
+    switch (worldNum) {
+      case 1:
+        return stageNum === 3 ? 'jungle' : 'reef';
+      case 2:
+        return stageNum === 2 ? 'crystal' : 'jungle';
+      case 3:
+        return stageNum === 3 ? 'cloudland' : 'clockwork';
+      case 4:
+        return stageNum === 3 ? 'clockwork' : 'cloudland';
+      default:
+        return 'crystal';
+    }
+  }
 
   if (partition === 'smw') {
     if (stageNum === 4) return 'fortress';

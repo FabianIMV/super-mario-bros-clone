@@ -57,7 +57,7 @@ export function throwWrench(world: WorldState, events: GameEvent[]): boolean {
     hitBoss: false,
   };
   p.throwPoseTimer = 10;
-  events.push({ type: 'sfx', id: 'cape_spin' });
+  events.push({ type: 'sfx', id: 'wrench_throw' });
   events.push({ type: 'haptic', kind: 'light' });
   return true;
 }
@@ -120,6 +120,7 @@ export function updateWrench(world: WorldState, events: GameEvent[], cb: WrenchC
         }
       }
       world.wrench = null;
+      events.push({ type: 'sfx', id: 'wrench_catch' });
       return;
     }
   }

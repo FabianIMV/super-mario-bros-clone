@@ -55,11 +55,19 @@ export const PauseModal: React.FC<PauseProps> = ({
         },
       ]}
     >
-      <View style={[styles.card, isSmw && { borderColor: '#4ade80' }]}>
+      <View
+        style={[
+          styles.card,
+          isSmw && { borderColor: '#4ade80' },
+          partition === 'expedition' && { borderColor: '#a78bfa' },
+        ]}
+      >
         <Text style={[styles.title, { fontFamily }]}>
           {mode === 'pause'
             ? isSmw
               ? 'PAUSA • PLOMERO WORLD'
+              : partition === 'expedition'
+              ? 'PAUSA • EXPEDICIÓN'
               : 'PAUSA • PLOMERO BROS'
             : 'AJUSTES ARCADE'}
         </Text>
@@ -132,7 +140,11 @@ export const PauseModal: React.FC<PauseProps> = ({
                 style={({ pressed }) => [styles.btnEmerald, pressed && styles.pressed]}
               >
                 <Text style={[styles.btnLightText, { fontFamily }]}>
-                  {isSmw ? '🍄 IR A BROS' : '🦕 IR A WORLD'}
+                  {partition === 'classic'
+                    ? '🦕 IR A WORLD'
+                    : partition === 'smw'
+                    ? '🧭 IR A EXPEDICIÓN'
+                    : '🍄 IR A BROS'}
                 </Text>
               </Pressable>
 
@@ -181,11 +193,23 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
   if (status === 'stage_intro') {
     return (
       <View style={styles.introOverlay}>
-        <Text style={[styles.introEdition, { fontFamily, color: isSmw ? '#4ade80' : '#f87171' }]}>
-          {isSmw ? '🦕 SUPER PLOMERO WORLD' : '🍄 SUPER PLOMERO BROS'}
+        <Text
+          style={[
+            styles.introEdition,
+            {
+              fontFamily,
+              color: isSmw ? '#4ade80' : partition === 'expedition' ? '#c4b5fd' : '#f87171',
+            },
+          ]}
+        >
+          {isSmw
+            ? '🦕 SUPER PLOMERO WORLD'
+            : partition === 'expedition'
+            ? '🧭 PLOMERO EXPEDICIÓN'
+            : '🍄 SUPER PLOMERO BROS'}
         </Text>
         <Text style={[styles.introWorld, { fontFamily }]}>
-          {isSmw ? `ETAPA ${worldLabel}` : `MUNDO ${worldLabel}`}
+          {partition === 'classic' ? `MUNDO ${worldLabel}` : `ETAPA ${worldLabel}`}
         </Text>
         <Text style={styles.introSubtitle}>{stageTitle.toUpperCase()}</Text>
         <View style={styles.introLivesRow}>
@@ -212,6 +236,8 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
             {isWin
               ? isSmw
                 ? '¡CAMPEÓN DE PLOMERO WORLD!'
+                : partition === 'expedition'
+                ? '¡EXPEDICIÓN COMPLETADA!'
                 : '¡CAMPEÓN DE LOS 6 REINOS!'
               : 'FIN DE LA PARTIDA'}
           </Text>
@@ -220,6 +246,8 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
             {isWin
               ? isSmw
                 ? '¡Liberaste la Isla Dinosaurio y los 20 niveles junto a Yoshi y la Capa Dorada!'
+                : partition === 'expedition'
+                ? '¡Cruzaste el arrecife, la selva, la ciudad, las nubes y el volcán: 20 niveles!'
                 : '¡Derrotaste al Rey Koopa en la Fortaleza Final y liberaste los 24 niveles!'
               : 'Has agotado tus vidas en esta incursión.'}
           </Text>

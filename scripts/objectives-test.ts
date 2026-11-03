@@ -1,5 +1,5 @@
 // Pruebas de los objetivos por nivel (Fase 2), usando la física real a 60 Hz.
-import { GROUND_ROW, SMW_TOTAL_LEVELS, TILE, TOTAL_LEVELS } from '../src/engine/biomes';
+import { GROUND_ROW, SMW_TOTAL_LEVELS, TILE, TOTAL_LEVELS, EXP_TOTAL_LEVELS } from '../src/engine/biomes';
 import {
   CHASE_DELAY,
   CLOCKS_PER_STAGE,
@@ -46,7 +46,7 @@ function calm(w: WorldState): void {
 console.log('7. Validando objetivos por nivel...');
 
 // 7a. Reparto de objetivos
-for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS]] as [GamePartition, number][]) {
+for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS]] as [GamePartition, number][]) {
   const count: Record<StageObjective, number> = { reach: 0, collect: 0, time_attack: 0, chase: 0 };
   for (let i = 0; i < total; i++) {
     const w = buildWorldState(i, undefined, part);
@@ -61,7 +61,7 @@ for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS
 }
 
 // 7b. Gemas: 5 por nivel, accesibles, y la meta se abre solo con todas
-for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS]] as [GamePartition, number][]) {
+for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS]] as [GamePartition, number][]) {
   for (let i = 0; i < total; i++) {
     if (getStageObjective(i, part) !== 'collect') continue;
     const w = buildWorldState(i, undefined, part);

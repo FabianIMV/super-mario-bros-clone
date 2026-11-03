@@ -1,5 +1,6 @@
 import {
   BIOMES,
+  EXP_TOTAL_LEVELS,
   GROUND_ROW,
   MIN_CAMERA_WORLD_X,
   STAGES_PER_WORLD,
@@ -66,6 +67,30 @@ const STAGE_TITLES: string[] = [
   'Trono del Rey Koopa',
 ];
 
+// Modo Expedición (original): títulos de sus 20 etapas
+const EXP_STAGE_TITLES: string[] = [
+  'Bahía de las Burbujas',
+  'Bosque de Coral',
+  'Lianas Brillantes',
+  'Faro Sumergido',
+  'Raíces Fosforescentes',
+  'Gruta de Amatista',
+  'Copa de los Árboles',
+  'Templo de las Luciérnagas',
+  'Avenida de Pistones',
+  'Torre del Reloj',
+  'Puertos Flotantes',
+  'Fábrica de Vapor',
+  'Colinas de Merengue',
+  'Puentes de Arcoíris',
+  'Muelle de Engranajes',
+  'Palacio de Nubes',
+  'Laderas de Cuarzo',
+  'Mina de Geodas',
+  'Cráter Prismático',
+  'Corazón del Volcán',
+];
+
 export function gridKey(col: number, row: number): number {
   return row * 1024 + col;
 }
@@ -130,6 +155,7 @@ interface BuilderCtx {
   isFortress: boolean;
   isUnderground: boolean;
   enemySeq: number;
+  partition: GamePartition;
 }
 
 function putBlock(
@@ -226,12 +252,29 @@ function addPipe(ctx: BuilderCtx, col: number, heightTiles: number, hasPiranha: 
 }
 
 function addEnemy(ctx: BuilderCtx, col: number, rowAboveBottom: number, type: EnemyType): void {
-  const isTall = type === 'koopa_green' || type === 'koopa_red' || type === 'paratroopa';
-  const height = isTall ? 38 : 28;
-  const width = 26;
+  // Las balas vuelan a media altura, no por el suelo
+  if (type === 'bullet_bill' && rowAboveBottom >= GROUND_ROW - 1) rowAboveBottom = 8;
+  const isTall =
+    type === 'koopa_green' ||
+    type === 'koopa_red' ||
+    type === 'paratroopa' ||
+    type === 'rex' ||
+    type === 'chuck';
+  const height = type === 'chuck' ? 42 : isTall ? 38 : type === 'bullet_bill' ? 24 : 28;
+  const width = type === 'chuck' ? 32 : 26;
   const baseSpeed =
-    type === 'spiny' ? 1.25 : type === 'paratroopa' ? 1.15 : type === 'koopa_red' ? 1.2 : 1.1;
-  const vx = -baseSpeed * (1 + (ctx.difficulty - 1) * 0.35);
+    type === 'bullet_bill'
+      ? 3.35
+      : type === 'chuck'
+      ? 1.85
+      : type === 'spiny'
+      ? 1.25
+      : type === 'paratroopa'
+      ? 1.15
+      : type === 'koopa_red'
+      ? 1.2
+      : 1.1;
+  const vx = -baseSpeed * (type === 'bullet_bill' ? 1 : 1 + (ctx.difficulty - 1) * 0.35);
   const bottomY = (rowAboveBottom + 1) * TILE;
   ctx.enemies.push({
     id: ctx.nextId++,
@@ -246,7 +289,7 @@ function addEnemy(ctx: BuilderCtx, col: number, rowAboveBottom: number, type: En
     height,
     facing: -1,
     onGround: false,
-    hp: 1,
+    hp: type === 'rex' || type === 'chuck' ? 2 : 1,
     stateTimer: 0,
     kickGraceTimer: 0,
     shellCombo: 0,
@@ -314,9 +357,18 @@ const CLASSIC_ROSTERS: EnemyType[][] = [
   ['spiny', 'koopa_red', 'paratroopa', 'spiny', 'koopa_green'], // World 6: Cielo/Abismo
 ];
 
+const EXP_ROSTERS: EnemyType[][] = [
+  ['galoomba', 'koopa_green', 'goomba', 'paratroopa'], // A: Arrecife Coral
+  ['rex', 'koopa_red', 'galoomba', 'spiny'], // S: Selva Neón
+  ['koopa_red', 'bullet_bill', 'chuck', 'galoomba'], // E: Ciudad Engranaje
+  ['paratroopa', 'rex', 'koopa_green', 'spiny'], // N: Reino de Algodón
+  ['chuck', 'spiny', 'rex', 'bullet_bill', 'koopa_red'], // C: Volcán Cristal
+];
+
 /** Next ground foe from the current world's roster (deterministic rotation). */
 function foe(ctx: BuilderCtx): EnemyType {
-  const roster = CLASSIC_ROSTERS[Math.min(CLASSIC_ROSTERS.length - 1, ctx.worldNum - 1)];
+  const rosters = ctx.partition === 'expedition' ? EXP_ROSTERS : CLASSIC_ROSTERS;
+  const roster = rosters[Math.min(rosters.length - 1, ctx.worldNum - 1)];
   const type = roster[ctx.enemySeq % roster.length];
   ctx.enemySeq++;
   return type;
@@ -838,6 +890,14 @@ const FORTRESS_PLANS: FortressSection[][] = [
   ['lava_staircase', 'dual_route', 'pillar_hops', 'cramped_hall', 'lift_chasm', 'vertical_lift', 'lava_pillar', 'supply_room'],
 ];
 
+const EXP_FORTRESS_PLANS: FortressSection[][] = [
+  ['pillar_hops', 'lift_chasm', 'guard_corridor', 'dual_route', 'supply_room'],
+  ['cramped_hall', 'lava_staircase', 'vertical_lift', 'pillar_hops', 'lava_pillar', 'supply_room'],
+  ['lift_chasm', 'dual_route', 'cramped_hall', 'guard_corridor', 'lava_staircase', 'supply_room'],
+  ['vertical_lift', 'pillar_hops', 'lift_chasm', 'cramped_hall', 'dual_route', 'lava_pillar', 'supply_room'],
+  ['dual_route', 'cramped_hall', 'lava_staircase', 'pillar_hops', 'vertical_lift', 'guard_corridor', 'lift_chasm', 'supply_room'],
+];
+
 function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: FortressBoss } {
   // Opening hall + powerup
   putBlock(ctx, 9, 8, 'brick');
@@ -845,7 +905,8 @@ function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: Fortres
   putBlock(ctx, 11, 8, 'brick');
   addEnemy(ctx, 15, GROUND_ROW - 1, foe(ctx));
 
-  const plan = FORTRESS_PLANS[Math.min(FORTRESS_PLANS.length - 1, ctx.worldNum - 1)];
+  const plans = ctx.partition === 'expedition' ? EXP_FORTRESS_PLANS : FORTRESS_PLANS;
+  const plan = plans[Math.min(plans.length - 1, ctx.worldNum - 1)];
   let cursor = 18;
   for (const section of plan) {
     cursor += buildFortressSection(ctx, section, cursor) + 2;
@@ -944,8 +1005,35 @@ const STAGE_PLANS: Record<number, SetpieceKind[]> = {
   22: ['twin_lifts', 'coin_heaven_spring', 'lift_wall', 'foe_parade', 'sky_bridge_paratroopa', 'stepping_pillars', 'double_deck_secret'],
 };
 
+// Modo Expedición: un plan propio por etapa (no se repite con ningún otro)
+const EXP_STAGE_PLANS: Record<number, SetpieceKind[]> = {
+  // A: Arrecife Coral
+  0: ['foe_parade', 'stepping_pillars', 'coin_heaven_spring', 'shell_bowling'],
+  1: ['twin_lifts', 'hidden_stairway', 'pipe_maze', 'sky_bridge_paratroopa', 'double_deck_secret'],
+  2: ['lift_wall', 'foe_parade', 'moving_lift_chasm', 'brick_ceiling_run', 'stepping_pillars'],
+  // S: Selva Neón
+  4: ['brick_ceiling_run', 'twin_lifts', 'spiny_fire_alley', 'lift_wall', 'coin_heaven_spring'],
+  5: ['hidden_stairway', 'pyramid_gauntlet', 'double_deck_secret', 'pipe_maze', 'moving_lift_chasm', 'foe_parade'],
+  6: ['sky_bridge_paratroopa', 'coin_heaven_spring', 'stepping_pillars', 'twin_lifts', 'spring_cliff_vault'],
+  // E: Ciudad Engranaje
+  8: ['pipe_maze', 'lift_wall', 'shell_bowling', 'moving_lift_chasm', 'hidden_stairway', 'pyramid_gauntlet'],
+  9: ['spring_cliff_vault', 'brick_ceiling_run', 'twin_lifts', 'foe_parade', 'piranha_terrace'],
+  10: ['double_deck_secret', 'sky_bridge_paratroopa', 'lift_wall', 'stepping_pillars', 'spiny_fire_alley', 'twin_lifts'],
+  // N: Reino de Algodón
+  12: ['coin_heaven_spring', 'moving_lift_chasm', 'foe_parade', 'pyramid_gauntlet', 'sky_bridge_paratroopa', 'hidden_stairway'],
+  13: ['stepping_pillars', 'piranha_terrace', 'twin_lifts', 'brick_ceiling_run', 'lift_wall', 'shell_bowling'],
+  14: ['spiny_fire_alley', 'double_deck_secret', 'coin_heaven_spring', 'pipe_maze', 'twin_lifts', 'stepping_pillars'],
+  // C: Volcán Cristal
+  16: ['lift_wall', 'pyramid_gauntlet', 'foe_parade', 'twin_lifts', 'piranha_terrace', 'brick_ceiling_run', 'hidden_stairway'],
+  17: ['moving_lift_chasm', 'spring_cliff_vault', 'spiny_fire_alley', 'stepping_pillars', 'double_deck_secret', 'lift_wall'],
+  18: ['twin_lifts', 'shell_bowling', 'hidden_stairway', 'sky_bridge_paratroopa', 'pyramid_gauntlet', 'coin_heaven_spring', 'foe_parade'],
+};
+
 function buildCuratedWorldStage(ctx: BuilderCtx): number {
-  const seq = STAGE_PLANS[ctx.levelIndex] ?? STAGE_PLANS[2];
+  const seq =
+    ctx.partition === 'expedition'
+      ? EXP_STAGE_PLANS[ctx.levelIndex] ?? EXP_STAGE_PLANS[0]
+      : STAGE_PLANS[ctx.levelIndex] ?? STAGE_PLANS[2];
   let cursor = 11;
 
   // Welcoming starter block
@@ -1001,10 +1089,12 @@ export function buildWorldState(
       )
     );
   }
-  const clampedIdx = Math.max(0, Math.min(levelIndex, 23));
+  const isExp = partition === 'expedition';
+  const totalStages = isExp ? EXP_TOTAL_LEVELS : TOTAL_LEVELS;
+  const clampedIdx = Math.max(0, Math.min(levelIndex, totalStages - 1));
   const worldNum = Math.floor(clampedIdx / STAGES_PER_WORLD) + 1;
   const stageNum = (clampedIdx % STAGES_PER_WORLD) + 1;
-  const biomeId = getStageBiome(clampedIdx);
+  const biomeId = getStageBiome(clampedIdx, isExp ? 'expedition' : 'classic');
   const biome = BIOMES[biomeId];
 
   const ctx: BuilderCtx = {
@@ -1025,6 +1115,7 @@ export function buildWorldState(
     isFortress: biomeId === 'fortress',
     isUnderground: biome.underground,
     enemySeq: 0,
+    partition: isExp ? 'expedition' : 'classic',
   };
 
   let totalCols = 132;
@@ -1034,9 +1125,9 @@ export function buildWorldState(
     const built = buildFortressStage(ctx);
     totalCols = built.totalCols;
     boss = built.boss;
-  } else if (clampedIdx === 0) {
+  } else if (!isExp && clampedIdx === 0) {
     totalCols = buildStage1_1(ctx);
-  } else if (clampedIdx === 1) {
+  } else if (!isExp && clampedIdx === 1) {
     totalCols = buildStage1_2(ctx);
   } else {
     totalCols = buildCuratedWorldStage(ctx);
@@ -1159,12 +1250,14 @@ export function buildWorldState(
   const startCameraX = Math.max(MIN_CAMERA_WORLD_X, player.x - 304);
 
   return applyStageObjective(applyAbilityChallenges(applyStageSecrets(applyStageMechanic({
-    partition: 'classic',
-    totalStagesInPartition: TOTAL_LEVELS,
+    partition: isExp ? 'expedition' : 'classic',
+    totalStagesInPartition: totalStages,
     status: 'playing',
     levelIndex: clampedIdx,
-    worldLabel: getWorldLabel(clampedIdx, 'classic'),
-    stageTitle: STAGE_TITLES[clampedIdx] ?? `Etapa ${getWorldLabel(clampedIdx, 'classic')}`,
+    worldLabel: getWorldLabel(clampedIdx, ctx.partition),
+    stageTitle:
+      (isExp ? EXP_STAGE_TITLES : STAGE_TITLES)[clampedIdx] ??
+      `Etapa ${getWorldLabel(clampedIdx, ctx.partition)}`,
     biomeId,
     totalCols,
     score: carryState?.score ?? 0,

@@ -42,6 +42,22 @@ const SMW_OBJECTIVES: Record<number, StageObjective> = {
   18: 'chase',
 };
 
+const EXP_OBJECTIVES: Record<number, StageObjective> = {
+  1: 'collect',
+  2: 'chase',
+  4: 'time_attack',
+  5: 'collect',
+  6: 'chase',
+  8: 'collect',
+  9: 'time_attack',
+  10: 'chase',
+  12: 'time_attack',
+  14: 'collect',
+  16: 'chase',
+  17: 'collect',
+  18: 'time_attack',
+};
+
 export const GEMS_PER_STAGE = 5;
 export const CLOCKS_PER_STAGE = 5;
 export const TIME_ATTACK_START = 75; // unidades del contador (1 unidad = 38 frames)
@@ -59,7 +75,8 @@ export const OBJECTIVE_LABELS: Record<StageObjective, { text: string; color: str
 };
 
 export function getStageObjective(levelIndex: number, partition: GamePartition): StageObjective {
-  const table = partition === 'smw' ? SMW_OBJECTIVES : CLASSIC_OBJECTIVES;
+  const table =
+    partition === 'smw' ? SMW_OBJECTIVES : partition === 'expedition' ? EXP_OBJECTIVES : CLASSIC_OBJECTIVES;
   return table[levelIndex] ?? 'reach';
 }
 
@@ -242,13 +259,13 @@ export function updateObjectives(world: WorldState, events: GameEvent[], cb: Obj
         const left = (world.gemsNeeded ?? 0) - world.gemsCollected;
         cb.text(pk.x - 20, pk.y - 10, left > 0 ? `GEMA ${world.gemsCollected}/${world.gemsNeeded}` : '¡META ABIERTA!', '#f0abfc');
         cb.sparks(pk.x + 10, pk.y + 12, '#f0abfc', 10);
-        events.push({ type: 'sfx', id: left > 0 ? 'dragon_coin' : 'one_up' });
+        events.push({ type: 'sfx', id: left > 0 ? 'gem' : 'treasure' });
         events.push({ type: 'haptic', kind: left > 0 ? 'medium' : 'success' });
       } else {
         world.timeLeft += CLOCK_BONUS;
         cb.text(pk.x - 10, pk.y - 10, `+${CLOCK_BONUS}`, '#fde047');
         cb.sparks(pk.x + 10, pk.y + 12, '#fde047', 8);
-        events.push({ type: 'sfx', id: 'coin' });
+        events.push({ type: 'sfx', id: 'clock' });
         events.push({ type: 'haptic', kind: 'light' });
       }
     }
@@ -259,6 +276,7 @@ export function updateObjectives(world: WorldState, events: GameEvent[], cb: Obj
   if (ch) {
     if (ch.delay > 0) {
       ch.delay -= 1;
+      if (ch.delay === 0) events.push({ type: 'sfx', id: 'chase_growl' });
     } else {
       // Frena al acercarse: presiona, pero deja esperar un ascensor o una luz
       const dist = p.x - ch.x;
@@ -304,7 +322,7 @@ export function enforceGoalLock(world: WorldState, events: GameEvent[], cb: Obje
   if (!world.goalBlockedTimer) {
     const left = (world.gemsNeeded ?? 0) - (world.gemsCollected ?? 0);
     cb.text(goalX - 70, p.y - 24, `¡FALTAN ${left} GEMAS!`, '#f0abfc');
-    events.push({ type: 'sfx', id: 'bump' });
+    events.push({ type: 'sfx', id: 'goal_locked' });
     events.push({ type: 'haptic', kind: 'error' });
     world.goalBlockedTimer = 60;
   }
