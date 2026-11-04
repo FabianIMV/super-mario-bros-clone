@@ -1,5 +1,5 @@
 // Pruebas de las mecánicas por mundo (Fase 1), usando la física real a 60 Hz.
-import { GROUND_ROW, TILE, TOTAL_LEVELS, SMW_TOTAL_LEVELS, getWorldLabel, EXP_TOTAL_LEVELS, DIM_TOTAL_LEVELS } from '../src/engine/biomes';
+import { GROUND_ROW, TILE, TOTAL_LEVELS, SMW_TOTAL_LEVELS, getWorldLabel, EXP_TOTAL_LEVELS, FRONTIER_TOTAL_LEVELS, DIM_TOTAL_LEVELS } from '../src/engine/biomes';
 import {
   CRUMBLE_DELAY,
   CRUMBLE_RESPAWN,
@@ -80,7 +80,7 @@ function run(w: WorldState, frames: number, input: Partial<InputState> = NO_INPU
 console.log('6. Validando mecánicas por mundo...');
 
 // 6a. Cada nivel tiene una mecánica y cada mundo la suya
-for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
+for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS], ['frontier', FRONTIER_TOTAL_LEVELS], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
   const seen = new Map<number, string>();
   for (let i = 0; i < total; i++) {
     const w = buildWorldState(i, undefined, part);

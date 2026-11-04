@@ -1,5 +1,5 @@
 // Pruebas de las habilidades del plomero (Fase 4), usando la física real a 60 Hz.
-import { GROUND_ROW, SMW_TOTAL_LEVELS, TILE, TOTAL_LEVELS, EXP_TOTAL_LEVELS, DIM_TOTAL_LEVELS } from '../src/engine/biomes';
+import { GROUND_ROW, SMW_TOTAL_LEVELS, TILE, TOTAL_LEVELS, EXP_TOTAL_LEVELS, FRONTIER_TOTAL_LEVELS, DIM_TOTAL_LEVELS } from '../src/engine/biomes';
 import {
   SHAFT_BOTTOM_ROW,
   SHAFT_INNER,
@@ -154,7 +154,7 @@ console.log('9. Validando habilidades del plomero...');
 
 // 9c. Chimeneas en los niveles: nunca bloquean el camino
 let shafts = 0;
-for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
+for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS], ['frontier', FRONTIER_TOTAL_LEVELS], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
   for (let i = 0; i < total; i++) {
     const w = buildWorldState(i, undefined, part);
     if (!stageHasShaft(i, part)) {

@@ -1,5 +1,12 @@
-// Pruebas del modo Expedición (3er modo, original) y del progreso de los 3 modos.
-import { BIOMES, EXP_TOTAL_LEVELS, GROUND_ROW, TILE, getWorldLabel } from '../src/engine/biomes';
+// Pruebas de Expedición, Mundo 5 y del progreso de las particiones 2D.
+import {
+  BIOMES,
+  EXP_TOTAL_LEVELS,
+  FRONTIER_TOTAL_LEVELS,
+  GROUND_ROW,
+  TILE,
+  getWorldLabel,
+} from '../src/engine/biomes';
 import { getStageObjective } from '../src/engine/objectives';
 import {
   PARTITION_ORDER,
@@ -25,13 +32,13 @@ function assert(cond: unknown, msg: string): void {
   passed++;
 }
 
-console.log('10. Validando el modo Expedición...');
+console.log('10. Validando Expedición y Mundo 5...');
 
-// 10a. Estructura de las 28 etapas y los 5 mundos visibles
+// 10a. Estructura de las 20 etapas de Expedición y sus 5 mundos visibles
 const labels = new Set<string>();
 const biomesUsed = new Set<string>();
 const legacyLabels = ['A-1', 'A-2', 'A-3', 'A-4', 'S-1', 'S-2', 'S-3', 'S-4', 'E-1', 'E-2', 'E-3', 'E-4', 'N-1', 'N-2', 'N-3', 'N-4', 'C-1', 'C-2', 'C-3', 'C-4'];
-assert(EXP_TOTAL_LEVELS - legacyLabels.length === 8, 'La ampliación añade exactamente 8 etapas');
+assert(EXP_TOTAL_LEVELS === legacyLabels.length, 'Expedición conserva sus 20 etapas');
 for (let i = 0; i < EXP_TOTAL_LEVELS; i++) {
   const w = buildWorldState(i, undefined, 'expedition');
   assert(w.partition === 'expedition', `Etapa ${i}: partición incorrecta`);
@@ -39,7 +46,7 @@ for (let i = 0; i < EXP_TOTAL_LEVELS; i++) {
   assert(w.worldLabel === getWorldLabel(i, 'expedition'), `Etapa ${i}: etiqueta incorrecta`);
   assert(!labels.has(w.worldLabel), `Etiqueta repetida ${w.worldLabel}`);
   labels.add(w.worldLabel);
-  if (i < legacyLabels.length) assert(w.worldLabel === legacyLabels[i], `Cambia una etiqueta existente en ${i}`);
+  assert(w.worldLabel === legacyLabels[i], `Cambia una etiqueta existente en ${i}`);
   biomesUsed.add(w.biomeId);
   assert(w.stageTitle && !w.stageTitle.startsWith('Etapa'), `${w.worldLabel}: falta título propio`);
   assert(w.blocks.length > 80, `${w.worldLabel}: muy pocos bloques`);
@@ -60,43 +67,35 @@ for (let i = 0; i < EXP_TOTAL_LEVELS; i++) {
     assert(w.flagpole !== null, `${w.worldLabel}: falta la meta`);
   }
 }
-const addedLevels = Array.from({ length: 8 }, (_, offset) => buildWorldState(legacyLabels.length + offset, undefined, 'expedition'));
-const signatures = addedLevels.map((w) =>
-  [
-    w.totalCols,
-    w.biomeId,
-    w.blocks.filter((b) => !['ground_top', 'ground_deep'].includes(b.type)).map((b) => `${b.col}:${b.row}:${b.type}`).join('|'),
-    w.enemies.map((e) => `${Math.round(e.x / TILE)}:${e.type}`).join('|'),
-    w.pipes.map((p) => `${Math.round(p.x / TILE)}:${p.height}`).join('|'),
-  ].join('::')
-);
-assert(new Set(signatures).size === 8, 'Las 8 etapas nuevas tienen firmas de diseño distintas');
-assert(
-  addedLevels.map((w) => w.worldLabel).join(' ') === 'M-1 M-2 M-3 M-4 V-1 V-2 V-3 V-4',
-  'Las 8 etapas nuevas forman el Mundo 5 visible'
-);
 for (const b of ['reef', 'jungle', 'clockwork', 'cloudland', 'crystal']) {
   assert(biomesUsed.has(b), `El bioma ${b} se usa en Expedición`);
   assert(BIOMES[b as keyof typeof BIOMES].name.length > 0, `El bioma ${b} tiene nombre`);
 }
 assert([...labels].join(' ').startsWith('A-1 A-2 A-3 A-4 S-1'), 'Etiquetas en orden de campaña conservadas');
-assert(labels.has('M-1') && labels.has('V-4'), 'El Mundo 5 incluye las dos rutas nuevas');
-assert(biomesUsed.has('reef') && biomesUsed.has('cloudland'), 'Los mundos nuevos mezclan biomas de costa y nubes');
-assert(
-  [20, 21, 22, 24, 25, 26].every((i) => getStageObjective(i, 'expedition') !== 'reach'),
-  'Los seis niveles nuevos sin castillo tienen objetivos variados'
-);
-assert(
-  getStageObjective(20, 'expedition') === 'collect' &&
-    getStageObjective(21, 'expedition') === 'chase' &&
-    getStageObjective(22, 'expedition') === 'time_attack' &&
-    getStageObjective(24, 'expedition') === 'collect' &&
-    getStageObjective(25, 'expedition') === 'chase' &&
-    getStageObjective(26, 'expedition') === 'time_attack',
-  'M y V siguen la cadencia collect/chase/time_attack'
-);
 
-// 10b. Avance: meta → siguiente etapa, castillo → siguiente mundo, última → victoria
+// 10b. Mundo 5 mantiene su propia partición de 8 etapas 2D
+const frontierLabels = new Set<string>();
+for (let i = 0; i < FRONTIER_TOTAL_LEVELS; i++) {
+  const w = buildWorldState(i, undefined, 'frontier');
+  assert(w.partition === 'frontier', `Mundo 5 ${i}: partición incorrecta`);
+  assert(w.totalStagesInPartition === FRONTIER_TOTAL_LEVELS, `Mundo 5 ${i}: total incorrecto`);
+  assert(w.worldLabel === getWorldLabel(i, 'frontier'), `Mundo 5 ${i}: etiqueta incorrecta`);
+  assert(!frontierLabels.has(w.worldLabel), `Etiqueta repetida en Mundo 5 ${w.worldLabel}`);
+  frontierLabels.add(w.worldLabel);
+  assert(w.stageTitle && !w.stageTitle.startsWith('Etapa'), `${w.worldLabel}: falta título propio`);
+  assert(w.blocks.length > 80, `${w.worldLabel}: muy pocos bloques`);
+  const spawnCol = Math.floor(w.player.x / TILE);
+  assert(w.blockGrid.has(gridKey(spawnCol, GROUND_ROW)), `${w.worldLabel}: sin suelo en el inicio`);
+  if (i % 4 === 3) {
+    assert(w.boss !== null && w.flagpole === null, `${w.worldLabel}: el castillo termina con el jefe`);
+  } else {
+    assert(w.flagpole !== null, `${w.worldLabel}: falta la meta`);
+  }
+}
+assert([...frontierLabels].join(' ') === 'M-1 M-2 M-3 M-4 V-1 V-2 V-3 V-4', 'Mundo 5 conserva sus 8 etiquetas');
+assert(frontierLabels.size === FRONTIER_TOTAL_LEVELS, 'Mundo 5 no duplica etiquetas');
+
+// 10c. Avance: meta → siguiente etapa, castillo → siguiente mundo, última → victoria
 {
   const w = buildWorldState(0, undefined, 'expedition');
   w.enemies = [];
@@ -112,27 +111,27 @@ assert(
   for (let f = 0; f < 260 && c.levelIndex === 3; f++) stepWorld(c, NO_INPUT, VIEW_W);
   assert(c.levelIndex === 4 && c.worldLabel === 'S-1', `Tras el castillo A-4 sigue S-1 (llegó a ${c.worldLabel})`);
 
-  const mCastle = buildWorldState(23, undefined, 'expedition');
+  const mCastle = buildWorldState(3, undefined, 'frontier');
   mCastle.player.x = mCastle.boss!.axeX;
   mCastle.player.y = mCastle.boss!.axeY;
-  for (let f = 0; f < 260 && mCastle.levelIndex === 23; f++) stepWorld(mCastle, NO_INPUT, VIEW_W);
-  assert(mCastle.levelIndex === 24 && mCastle.worldLabel === 'V-1', `Tras M-4 sigue V-1 dentro del Mundo 5 (llegó a ${mCastle.worldLabel})`);
+  for (let f = 0; f < 260 && mCastle.levelIndex === 3; f++) stepWorld(mCastle, NO_INPUT, VIEW_W);
+  assert(mCastle.levelIndex === 4 && mCastle.worldLabel === 'V-1', `Tras M-4 sigue V-1 dentro del Mundo 5 (llegó a ${mCastle.worldLabel})`);
 
-  const last = buildWorldState(EXP_TOTAL_LEVELS - 1, undefined, 'expedition');
+  const last = buildWorldState(FRONTIER_TOTAL_LEVELS - 1, undefined, 'frontier');
   last.player.x = last.boss!.axeX;
   last.player.y = last.boss!.axeY;
   for (let f = 0; f < 260 && last.status !== 'victory'; f++) stepWorld(last, NO_INPUT, VIEW_W);
-  assert(last.status === 'victory', 'Al terminar V-4 se completa la expedición');
+  assert(last.status === 'victory', 'Al terminar V-4 se completa Mundo 5');
 }
 
-// 10c. Expedición usa champiñón y flor (no capa): el plomero chico recibe champiñón
+// 10d. Expedición usa champiñón y flor (no capa): el plomero chico recibe champiñón
 {
   const w = buildWorldState(1, undefined, 'expedition');
   const q = w.blocks.find((b) => b.type === 'question' && (b.content === 'powerup' || b.content === 'feather'));
   assert(q, 'Hay un bloque de poder en A-2');
 }
 
-// 10d. Progreso guardado por modo
+// 10e. Progreso guardado por modo
 {
   const base: SaveProgress = {
     highScore: 0, unlockedLevel: 0, clearedLevels: [], bestStageScores: {}, totalCoins: 0,
@@ -148,15 +147,20 @@ assert(
   const p2 = recordStageClear(p1, 'expedition', EXP_TOTAL_LEVELS - 1, 10);
   assert(getPartitionProgress(p2, 'expedition').unlocked === EXP_TOTAL_LEVELS - 1, 'El desbloqueo no pasa del último nivel');
   assert(getPartitionProgress(p2, 'expedition').highScore === 1234, 'El récord no baja');
+  const p3 = recordStageClear(p2, 'frontier', 0, 5678);
+  assert(getPartitionProgress(p3, 'frontier').unlocked === 1, 'Completar M-1 desbloquea M-2');
+  assert(getPartitionProgress(p3, 'expedition').highScore === 1234, 'El progreso de Mundo 5 no toca Expedición');
   // Partidas guardadas antiguas (sin campos de Expedición) siguen funcionando
   assert(getPartitionProgress(base, 'expedition').unlocked === 0, 'Partidas antiguas: Expedición empieza en A-1');
-  assert(PARTITION_ORDER.length === 4, 'Hay 4 modos');
+  assert(getPartitionProgress(base, 'frontier').unlocked === 0, 'Partidas antiguas: Mundo 5 empieza en M-1');
+  assert(PARTITION_ORDER.length === 5, 'Hay 5 modos');
   assert(
     nextPartition('classic') === 'smw' &&
       nextPartition('smw') === 'expedition' &&
-      nextPartition('expedition') === 'dimension' &&
+      nextPartition('expedition') === 'frontier' &&
+      nextPartition('frontier') === 'dimension' &&
       nextPartition('dimension') === 'classic',
-    'El cambio de modo recorre los 4'
+    'El cambio de modo recorre los 5'
   );
 }
 

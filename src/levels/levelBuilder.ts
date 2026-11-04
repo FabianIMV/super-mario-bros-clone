@@ -69,7 +69,7 @@ const STAGE_TITLES: string[] = [
   'Trono del Rey Koopa',
 ];
 
-// Modo Expedición (original): títulos de sus 28 etapas
+// Modo Expedición (original): títulos de sus 20 etapas
 const EXP_STAGE_TITLES: string[] = [
   'Bahía de las Burbujas',
   'Bosque de Coral',
