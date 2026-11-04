@@ -34,6 +34,7 @@ const DIM_MIXED_WORLDS: Record<number, StageMechanic[]> = {
 const EXP_MIXED_WORLDS: Record<number, StageMechanic[]> = {
   7: ['firefly', 'crumble', 'lowgrav'],
 };
+const FRONTIER_MECHANICS: StageMechanic[] = ['bounce', 'firefly'];
 
 /** Mundos cuyas etapas combinan mecánicas distintas (solo en Dimensión). */
 export function isMixedMechanicWorld(levelIndex: number, partition: GamePartition): boolean {
@@ -70,6 +71,8 @@ export function getStageMechanic(levelIndex: number, partition: GamePartition): 
       ? SMW_MECHANICS
       : partition === 'expedition'
       ? EXP_MECHANICS
+      : partition === 'frontier'
+      ? FRONTIER_MECHANICS
       : partition === 'dimension'
       ? DIM_MECHANICS
       : CLASSIC_MECHANICS;

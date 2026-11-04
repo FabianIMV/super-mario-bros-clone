@@ -60,6 +60,7 @@ export const PauseModal: React.FC<PauseProps> = ({
           styles.card,
           isSmw && { borderColor: '#4ade80' },
           partition === 'expedition' && { borderColor: '#a78bfa' },
+          partition === 'frontier' && { borderColor: '#38bdf8' },
         ]}
       >
         <Text style={[styles.title, { fontFamily }]}>
@@ -68,6 +69,8 @@ export const PauseModal: React.FC<PauseProps> = ({
               ? 'PAUSA • PLOMERO WORLD'
               : partition === 'expedition'
               ? 'PAUSA • EXPEDICIÓN'
+              : partition === 'frontier'
+              ? 'PAUSA • MUNDO 5'
               : partition === 'dimension'
               ? 'PAUSA • DIMENSIÓN 3D'
               : 'PAUSA • PLOMERO BROS'
@@ -147,6 +150,8 @@ export const PauseModal: React.FC<PauseProps> = ({
                     : partition === 'smw'
                     ? '🧭 IR A EXPEDICIÓN'
                     : partition === 'expedition'
+                    ? '🧊 IR A DIMENSIÓN 3D'
+                    : partition === 'frontier'
                     ? '🧊 IR A DIMENSIÓN 3D'
                     : '🍄 IR A BROS'}
                 </Text>

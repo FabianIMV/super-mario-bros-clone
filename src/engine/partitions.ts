@@ -6,7 +6,7 @@
 import { partitionTotalLevels } from './biomes';
 import type { GamePartition, SaveProgress } from './types';
 
-export const PARTITION_ORDER: GamePartition[] = ['classic', 'smw', 'expedition', 'dimension'];
+export const PARTITION_ORDER: GamePartition[] = ['classic', 'smw', 'expedition', 'frontier', 'dimension'];
 
 export interface PartitionInfo {
   tab: string;
@@ -53,6 +53,17 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     hint: 'X lanza la llave inglesa  •  Empuja contra una pared y pulsa A para saltar en pared  •  Corre y pulsa ▼ para barrerte',
     accent: '#7c3aed',
     subtitleColor: '#ddd6fe',
+  },
+  frontier: {
+    tab: '🌊 MUNDO 5 (8)',
+    edition: 'NUEVA CAMPAÑA 2D • MAREA ESPEJO Y VALLE VÍTREO',
+    subtitle: 'MUNDO 5',
+    worldsLabel: '2 REGIONES',
+    worldNoun: 'MUNDO',
+    firstStage: 'M-1',
+    hint: 'Marea Espejo y Valle Vítreo • 8 etapas 2D con rutas, secretos y objetivos variables',
+    accent: '#0ea5e9',
+    subtitleColor: '#bae6fd',
   },
   dimension: {
     tab: '🧊 DIMENSIÓN 3D (32)',
@@ -104,6 +115,15 @@ export function getPartitionProgress(prog: SaveProgress, part: GamePartition): P
       total,
     };
   }
+  if (part === 'frontier') {
+    return {
+      highScore: prog.frontierHighScore ?? 0,
+      unlocked: prog.frontierUnlockedLevel ?? 0,
+      cleared: prog.frontierClearedLevels ?? [],
+      best: prog.frontierBestStageScores ?? {},
+      total,
+    };
+  }
   return {
     highScore: prog.highScore,
     unlocked: prog.unlockedLevel,
@@ -143,6 +163,15 @@ export function withPartitionProgress(
       expUnlockedLevel: next.unlocked,
       expClearedLevels: next.cleared,
       expBestStageScores: next.best,
+    };
+  }
+  if (part === 'frontier') {
+    return {
+      ...prog,
+      frontierHighScore: next.highScore,
+      frontierUnlockedLevel: next.unlocked,
+      frontierClearedLevels: next.cleared,
+      frontierBestStageScores: next.best,
     };
   }
   return {

@@ -82,6 +82,7 @@ export const TitleScreen: React.FC<Props> = ({
           styles.signBoard,
           partition === 'smw' && styles.signBoardSmw,
           partition === 'expedition' && styles.signBoardExp,
+          partition === 'frontier' && styles.signBoardFrontier,
         ]}
       >
         <View style={styles.rivetRow}>
@@ -213,6 +214,10 @@ const styles = StyleSheet.create({
   signBoardExp: {
     backgroundColor: '#3b0764',
     borderColor: '#67e8f9',
+  },
+  signBoardFrontier: {
+    backgroundColor: '#075985',
+    borderColor: '#bae6fd',
   },
   rivetRow: {
     width: '100%',

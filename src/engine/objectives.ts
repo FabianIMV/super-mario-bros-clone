@@ -87,6 +87,14 @@ const DIM_OBJECTIVES: Record<number, StageObjective> = {
   29: 'time_attack',
   30: 'chase',
 };
+const FRONTIER_OBJECTIVES: Record<number, StageObjective> = {
+  0: 'collect',
+  1: 'chase',
+  2: 'time_attack',
+  4: 'collect',
+  5: 'chase',
+  6: 'time_attack',
+};
 
 export const GEMS_PER_STAGE = 5;
 export const CLOCKS_PER_STAGE = 5;
@@ -110,6 +118,8 @@ export function getStageObjective(levelIndex: number, partition: GamePartition):
       ? SMW_OBJECTIVES
       : partition === 'expedition'
       ? EXP_OBJECTIVES
+      : partition === 'frontier'
+      ? FRONTIER_OBJECTIVES
       : partition === 'dimension'
       ? DIM_OBJECTIVES
       : CLASSIC_OBJECTIVES;

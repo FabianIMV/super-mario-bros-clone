@@ -48,21 +48,28 @@ export const TOTAL_LEVELS = TOTAL_WORLDS * STAGES_PER_WORLD;
 export const SMW_WORLDS = 5;
 export const SMW_TOTAL_LEVELS = SMW_WORLDS * STAGES_PER_WORLD; // 20 stages!
 
-// Partition 3: Plomero Expedición (5 zonas visibles, 28 niveles).
-// Las zonas 4 y 5 agrupan dos arcos de cuatro etapas para que la campaña
-// conserve el contenido existente y presente M/V como un único Mundo 5.
+// Partition 3: Plomero Expedición (5 mundos x 4 etapas = 20 niveles).
 export const EXP_WORLDS = 5;
-export const EXP_TOTAL_LEVELS = 28;
-export const EXP_WORLD_PREFIXES = ['A', 'S', 'E', 'N', 'C', 'M', 'V'];
+export const EXP_TOTAL_LEVELS = EXP_WORLDS * STAGES_PER_WORLD;
+export const EXP_WORLD_PREFIXES = ['A', 'S', 'E', 'N', 'C'];
 export const EXP_WORLD_NAMES = [
   'A • ARRECIFE CORAL',
   'S • SELVA NEÓN',
   'E • CIUDAD ENGRANAJE',
-  'N/C • NUBES Y VOLCÁN CRISTAL',
-  '5 • MAREA ESPEJO Y VALLE VÍTREO',
+  'N • REINO DE ALGODÓN',
+  'C • VOLCÁN CRISTAL',
 ];
 
-// Partition 4: Plomero Dimensión (original, arte 3D — 4 mundos x 4 etapas = 16 niveles)
+// Partition 4: Mundo 5 2D (dos regiones x 4 etapas = 8 niveles)
+export const FRONTIER_WORLDS = 2;
+export const FRONTIER_TOTAL_LEVELS = FRONTIER_WORLDS * STAGES_PER_WORLD;
+export const FRONTIER_WORLD_PREFIXES = ['M', 'V'];
+export const FRONTIER_WORLD_NAMES = [
+  'M • MAREA ESPEJO',
+  'V • VALLE VÍTREO',
+];
+
+// Partition 5: Plomero Dimensión (original, arte 3D — 8 mundos x 4 etapas = 32 niveles)
 export const DIM_WORLDS = 8;
 export const DIM_TOTAL_LEVELS = DIM_WORLDS * STAGES_PER_WORLD;
 export const DIM_WORLD_PREFIXES = ['J', 'T', 'P', 'F', 'G', 'H', 'R', 'N'];
@@ -84,6 +91,8 @@ export function partitionTotalLevels(partition: GamePartition): number {
       return SMW_TOTAL_LEVELS;
     case 'expedition':
       return EXP_TOTAL_LEVELS;
+    case 'frontier':
+      return FRONTIER_TOTAL_LEVELS;
     case 'dimension':
       return DIM_TOTAL_LEVELS;
     default:
@@ -907,6 +916,11 @@ export function getWorldLabel(levelIndex: number, partition: GamePartition = 'cl
     const prefix = EXP_WORLD_PREFIXES[Math.min(EXP_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'X';
     return `${prefix}-${stageNum}`;
   }
+  if (partition === 'frontier') {
+    const prefix = FRONTIER_WORLD_PREFIXES[Math.min(FRONTIER_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'M';
+    return `${prefix}-${stageNum}`;
+  }
+
   if (partition === 'dimension') {
     const prefix = DIM_WORLD_PREFIXES[Math.min(DIM_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'D';
     return `${prefix}-${stageNum}`;
@@ -951,6 +965,11 @@ export function getStageBiome(levelIndex: number, partition: GamePartition = 'cl
       default:
         return stageNum === 1 ? 'clockwork' : 'crystal';
     }
+  }
+
+  if (partition === 'frontier') {
+    const frontier: BiomeId[] = ['cloudland', 'reef', 'clockwork', 'crystal'];
+    return stageNum === 4 ? 'fortress' : frontier[Math.min(frontier.length - 1, levelIndex)];
   }
 
   if (partition === 'smw') {

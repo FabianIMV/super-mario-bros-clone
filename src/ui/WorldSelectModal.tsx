@@ -7,6 +7,8 @@ import {
   DIM_WORLD_NAMES,
   EXP_WORLDS,
   EXP_WORLD_NAMES,
+  FRONTIER_WORLDS,
+  FRONTIER_WORLD_NAMES,
   SMW_WORLDS,
   STAGES_PER_WORLD,
   TOTAL_WORLDS,
@@ -53,12 +55,23 @@ export const WorldSelectModal: React.FC<Props> = ({
 
   const isSmw = partition === 'smw';
   const isExp = partition === 'expedition';
+  const isFrontier = partition === 'frontier';
   const isDim = partition === 'dimension';
-  const worldCount = isSmw ? SMW_WORLDS : isExp ? EXP_WORLDS : isDim ? DIM_WORLDS : TOTAL_WORLDS;
+  const worldCount = isSmw
+    ? SMW_WORLDS
+    : isExp
+    ? EXP_WORLDS
+    : isFrontier
+    ? FRONTIER_WORLDS
+    : isDim
+    ? DIM_WORLDS
+    : TOTAL_WORLDS;
   const worldNames = isSmw
     ? SMW_WORLD_NAMES
     : isExp
     ? EXP_WORLD_NAMES
+    : isFrontier
+    ? FRONTIER_WORLD_NAMES
     : isDim
     ? DIM_WORLD_NAMES
     : CLASSIC_WORLD_NAMES;
@@ -66,8 +79,6 @@ export const WorldSelectModal: React.FC<Props> = ({
   const unlockedIdx = pp.unlocked;
   const clearedList = pp.cleared;
   const accent = PARTITION_INFO[partition].accent;
-  const expeditionWorldStarts = [0, 4, 8, 12, 20];
-  const expeditionWorldStageCounts = [4, 4, 4, 8, 8];
 
   return (
     <View
@@ -120,6 +131,8 @@ export const WorldSelectModal: React.FC<Props> = ({
                     ? '🦕 WORLD'
                     : part === 'expedition'
                     ? '🧭 EXPED.'
+                    : part === 'frontier'
+                    ? '🌊 MUNDO 5'
                     : '🧊 3D'}
                 </Text>
               </Pressable>
@@ -148,10 +161,8 @@ export const WorldSelectModal: React.FC<Props> = ({
           showsVerticalScrollIndicator={false}
         >
           {Array.from({ length: worldCount }, (_, wIdx) => {
-            const worldStart =
-              isExp ? expeditionWorldStarts[wIdx] ?? wIdx * STAGES_PER_WORLD : wIdx * STAGES_PER_WORLD;
-            const stageCount =
-              isExp ? expeditionWorldStageCounts[wIdx] ?? STAGES_PER_WORLD : STAGES_PER_WORLD;
+            const worldStart = wIdx * STAGES_PER_WORLD;
+            const stageCount = STAGES_PER_WORLD;
             const primaryBiome = BIOMES[getStageBiome(worldStart, partition)];
             return (
               <View key={`${partition}_${wIdx}`} style={styles.worldCard}>

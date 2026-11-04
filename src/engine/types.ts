@@ -1,4 +1,4 @@
-export type GamePartition = 'classic' | 'smw' | 'expedition' | 'dimension';
+export type GamePartition = 'classic' | 'smw' | 'expedition' | 'frontier' | 'dimension';
 
 export type BiomeId =
   | 'meadow'
@@ -592,7 +592,12 @@ export interface SaveProgress {
   expUnlockedLevel?: number;
   expClearedLevels?: number[];
   expBestStageScores?: Record<number, number>;
-  // Modo 4: Plomero Dimensión 3D (16 niveles)
+  // Mundo 5 2D: Marea Espejo y Valle Vítreo (8 niveles)
+  frontierHighScore?: number;
+  frontierUnlockedLevel?: number;
+  frontierClearedLevels?: number[];
+  frontierBestStageScores?: Record<number, number>;
+  // Modo 5: Plomero Dimensión 3D (16 niveles)
   dimHighScore?: number;
   dimUnlockedLevel?: number;
   dimClearedLevels?: number[];
