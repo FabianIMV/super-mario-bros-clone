@@ -1,5 +1,6 @@
 // Pruebas del modo Expedición (3er modo, original) y del progreso de los 3 modos.
 import { BIOMES, EXP_TOTAL_LEVELS, GROUND_ROW, TILE, getWorldLabel } from '../src/engine/biomes';
+import { getStageObjective } from '../src/engine/objectives';
 import {
   PARTITION_ORDER,
   getPartitionProgress,
@@ -81,6 +82,19 @@ for (const b of ['reef', 'jungle', 'clockwork', 'cloudland', 'crystal']) {
 assert([...labels].join(' ').startsWith('A-1 A-2 A-3 A-4 S-1'), 'Etiquetas en orden A, S, E, N, C, M, V');
 assert(labels.has('M-1') && labels.has('V-4'), 'La campaña incluye los dos mundos nuevos');
 assert(biomesUsed.has('reef') && biomesUsed.has('cloudland'), 'Los mundos nuevos mezclan biomas de costa y nubes');
+assert(
+  [20, 21, 22, 24, 25, 26].every((i) => getStageObjective(i, 'expedition') !== 'reach'),
+  'Los seis niveles nuevos sin castillo tienen objetivos variados'
+);
+assert(
+  getStageObjective(20, 'expedition') === 'collect' &&
+    getStageObjective(21, 'expedition') === 'chase' &&
+    getStageObjective(22, 'expedition') === 'time_attack' &&
+    getStageObjective(24, 'expedition') === 'collect' &&
+    getStageObjective(25, 'expedition') === 'chase' &&
+    getStageObjective(26, 'expedition') === 'time_attack',
+  'M y V siguen la cadencia collect/chase/time_attack'
+);
 
 // 10b. Avance: meta → siguiente etapa, castillo → siguiente mundo, última → victoria
 {
