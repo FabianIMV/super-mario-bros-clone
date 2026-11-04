@@ -36,6 +36,8 @@ export const TitleScreen: React.FC<Props> = ({
   const highScore = pp.highScore;
   const totalCount = pp.total;
   const hasSavedStage = unlockedIdx > 0;
+  const basePartitions: GamePartition[] = ['classic', 'smw', 'expedition', 'dimension'];
+  const newPartitions = PARTITION_ORDER.filter((part) => !basePartitions.includes(part));
 
   return (
     <View
@@ -49,34 +51,61 @@ export const TitleScreen: React.FC<Props> = ({
         },
       ]}
     >
-      {/* Selector de modo (3 cartuchos) */}
-      <View style={styles.partitionBar}>
-        {PARTITION_ORDER.map((part) => {
-          const active = part === partition;
-          return (
-            <Pressable
-              key={part}
-              onPress={() => onSelectPartition(part)}
-              style={[
-                styles.partitionTab,
-                part === 'frontier' && styles.partitionTabFrontier,
-                active && { backgroundColor: PARTITION_INFO[part].accent },
-                active && part === 'frontier' && styles.partitionTabFrontierActive,
-              ]}
-            >
-              <Text
+      {/* Selector de modo: campañas base arriba y modos nuevos abajo. */}
+      <View style={styles.partitionSelector}>
+        <View style={styles.partitionBar}>
+          {basePartitions.map((part) => {
+            const active = part === partition;
+            return (
+              <Pressable
+                key={part}
+                onPress={() => onSelectPartition(part)}
                 style={[
-                  styles.partitionTabText,
-                  { fontFamily },
-                  part === 'frontier' && styles.partitionTabTextFrontier,
-                  active && styles.partitionTabTextActive,
+                  styles.partitionTab,
+                  active && { backgroundColor: PARTITION_INFO[part].accent },
                 ]}
               >
-                {PARTITION_INFO[part].tab}
-              </Text>
-            </Pressable>
-          );
-        })}
+                <Text
+                  style={[
+                    styles.partitionTabText,
+                    { fontFamily },
+                    active && styles.partitionTabTextActive,
+                  ]}
+                >
+                  {PARTITION_INFO[part].tab}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
+        <View style={[styles.partitionBar, styles.partitionBarNew]}>
+          {newPartitions.map((part) => {
+            const active = part === partition;
+            return (
+              <Pressable
+                key={part}
+                onPress={() => onSelectPartition(part)}
+                style={[
+                  styles.partitionTab,
+                  styles.partitionTabNew,
+                  active && { backgroundColor: PARTITION_INFO[part].accent },
+                  active && styles.partitionTabNewActive,
+                ]}
+              >
+                <Text
+                  style={[
+                    styles.partitionTabText,
+                    styles.partitionTabTextNew,
+                    { fontFamily },
+                    active && styles.partitionTabTextActive,
+                  ]}
+                >
+                  {PARTITION_INFO[part].tab}
+                </Text>
+              </Pressable>
+            );
+          })}
+        </View>
       </View>
 
       {/* Cartridge Signboard Logo */}
@@ -177,6 +206,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     gap: 6,
   },
+  partitionSelector: {
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+  },
+  partitionBarNew: {
+    marginTop: 0,
+    marginBottom: 0,
+    borderColor: '#0ea5e9',
+  },
   partitionTab: {
     paddingHorizontal: 14,
     paddingVertical: 8,
@@ -200,8 +239,19 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#38bdf8',
   },
+  partitionTabNew: {
+    minWidth: 190,
+    borderWidth: 1,
+    borderColor: '#38bdf8',
+  },
+  partitionTabNewActive: {
+    borderColor: '#e0f2fe',
+  },
   partitionTabFrontierActive: {
     borderColor: '#e0f2fe',
+  },
+  partitionTabTextNew: {
+    color: '#e0f2fe',
   },
   partitionTabTextFrontier: {
     color: '#e0f2fe',
