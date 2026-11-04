@@ -261,7 +261,7 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
               ? isSmw
                 ? '¡Liberaste la Isla Dinosaurio y los 20 niveles junto a Yoshi y la Capa Dorada!'
                 : partition === 'expedition'
-                ? '¡Cruzaste el arrecife, la selva, la ciudad, las nubes, el volcán, la marea y el valle vítreo: 28 niveles!'
+                ? '¡Cruzaste los 5 mundos de Expedición, incluido el Mundo 5 de Marea Espejo y Valle Vítreo: 28 niveles!'
                 : partition === 'dimension'
                 ? '¡Cruzaste los 8 mundos de la Dimensión hasta el Núcleo Cósmico: 32 niveles en 3D!'
                 : '¡Derrotaste al Rey Koopa en la Fortaleza Final y liberaste los 24 niveles!'

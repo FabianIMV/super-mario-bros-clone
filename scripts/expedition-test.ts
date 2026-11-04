@@ -27,7 +27,7 @@ function assert(cond: unknown, msg: string): void {
 
 console.log('10. Validando el modo Expedición...');
 
-// 10a. Estructura de las 28 etapas
+// 10a. Estructura de las 28 etapas y los 5 mundos visibles
 const labels = new Set<string>();
 const biomesUsed = new Set<string>();
 const legacyLabels = ['A-1', 'A-2', 'A-3', 'A-4', 'S-1', 'S-2', 'S-3', 'S-4', 'E-1', 'E-2', 'E-3', 'E-4', 'N-1', 'N-2', 'N-3', 'N-4', 'C-1', 'C-2', 'C-3', 'C-4'];
@@ -73,14 +73,14 @@ const signatures = addedLevels.map((w) =>
 assert(new Set(signatures).size === 8, 'Las 8 etapas nuevas tienen firmas de diseño distintas');
 assert(
   addedLevels.map((w) => w.worldLabel).join(' ') === 'M-1 M-2 M-3 M-4 V-1 V-2 V-3 V-4',
-  'Las 8 etapas nuevas quedan en los mundos M y V'
+  'Las 8 etapas nuevas forman el Mundo 5 visible'
 );
 for (const b of ['reef', 'jungle', 'clockwork', 'cloudland', 'crystal']) {
   assert(biomesUsed.has(b), `El bioma ${b} se usa en Expedición`);
   assert(BIOMES[b as keyof typeof BIOMES].name.length > 0, `El bioma ${b} tiene nombre`);
 }
-assert([...labels].join(' ').startsWith('A-1 A-2 A-3 A-4 S-1'), 'Etiquetas en orden A, S, E, N, C, M, V');
-assert(labels.has('M-1') && labels.has('V-4'), 'La campaña incluye los dos mundos nuevos');
+assert([...labels].join(' ').startsWith('A-1 A-2 A-3 A-4 S-1'), 'Etiquetas en orden de campaña conservadas');
+assert(labels.has('M-1') && labels.has('V-4'), 'El Mundo 5 incluye las dos rutas nuevas');
 assert(biomesUsed.has('reef') && biomesUsed.has('cloudland'), 'Los mundos nuevos mezclan biomas de costa y nubes');
 assert(
   [20, 21, 22, 24, 25, 26].every((i) => getStageObjective(i, 'expedition') !== 'reach'),
@@ -116,7 +116,7 @@ assert(
   mCastle.player.x = mCastle.boss!.axeX;
   mCastle.player.y = mCastle.boss!.axeY;
   for (let f = 0; f < 260 && mCastle.levelIndex === 23; f++) stepWorld(mCastle, NO_INPUT, VIEW_W);
-  assert(mCastle.levelIndex === 24 && mCastle.worldLabel === 'V-1', `Tras el castillo M-4 sigue V-1 (llegó a ${mCastle.worldLabel})`);
+  assert(mCastle.levelIndex === 24 && mCastle.worldLabel === 'V-1', `Tras M-4 sigue V-1 dentro del Mundo 5 (llegó a ${mCastle.worldLabel})`);
 
   const last = buildWorldState(EXP_TOTAL_LEVELS - 1, undefined, 'expedition');
   last.player.x = last.boss!.axeX;
