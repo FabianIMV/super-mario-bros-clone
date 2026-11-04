@@ -6,7 +6,7 @@
 import { partitionTotalLevels } from './biomes';
 import type { GamePartition, SaveProgress } from './types';
 
-export const PARTITION_ORDER: GamePartition[] = ['classic', 'smw', 'expedition', 'frontier', 'dimension'];
+export const PARTITION_ORDER: GamePartition[] = ['classic', 'smw', 'expedition', 'frontier', 'fortune', 'mirage', 'echo', 'dimension'];
 
 export interface PartitionInfo {
   tab: string;
@@ -55,7 +55,7 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     subtitleColor: '#ddd6fe',
   },
   frontier: {
-    tab: '🌊 MUNDO 5 · FRONTERA (8)',
+    tab: '🌊 MUNDO 5',
     edition: 'CAMPAÑA 2D • MAREA ESPEJO / VALLE VÍTREO',
     subtitle: 'MUNDO 5 • FRONTERA',
     worldsLabel: '2 REGIONES',
@@ -64,6 +64,39 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     hint: 'Marea Espejo y Valle Vítreo • rutas, secretos y objetivos variables',
     accent: '#0284c7',
     subtitleColor: '#e0f2fe',
+  },
+  fortune: {
+    tab: '🎰 MUNDO 6',
+    edition: 'NUEVA AVENTURA • RIESGO / RECOMPENSA',
+    subtitle: 'MUNDO 6 • FORTUNA',
+    worldsLabel: '4 MUNDOS',
+    worldNoun: 'MUNDO',
+    firstStage: 'F-1',
+    hint: 'Apuesta monedas en altares: arriesga por el botín o asegura la ruta • la meta abre con capital',
+    accent: '#b45309',
+    subtitleColor: '#fde68a',
+  },
+  mirage: {
+    tab: '👻 MUNDO 7',
+    edition: 'NUEVA AVENTURA • SUMA CERO',
+    subtitle: 'MUNDO 7 • ESPECTRO',
+    worldsLabel: '4 MUNDOS',
+    worldNoun: 'MUNDO',
+    firstStage: 'W-1',
+    hint: 'Una urraca te roba gemas • persíguela para recuperarlas o pierdes el objetivo',
+    accent: '#7c3aed',
+    subtitleColor: '#e9d5ff',
+  },
+  echo: {
+    tab: '🪞 MUNDO 8',
+    edition: 'NUEVA AVENTURA • COORDINACIÓN / ESPEJO',
+    subtitle: 'MUNDO 8 • ECO',
+    worldsLabel: '4 MUNDOS',
+    worldNoun: 'MUNDO',
+    firstStage: 'E-1',
+    hint: 'Un reflejo repite tu camino con retraso: guíalo sobre las monedas que dejaste atrás',
+    accent: '#0d9488',
+    subtitleColor: '#99f6e4',
   },
   dimension: {
     tab: '🧊 DIMENSIÓN 3D (32)',
@@ -124,6 +157,33 @@ export function getPartitionProgress(prog: SaveProgress, part: GamePartition): P
       total,
     };
   }
+  if (part === 'fortune') {
+    return {
+      highScore: prog.fortuneHighScore ?? 0,
+      unlocked: prog.fortuneUnlockedLevel ?? 0,
+      cleared: prog.fortuneClearedLevels ?? [],
+      best: prog.fortuneBestStageScores ?? {},
+      total,
+    };
+  }
+  if (part === 'mirage') {
+    return {
+      highScore: prog.mirageHighScore ?? 0,
+      unlocked: prog.mirageUnlockedLevel ?? 0,
+      cleared: prog.mirageClearedLevels ?? [],
+      best: prog.mirageBestStageScores ?? {},
+      total,
+    };
+  }
+  if (part === 'echo') {
+    return {
+      highScore: prog.echoHighScore ?? 0,
+      unlocked: prog.echoUnlockedLevel ?? 0,
+      cleared: prog.echoClearedLevels ?? [],
+      best: prog.echoBestStageScores ?? {},
+      total,
+    };
+  }
   return {
     highScore: prog.highScore,
     unlocked: prog.unlockedLevel,
@@ -172,6 +232,33 @@ export function withPartitionProgress(
       frontierUnlockedLevel: next.unlocked,
       frontierClearedLevels: next.cleared,
       frontierBestStageScores: next.best,
+    };
+  }
+  if (part === 'fortune') {
+    return {
+      ...prog,
+      fortuneHighScore: next.highScore,
+      fortuneUnlockedLevel: next.unlocked,
+      fortuneClearedLevels: next.cleared,
+      fortuneBestStageScores: next.best,
+    };
+  }
+  if (part === 'mirage') {
+    return {
+      ...prog,
+      mirageHighScore: next.highScore,
+      mirageUnlockedLevel: next.unlocked,
+      mirageClearedLevels: next.cleared,
+      mirageBestStageScores: next.best,
+    };
+  }
+  if (part === 'echo') {
+    return {
+      ...prog,
+      echoHighScore: next.highScore,
+      echoUnlockedLevel: next.unlocked,
+      echoClearedLevels: next.cleared,
+      echoBestStageScores: next.best,
     };
   }
   return {

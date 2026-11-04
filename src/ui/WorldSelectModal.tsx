@@ -5,10 +5,16 @@ import {
   BIOMES,
   DIM_WORLDS,
   DIM_WORLD_NAMES,
+  ECHO_WORLDS,
+  ECHO_WORLD_NAMES,
   EXP_WORLDS,
   EXP_WORLD_NAMES,
+  FORTUNE_WORLDS,
+  FORTUNE_WORLD_NAMES,
   FRONTIER_WORLDS,
   FRONTIER_WORLD_NAMES,
+  MIRAGE_WORLDS,
+  MIRAGE_WORLD_NAMES,
   SMW_WORLDS,
   STAGES_PER_WORLD,
   TOTAL_WORLDS,
@@ -56,6 +62,9 @@ export const WorldSelectModal: React.FC<Props> = ({
   const isSmw = partition === 'smw';
   const isExp = partition === 'expedition';
   const isFrontier = partition === 'frontier';
+  const isFortune = partition === 'fortune';
+  const isMirage = partition === 'mirage';
+  const isEcho = partition === 'echo';
   const isDim = partition === 'dimension';
   const worldCount = isSmw
     ? SMW_WORLDS
@@ -63,6 +72,12 @@ export const WorldSelectModal: React.FC<Props> = ({
     ? EXP_WORLDS
     : isFrontier
     ? FRONTIER_WORLDS
+    : isFortune
+    ? FORTUNE_WORLDS
+    : isMirage
+    ? MIRAGE_WORLDS
+    : isEcho
+    ? ECHO_WORLDS
     : isDim
     ? DIM_WORLDS
     : TOTAL_WORLDS;
@@ -72,6 +87,12 @@ export const WorldSelectModal: React.FC<Props> = ({
     ? EXP_WORLD_NAMES
     : isFrontier
     ? FRONTIER_WORLD_NAMES
+    : isFortune
+    ? FORTUNE_WORLD_NAMES
+    : isMirage
+    ? MIRAGE_WORLD_NAMES
+    : isEcho
+    ? ECHO_WORLD_NAMES
     : isDim
     ? DIM_WORLD_NAMES
     : CLASSIC_WORLD_NAMES;
@@ -115,6 +136,14 @@ export const WorldSelectModal: React.FC<Props> = ({
                 ? 'ISLA DINOSAURIO (20)'
                 : isExp
                 ? 'EXPEDICIÓN (28)'
+                : isFortune
+                ? 'FORTUNA (16)'
+                : isMirage
+                ? 'ESPECTRO (16)'
+                : isEcho
+                ? 'ECO (16)'
+                : isFrontier
+                ? 'FRONTERA (8)'
                 : isDim
                 ? 'DIMENSIÓN 3D (32)'
                 : '6 MUNDOS CLÁSICOS (24)'}
@@ -140,6 +169,12 @@ export const WorldSelectModal: React.FC<Props> = ({
                     ? '🧭 EXPED.'
                     : part === 'frontier'
                     ? '🌊 MUNDO 5'
+                    : part === 'fortune'
+                    ? '🎰 MUNDO 6'
+                    : part === 'mirage'
+                    ? '👻 MUNDO 7'
+                    : part === 'echo'
+                    ? '🪞 MUNDO 8'
                     : '🧊 3D'}
                 </Text>
               </Pressable>

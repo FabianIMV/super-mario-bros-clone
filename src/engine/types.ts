@@ -1,4 +1,4 @@
-export type GamePartition = 'classic' | 'smw' | 'expedition' | 'frontier' | 'dimension';
+export type GamePartition = 'classic' | 'smw' | 'expedition' | 'frontier' | 'fortune' | 'mirage' | 'echo' | 'dimension';
 
 export type BiomeId =
   | 'meadow'
@@ -213,7 +213,10 @@ export type StageMechanic =
   | 'icicles' // Carámbanos que caen
   | 'crumble' // Puentes que se derrumban al pisarlos
   | 'lowgrav' // Zonas de gravedad baja
-  | 'lava_tide'; // Marea de lava en los castillos
+  | 'lava_tide' // Marea de lava en los castillos
+  | 'wager' // Mundo 6 FORTUNA: altares de apuesta (riesgo/recompensa)
+  | 'thief' // Mundo 7 ESPECTRO: urraca que roba gemas (suma cero)
+  | 'echo'; // Mundo 8 ECO: un reflejo del jugador que repite su camino
 
 export type WindPhase = 'calm' | 'warn' | 'gust';
 
@@ -248,7 +251,9 @@ export type StageObjective =
   | 'reach' // Llegar a la meta
   | 'collect' // Juntar todas las gemas para abrir la meta
   | 'time_attack' // Contrarreloj con relojes que suman tiempo
-  | 'chase'; // Escapar de la sombra que avanza
+  | 'chase' // Escapar de la sombra que avanza
+  | 'fortune' // Mundo 6: abrir la meta alcanzando un capital de monedas (apostando)
+  | 'recover'; // Mundo 7: mantener N gemas simultáneas; un ladrón las roba (suma cero)
 
 export interface Pickup {
   id: number;
@@ -307,7 +312,8 @@ export type EnemyType =
   | 'spiny'
   | 'rex'
   | 'chuck'
-  | 'bullet_bill';
+  | 'bullet_bill'
+  | 'thief'; // Urraca del Mundo 7: persigue gemas y las roba
 
 export type EnemyState =
   | 'walk'
@@ -602,6 +608,21 @@ export interface SaveProgress {
   dimUnlockedLevel?: number;
   dimClearedLevels?: number[];
   dimBestStageScores?: Record<number, number>;
+  // Mundo 6 FORTUNA (16 niveles)
+  fortuneHighScore?: number;
+  fortuneUnlockedLevel?: number;
+  fortuneClearedLevels?: number[];
+  fortuneBestStageScores?: Record<number, number>;
+  // Mundo 7 ESPECTRO (16 niveles)
+  mirageHighScore?: number;
+  mirageUnlockedLevel?: number;
+  mirageClearedLevels?: number[];
+  mirageBestStageScores?: Record<number, number>;
+  // Mundo 8 ECO (16 niveles)
+  echoHighScore?: number;
+  echoUnlockedLevel?: number;
+  echoClearedLevels?: number[];
+  echoBestStageScores?: Record<number, number>;
   lastPartition: GamePartition;
 }
 
@@ -673,6 +694,14 @@ export interface WorldState {
   vaultOpened?: boolean;
   /** Si existe, la salida lleva a este nivel en vez del siguiente (portal secreto). */
   warpTo?: number | null;
+  // Mundo 6 FORTUNA: altares de apuesta y capital objetivo
+  wagerAltars?: Array<{ id: number; x: number; y: number; stake: number; resolved: boolean; won: boolean }>;
+  fortuneTarget?: number;
+  // Mundo 7 ESPECTRO: gemas objetivo (el ladrón las roba)
+  recoverTarget?: number;
+  // Mundo 8 ECO: reflejo del jugador y su rastro
+  echo?: { x: number; y: number } | null;
+  echoTrail?: Array<{ x: number; y: number }>;
   // Habilidades (Fase 4)
   wrench?: Wrench | null;
   shafts?: Array<{ x: number; y: number; hinted: boolean }>;

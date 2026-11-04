@@ -22,6 +22,18 @@ export const DEFAULT_PROGRESS: SaveProgress = {
   frontierUnlockedLevel: 0,
   frontierClearedLevels: [],
   frontierBestStageScores: {},
+  fortuneHighScore: 0,
+  fortuneUnlockedLevel: 0,
+  fortuneClearedLevels: [],
+  fortuneBestStageScores: {},
+  mirageHighScore: 0,
+  mirageUnlockedLevel: 0,
+  mirageClearedLevels: [],
+  mirageBestStageScores: {},
+  echoHighScore: 0,
+  echoUnlockedLevel: 0,
+  echoClearedLevels: [],
+  echoBestStageScores: {},
   lastPartition: 'smw',
 };
 
@@ -57,6 +69,18 @@ export async function loadProgress(): Promise<SaveProgress> {
       frontierUnlockedLevel: typeof parsed.frontierUnlockedLevel === 'number' ? parsed.frontierUnlockedLevel : 0,
       frontierClearedLevels: Array.isArray(parsed.frontierClearedLevels) ? parsed.frontierClearedLevels : [],
       frontierBestStageScores: parsed.frontierBestStageScores ?? {},
+      fortuneHighScore: typeof parsed.fortuneHighScore === 'number' ? parsed.fortuneHighScore : 0,
+      fortuneUnlockedLevel: typeof parsed.fortuneUnlockedLevel === 'number' ? parsed.fortuneUnlockedLevel : 0,
+      fortuneClearedLevels: Array.isArray(parsed.fortuneClearedLevels) ? parsed.fortuneClearedLevels : [],
+      fortuneBestStageScores: parsed.fortuneBestStageScores ?? {},
+      mirageHighScore: typeof parsed.mirageHighScore === 'number' ? parsed.mirageHighScore : 0,
+      mirageUnlockedLevel: typeof parsed.mirageUnlockedLevel === 'number' ? parsed.mirageUnlockedLevel : 0,
+      mirageClearedLevels: Array.isArray(parsed.mirageClearedLevels) ? parsed.mirageClearedLevels : [],
+      mirageBestStageScores: parsed.mirageBestStageScores ?? {},
+      echoHighScore: typeof parsed.echoHighScore === 'number' ? parsed.echoHighScore : 0,
+      echoUnlockedLevel: typeof parsed.echoUnlockedLevel === 'number' ? parsed.echoUnlockedLevel : 0,
+      echoClearedLevels: Array.isArray(parsed.echoClearedLevels) ? parsed.echoClearedLevels : [],
+      echoBestStageScores: parsed.echoBestStageScores ?? {},
       dimHighScore: typeof parsed.dimHighScore === 'number' ? parsed.dimHighScore : 0,
       dimUnlockedLevel: typeof parsed.dimUnlockedLevel === 'number' ? parsed.dimUnlockedLevel : 0,
       dimClearedLevels: Array.isArray(parsed.dimClearedLevels) ? parsed.dimClearedLevels : [],
@@ -66,6 +90,9 @@ export async function loadProgress(): Promise<SaveProgress> {
         parsed.lastPartition === 'smw' ||
         parsed.lastPartition === 'expedition' ||
         parsed.lastPartition === 'frontier' ||
+        parsed.lastPartition === 'fortune' ||
+        parsed.lastPartition === 'mirage' ||
+        parsed.lastPartition === 'echo' ||
         parsed.lastPartition === 'dimension'
           ? parsed.lastPartition
           : 'smw',

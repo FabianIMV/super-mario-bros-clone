@@ -139,6 +139,8 @@ export class SkiaWorldRenderer {
     this.drawPipes(canvas, atlas, world, camX, viewportWorldW);
     this.drawMovingPlatforms(canvas, atlas, world, camX, viewportWorldW);
     this.drawSprings(canvas, atlas, world);
+    this.drawWagerAltars(canvas, world, camX, viewportWorldW);
+    this.drawEcho(canvas, world);
     this.drawVisibleBlocks(canvas, atlas, world, startCol, endCol);
     this.drawIcicles(canvas, world, camX, viewportWorldW);
 
@@ -685,6 +687,47 @@ export class SkiaWorldRenderer {
     }
   }
 
+  /** Altares de apuesta del Mundo 6: pedestal dorado y orbe que pulsa. */
+  private drawWagerAltars(
+    canvas: SkCanvas,
+    world: WorldState,
+    camX: number,
+    viewportW: number
+  ): void {
+    if (!world.wagerAltars) return;
+    for (const a of world.wagerAltars) {
+      if (a.x + 24 < camX - TILE || a.x > camX + viewportW + TILE) continue;
+      // Pedestal
+      this.fillPaint.setColor(
+        Skia.Color(a.resolved ? (a.won ? '#4ade80' : '#ef4444') : '#f59e0b')
+      );
+      canvas.drawRect(Skia.XYWHRect(a.x + 2, a.y + 12, 20, 18), this.fillPaint);
+      this.fillPaint.setColor(Skia.Color('#451a03'));
+      canvas.drawRect(Skia.XYWHRect(a.x + 4, a.y + 14, 16, 14), this.fillPaint);
+      // Orbe
+      this.fillPaint.setColor(Skia.Color(a.resolved ? (a.won ? '#bbf7d0' : '#fecaca') : '#fde68a'));
+      canvas.drawCircle(a.x + 12, a.y + 2, 6, this.fillPaint);
+      // Halo que pulsa mientras está sin resolver
+      if (!a.resolved) {
+        const pulse = 1 + Math.sin(world.frameCount * 0.15 + a.id) * 1.5;
+        this.fillPaint.setColor(Skia.Color('rgba(253, 230, 138, 0.35)'));
+        canvas.drawCircle(a.x + 12, a.y + 2, 8 * pulse, this.fillPaint);
+      }
+    }
+  }
+
+  /** Reflejo del Mundo 8 ECO: silueta translúcida que repite el camino. */
+  private drawEcho(canvas: SkCanvas, world: WorldState): void {
+    if (!world.echo) return;
+    const e = world.echo;
+    this.fillPaint.setColor(Skia.Color('rgba(153, 246, 228, 0.45)'));
+    canvas.drawRect(Skia.XYWHRect(e.x, e.y, 22, 30), this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('rgba(224, 242, 254, 0.30)'));
+    canvas.drawCircle(e.x + 11, e.y - 6, 10, this.fillPaint);
+    this.fillPaint.setColor(Skia.Color('rgba(153, 246, 228, 0.22)'));
+    canvas.drawRect(Skia.XYWHRect(e.x + 2, e.y + 2, 18, 26), this.fillPaint);
+  }
+
   private drawVisibleBlocks(
     canvas: SkCanvas,
     atlas: SkiaSpriteAtlas,
@@ -1090,6 +1133,29 @@ export class SkiaWorldRenderer {
   ): void {
     const step = Math.floor(en.animTimer / 9) % 2 === 0;
     const isKnocked = en.state === 'knocked';
+
+    if (en.type === 'thief') {
+      // Urraca del Mundo 7: silueta magenta, antifaz, pico y cola de plumas.
+      const x = en.x - 2;
+      const y = en.y - 2;
+      const w = en.width + 4;
+      const h = en.height + 4;
+      this.fillPaint.setColor(Skia.Color(isKnocked ? 'rgba(120,120,120,0.7)' : '#a21caf'));
+      canvas.drawCircle(x + w / 2, y + h * 0.62, w * 0.42, this.fillPaint);
+      this.fillPaint.setColor(Skia.Color('#7e22ce'));
+      canvas.drawRect(Skia.XYWHRect(x - 2, y + h * 0.55, 6, 3), this.fillPaint);
+      canvas.drawRect(Skia.XYWHRect(x - 4, y + h * 0.62, 6, 3), this.fillPaint);
+      this.fillPaint.setColor(Skia.Color('#c026d3'));
+      canvas.drawCircle(x + w / 2, y + h * 0.32, w * 0.32, this.fillPaint);
+      this.fillPaint.setColor(Skia.Color('#1e1b4b'));
+      canvas.drawRect(Skia.XYWHRect(x + w * 0.2, y + h * 0.26, w * 0.6, h * 0.12), this.fillPaint);
+      this.fillPaint.setColor(Skia.Color('#fde047'));
+      canvas.drawRect(Skia.XYWHRect(x + w / 2 - 2, y + h * 0.42, 4, 3), this.fillPaint);
+      this.fillPaint.setColor(Skia.Color('#f0abfc'));
+      canvas.drawCircle(x + w * 0.36, y + h * 0.32, 2, this.fillPaint);
+      canvas.drawCircle(x + w * 0.64, y + h * 0.32, 2, this.fillPaint);
+      return;
+    }
 
     if (en.type === 'galoomba') {
       const key = step ? 'galoomba_walk1' : 'galoomba_walk2';

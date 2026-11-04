@@ -153,14 +153,19 @@ assert(frontierLabels.size === FRONTIER_TOTAL_LEVELS, 'Mundo 5 no duplica etique
   // Partidas guardadas antiguas (sin campos de Expedición) siguen funcionando
   assert(getPartitionProgress(base, 'expedition').unlocked === 0, 'Partidas antiguas: Expedición empieza en A-1');
   assert(getPartitionProgress(base, 'frontier').unlocked === 0, 'Partidas antiguas: Mundo 5 empieza en M-1');
-  assert(PARTITION_ORDER.length === 5, 'Hay 5 modos');
+  assert(getPartitionProgress(base, 'fortune').unlocked === 0, 'Partidas antiguas: Fortuna empieza en F-1');
+  assert(getPartitionProgress(base, 'mirage').unlocked === 0, 'Partidas antiguas: Espectro empieza en W-1');
+  assert(PARTITION_ORDER.length === 8, 'Hay 8 modos');
   assert(
     nextPartition('classic') === 'smw' &&
       nextPartition('smw') === 'expedition' &&
       nextPartition('expedition') === 'frontier' &&
-      nextPartition('frontier') === 'dimension' &&
+      nextPartition('frontier') === 'fortune' &&
+      nextPartition('fortune') === 'mirage' &&
+      nextPartition('mirage') === 'echo' &&
+      nextPartition('echo') === 'dimension' &&
       nextPartition('dimension') === 'classic',
-    'El cambio de modo recorre los 5'
+    'El cambio de modo recorre los 8'
   );
 }
 

@@ -96,11 +96,59 @@ const FRONTIER_OBJECTIVES: Record<number, StageObjective> = {
   6: 'time_attack',
 };
 
+// Mundo 6 FORTUNA: capital de monedas + variedad de objetivos.
+const FORTUNE_OBJECTIVES: Record<number, StageObjective> = {
+  0: 'fortune',
+  1: 'collect',
+  2: 'time_attack',
+  4: 'fortune',
+  5: 'chase',
+  6: 'time_attack',
+  8: 'fortune',
+  9: 'collect',
+  10: 'chase',
+  12: 'time_attack',
+  13: 'chase',
+  14: 'collect',
+};
+
+// Mundo 7 ESPECTRO: recuperación de gemas robadas + variedad.
+const MIRAGE_OBJECTIVES: Record<number, StageObjective> = {
+  0: 'recover',
+  1: 'collect',
+  2: 'time_attack',
+  4: 'recover',
+  5: 'chase',
+  6: 'time_attack',
+  8: 'recover',
+  9: 'collect',
+  10: 'chase',
+  12: 'time_attack',
+  13: 'chase',
+  14: 'collect',
+};
+
+// Mundo 8 ECO: coordinación con el reflejo (mezcla de objetivos existentes).
+const ECHO_OBJECTIVES: Record<number, StageObjective> = {
+  1: 'collect',
+  2: 'time_attack',
+  4: 'collect',
+  5: 'chase',
+  6: 'collect',
+  8: 'time_attack',
+  9: 'collect',
+  10: 'chase',
+  12: 'collect',
+  13: 'chase',
+  14: 'time_attack',
+};
+
 export const GEMS_PER_STAGE = 5;
 export const CLOCKS_PER_STAGE = 5;
 export const TIME_ATTACK_START = 75; // unidades del contador (1 unidad = 38 frames)
 export const CLOCK_BONUS = 15;
 export const CHASE_DELAY = 150; // frames antes de que la sombra empiece a moverse
+export const THIEF_STEAL_PERIOD = 260; // frames entre robos de la urraca (Mundo 7)
 export const CHASE_START_GAP = 12 * TILE;
 export const CHASE_MAX_LAG = 40;
 export const CHASE_MIN_FACTOR = 0.3; // velocidad mínima relativa cuando está pegada al jugador // px máximos fuera de pantalla por la izquierda
@@ -110,6 +158,8 @@ export const OBJECTIVE_LABELS: Record<StageObjective, { text: string; color: str
   collect: { text: `OBJETIVO: ${GEMS_PER_STAGE} GEMAS`, color: '#f0abfc' },
   time_attack: { text: '¡CONTRARRELOJ!', color: '#fde047' },
   chase: { text: '¡ESCAPA DE LA SOMBRA!', color: '#c084fc' },
+  fortune: { text: 'OBJETIVO: CAPITAL DE MONEDAS', color: '#fde68a' },
+  recover: { text: '¡RECUPERA LAS GEMAS ROBADAS!', color: '#e9d5ff' },
 };
 
 export function getStageObjective(levelIndex: number, partition: GamePartition): StageObjective {
@@ -120,6 +170,12 @@ export function getStageObjective(levelIndex: number, partition: GamePartition):
       ? EXP_OBJECTIVES
       : partition === 'frontier'
       ? FRONTIER_OBJECTIVES
+      : partition === 'fortune'
+      ? FORTUNE_OBJECTIVES
+      : partition === 'mirage'
+      ? MIRAGE_OBJECTIVES
+      : partition === 'echo'
+      ? ECHO_OBJECTIVES
       : partition === 'dimension'
       ? DIM_OBJECTIVES
       : CLASSIC_OBJECTIVES;
@@ -236,6 +292,26 @@ export function applyStageObjective(world: WorldState): WorldState {
         delay: CHASE_DELAY,
       };
       break;
+    case 'fortune': {
+      // Capital objetivo relativo a las monedas que ya traes: apuesta o asegura.
+      const w = Math.floor(world.levelIndex / 4) + 1;
+      world.fortuneTarget = world.coins + 12 + w * 2;
+      break;
+    }
+    case 'recover': {
+      const n = 4 + Math.floor(world.levelIndex / 4);
+      for (const s of findSpots(world, n, true)) {
+        const gem = makePickup(world, 'gem', s.col, s.row);
+        if (gem.x < resumeX) {
+          gem.collected = true;
+          world.gemsCollected += 1;
+        }
+        world.pickups.push(gem);
+      }
+      world.gemsNeeded = n;
+      world.recoverTarget = n;
+      break;
+    }
     case 'reach':
       break;
   }
@@ -256,7 +332,11 @@ export function applyStageObjective(world: WorldState): WorldState {
 
 /** ¿La meta está cerrada? (faltan gemas) */
 export function isGoalLocked(world: WorldState): boolean {
-  return world.objective === 'collect' && (world.gemsCollected ?? 0) < (world.gemsNeeded ?? 0);
+  if (world.objective === 'collect') return (world.gemsCollected ?? 0) < (world.gemsNeeded ?? 0);
+  if (world.objective === 'recover')
+    return (world.gemsCollected ?? 0) < (world.recoverTarget ?? world.gemsNeeded ?? 0);
+  if (world.objective === 'fortune') return (world.coins ?? 0) < (world.fortuneTarget ?? 0);
+  return false;
 }
 
 /** Texto corto para el HUD, o null si el nivel es de llegar a la meta. */
@@ -268,6 +348,10 @@ export function objectiveHudLabel(world: WorldState): string | null {
       return '⏱ CONTRARRELOJ';
     case 'chase':
       return '👁 ¡CORRE!';
+    case 'fortune':
+      return `🪙 ${world.coins ?? 0}/${world.fortuneTarget ?? 0}`;
+    case 'recover':
+      return `💎 ${world.gemsCollected ?? 0}/${world.recoverTarget ?? world.gemsNeeded ?? 0}`;
     default:
       return null;
   }
@@ -348,6 +432,25 @@ export function updateObjectives(world: WorldState, events: GameEvent[], cb: Obj
         maxLife: 24,
         kind: 'spark',
       });
+    }
+  }
+
+  // --- Mundo 7 ESPECTRO: la urraca roba una gema cada cierto tiempo (suma cero) ---
+  if (world.objective === 'recover' && (world.gemsCollected ?? 0) > 0 && world.frameCount > 0) {
+    const thief = world.enemies.find(
+      (e) => e.type === 'thief' && e.active && e.state !== 'squashed' && e.state !== 'knocked'
+    );
+    if (
+      thief &&
+      world.frameCount % THIEF_STEAL_PERIOD === 0 &&
+      Math.abs(thief.x - p.x) < 10 * TILE
+    ) {
+      world.gemsCollected = Math.max(0, (world.gemsCollected ?? 0) - 1);
+      world.score = Math.max(0, world.score - 300);
+      cb.text(p.x - 30, p.y - 20, '¡LA URRACA TE ROBÓ UNA GEMA!', '#e9d5ff');
+      cb.sparks(thief.x + 10, thief.y + 10, '#e9d5ff', 8);
+      events.push({ type: 'sfx', id: 'chase_growl' });
+      events.push({ type: 'haptic', kind: 'warning' });
     }
   }
 

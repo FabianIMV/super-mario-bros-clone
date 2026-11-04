@@ -198,6 +198,9 @@ const styles = StyleSheet.create({
   },
   partitionBar: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    maxWidth: '100%',
     backgroundColor: 'rgba(9, 13, 22, 0.85)',
     borderRadius: 12,
     padding: 4,
@@ -240,7 +243,7 @@ const styles = StyleSheet.create({
     borderColor: '#38bdf8',
   },
   partitionTabNew: {
-    minWidth: 190,
+    minWidth: 150,
     borderWidth: 1,
     borderColor: '#38bdf8',
   },

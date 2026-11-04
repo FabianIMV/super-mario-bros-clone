@@ -35,6 +35,12 @@ const EXP_MIXED_WORLDS: Record<number, StageMechanic[]> = {
   7: ['firefly', 'crumble', 'lowgrav'],
 };
 const FRONTIER_MECHANICS: StageMechanic[] = ['bounce', 'firefly'];
+// Mundo 6 FORTUNA: altares de apuesta en cada mundo (riesgo/recompensa).
+const FORTUNE_MECHANICS: StageMechanic[] = ['wager', 'wager', 'wager', 'wager'];
+// Mundo 7 ESPECTRO: urracas que roban gemas en cada mundo (suma cero).
+const MIRAGE_MECHANICS: StageMechanic[] = ['thief', 'thief', 'thief', 'thief'];
+// Mundo 8 ECO: un reflejo del jugador en cada mundo (coordinación).
+const ECHO_MECHANICS: StageMechanic[] = ['echo', 'echo', 'echo', 'echo'];
 
 /** Mundos cuyas etapas combinan mecánicas distintas (solo en Dimensión). */
 export function isMixedMechanicWorld(levelIndex: number, partition: GamePartition): boolean {
@@ -54,6 +60,9 @@ export const MECHANIC_LABELS: Record<StageMechanic, { text: string; color: strin
   crumble: { text: '¡PUENTES FRÁGILES!', color: '#fdba74' },
   lowgrav: { text: '¡GRAVEDAD BAJA!', color: '#c4b5fd' },
   lava_tide: { text: '¡LA LAVA SUBE!', color: '#fb923c' },
+  wager: { text: '¡APUESTA EN LOS ALTARES!', color: '#fde68a' },
+  thief: { text: '¡LA URRACA ROBA GEMAS!', color: '#e9d5ff' },
+  echo: { text: '¡UN REFLEJO TE SIGUE!', color: '#99f6e4' },
 };
 
 export function getStageMechanic(levelIndex: number, partition: GamePartition): StageMechanic {
@@ -73,6 +82,12 @@ export function getStageMechanic(levelIndex: number, partition: GamePartition): 
       ? EXP_MECHANICS
       : partition === 'frontier'
       ? FRONTIER_MECHANICS
+      : partition === 'fortune'
+      ? FORTUNE_MECHANICS
+      : partition === 'mirage'
+      ? MIRAGE_MECHANICS
+      : partition === 'echo'
+      ? ECHO_MECHANICS
       : partition === 'dimension'
       ? DIM_MECHANICS
       : CLASSIC_MECHANICS;
@@ -250,6 +265,61 @@ export function applyStageMechanic(world: WorldState): WorldState {
       world.lavaTide = true;
       break;
 
+    case 'wager': {
+      // Altares de apuesta repartidos por la etapa: tocarlos resuelve el riesgo.
+      world.wagerAltars = [];
+      const n = 4;
+      const span = Math.max(1, world.totalCols - 40);
+      for (let i = 0; i < n; i++) {
+        const col = 20 + Math.floor((span * (i + 0.5)) / n);
+        world.wagerAltars.push({
+          id: i + 1,
+          x: col * TILE,
+          y: GROUND_ROW * TILE - 30,
+          stake: 2,
+          resolved: false,
+          won: false,
+        });
+      }
+      break;
+    }
+
+    case 'thief': {
+      // Garantiza al menos una urraca; los setpieces ya colocan varias.
+      if (!world.enemies.some((e) => e.type === 'thief')) {
+        const col = Math.floor(world.totalCols * 0.55);
+        const w = 24;
+        const h = 26;
+        world.enemies.push({
+          id: world.nextEntityId++,
+          type: 'thief',
+          state: 'walk',
+          x: col * TILE,
+          y: (GROUND_ROW - 1) * TILE - h + 2,
+          baseY: (GROUND_ROW - 1) * TILE - h + 2,
+          vx: -0.9,
+          vy: 0,
+          width: w,
+          height: h,
+          facing: -1,
+          onGround: true,
+          hp: 1,
+          stateTimer: 0,
+          kickGraceTimer: 0,
+          shellCombo: 0,
+          animTimer: 0,
+          active: true,
+        });
+      }
+      break;
+    }
+
+    case 'echo': {
+      world.echoTrail = [];
+      world.echo = null;
+      break;
+    }
+
     case 'none':
       break;
   }
@@ -350,6 +420,54 @@ export function updateMechanics(
   cb: MechanicCallbacks
 ): void {
   const p = world.player;
+
+  // --- Mundo 6 FORTUNA: resolver altares de apuesta al tocarlos ---
+  if (world.wagerAltars) {
+    for (const a of world.wagerAltars) {
+      if (a.resolved) continue;
+      if (hit(p, { x: a.x, y: a.y, width: 24, height: 30 })) {
+        a.resolved = true;
+        const roll = (a.id * 2654435761 + (world.levelIndex + 7) * 40503) % 100;
+        a.won = roll < 60;
+        if (a.won) {
+          world.coins += 6;
+          world.score += 500;
+          world.floatingTexts.push({ x: a.x, y: a.y - 26, text: '¡GANASTE! +6', color: '#fde68a', life: 90, maxLife: 90 });
+          events.push({ type: 'sfx', id: 'treasure' });
+          events.push({ type: 'haptic', kind: 'success' });
+        } else {
+          world.coins = Math.max(0, world.coins - 2);
+          world.score = Math.max(0, world.score - 200);
+          world.floatingTexts.push({ x: a.x, y: a.y - 26, text: 'PERDISTE -2', color: '#f87171', life: 90, maxLife: 90 });
+          events.push({ type: 'sfx', id: 'power_down' });
+          events.push({ type: 'haptic', kind: 'warning' });
+        }
+      }
+    }
+  }
+
+  // --- Mundo 8 ECO: un reflejo repite tu camino y recoge monedas a su paso ---
+  if (world.echoTrail) {
+    world.echoTrail.push({ x: p.x, y: p.y });
+    if (world.echoTrail.length > 90) world.echoTrail.shift();
+    const delayIdx = Math.max(0, world.echoTrail.length - 60);
+    world.echo = world.echoTrail[delayIdx] ?? null;
+    if (world.echo) {
+      const ex = world.echo.x;
+      const ey = world.echo.y;
+      for (const coin of world.coinsList) {
+        if (coin.collected) continue;
+        if (
+          Math.abs(coin.x + coin.width / 2 - (ex + 11)) < 16 &&
+          Math.abs(coin.y + coin.height / 2 - (ey + 15)) < 24
+        ) {
+          coin.collected = true;
+          world.coins += 1;
+          world.score += 100;
+        }
+      }
+    }
+  }
 
   // --- Viento: calma → aviso → ráfaga, alternando dirección cada 3 ciclos ---
   const w = world.wind;

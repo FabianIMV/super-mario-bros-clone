@@ -69,6 +69,39 @@ export const FRONTIER_WORLD_NAMES = [
   'V • VALLE VÍTREO',
 ];
 
+// Mundo 6 2D — FORTUNA (4 mundos x 4 etapas = 16 niveles, doble extensión)
+export const FORTUNE_WORLDS = 4;
+export const FORTUNE_TOTAL_LEVELS = FORTUNE_WORLDS * STAGES_PER_WORLD;
+export const FORTUNE_WORLD_PREFIXES = ['F', 'Q', 'K', 'Z'];
+export const FORTUNE_WORLD_NAMES = [
+  'F • CASA DE FORTUNA',
+  'Q • MERCADO DE ESPEJOS',
+  'K • RULETA DE CRISTAL',
+  'Z • BÓVEDA DEL AZAR',
+];
+
+// Mundo 7 2D — ESPECTRO (4 mundos x 4 etapas = 16 niveles, doble extensión)
+export const MIRAGE_WORLDS = 4;
+export const MIRAGE_TOTAL_LEVELS = MIRAGE_WORLDS * STAGES_PER_WORLD;
+export const MIRAGE_WORLD_PREFIXES = ['W', 'X', 'U', 'Y'];
+export const MIRAGE_WORLD_NAMES = [
+  'W • TELAR DE HUMO',
+  'X • MERCADO NEGRO',
+  'U • NIDO DE URRACAS',
+  'Y • CORONA ROBADA',
+];
+
+// Mundo 8 2D — ECO (4 mundos x 4 etapas = 16 niveles, doble extensión)
+export const ECHO_WORLDS = 4;
+export const ECHO_TOTAL_LEVELS = ECHO_WORLDS * STAGES_PER_WORLD;
+export const ECHO_WORLD_PREFIXES = ['E', 'P', 'N', 'T'];
+export const ECHO_WORLD_NAMES = [
+  'E • PALACIO DE ESPEJOS',
+  'P • CIUDAD ECO',
+  'N • CÁMARA DE RESONANCIA',
+  'T • CÚPULA DEL TIEMPO',
+];
+
 // Partition 5: Plomero Dimensión (original, arte 3D — 8 mundos x 4 etapas = 32 niveles)
 export const DIM_WORLDS = 8;
 export const DIM_TOTAL_LEVELS = DIM_WORLDS * STAGES_PER_WORLD;
@@ -93,6 +126,12 @@ export function partitionTotalLevels(partition: GamePartition): number {
       return EXP_TOTAL_LEVELS;
     case 'frontier':
       return FRONTIER_TOTAL_LEVELS;
+    case 'fortune':
+      return FORTUNE_TOTAL_LEVELS;
+    case 'mirage':
+      return MIRAGE_TOTAL_LEVELS;
+    case 'echo':
+      return ECHO_TOTAL_LEVELS;
     case 'dimension':
       return DIM_TOTAL_LEVELS;
     default:
@@ -920,6 +959,18 @@ export function getWorldLabel(levelIndex: number, partition: GamePartition = 'cl
     const prefix = FRONTIER_WORLD_PREFIXES[Math.min(FRONTIER_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'M';
     return `${prefix}-${stageNum}`;
   }
+  if (partition === 'fortune') {
+    const prefix = FORTUNE_WORLD_PREFIXES[Math.min(FORTUNE_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'F';
+    return `${prefix}-${stageNum}`;
+  }
+  if (partition === 'mirage') {
+    const prefix = MIRAGE_WORLD_PREFIXES[Math.min(MIRAGE_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'W';
+    return `${prefix}-${stageNum}`;
+  }
+  if (partition === 'echo') {
+    const prefix = ECHO_WORLD_PREFIXES[Math.min(ECHO_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'E';
+    return `${prefix}-${stageNum}`;
+  }
 
   if (partition === 'dimension') {
     const prefix = DIM_WORLD_PREFIXES[Math.min(DIM_WORLD_PREFIXES.length - 1, worldNum - 1)] ?? 'D';
@@ -970,6 +1021,24 @@ export function getStageBiome(levelIndex: number, partition: GamePartition = 'cl
   if (partition === 'frontier') {
     const frontier: BiomeId[] = ['cloudland', 'reef', 'clockwork', 'crystal'];
     return stageNum === 4 ? 'fortress' : frontier[Math.min(frontier.length - 1, levelIndex)];
+  }
+
+  if (partition === 'fortune') {
+    // Fortuna: salón dorado, noche de azar, mecanismo de relojería y nubes de premio.
+    const fortune: BiomeId[] = ['desert', 'night', 'clockwork', 'cloudland'];
+    return stageNum === 4 ? 'fortress' : fortune[Math.min(fortune.length - 1, worldNum - 1)];
+  }
+
+  if (partition === 'mirage') {
+    // Espectro: jungla neón, prisma espectral, cosmos robado y arrecife fantasma.
+    const mirage: BiomeId[] = ['jungle', 'prism', 'cosmos', 'reef'];
+    return stageNum === 4 ? 'fortress' : mirage[Math.min(mirage.length - 1, worldNum - 1)];
+  }
+
+  if (partition === 'echo') {
+    // Eco: palacio de prismas, jardín estelar, relojería y cielo de algodón.
+    const echo: BiomeId[] = ['prism', 'starfield', 'clockcore', 'cloudland'];
+    return stageNum === 4 ? 'fortress' : echo[Math.min(echo.length - 1, worldNum - 1)];
   }
 
   if (partition === 'smw') {

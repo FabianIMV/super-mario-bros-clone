@@ -1,10 +1,13 @@
 import {
   BIOMES,
   DIM_TOTAL_LEVELS,
+  ECHO_TOTAL_LEVELS,
   EXP_TOTAL_LEVELS,
+  FORTUNE_TOTAL_LEVELS,
   FRONTIER_TOTAL_LEVELS,
   GROUND_ROW,
   MIN_CAMERA_WORLD_X,
+  MIRAGE_TOTAL_LEVELS,
   STAGES_PER_WORLD,
   TILE,
   TOTAL_LEVELS,
@@ -135,6 +138,30 @@ const DIM_STAGE_TITLES: string[] = [
   'Lluvia de Meteoros',
   'Horizonte de Sucesos',
   'Corazón del Cosmos',
+];
+
+// Mundo 6 FORTUNA: títulos de sus 16 etapas
+const FORTUNE_STAGE_TITLES: string[] = [
+  'Vestíbulo de Oro', 'Ruleta de Monedas', 'Bóveda de la Suerte', 'Bastión del Azar',
+  'Espejos de Apuesta', 'Galería del Riesgo', 'Cámara de Doble o Nada', 'Torreón de la Banca',
+  'Cristal de Apuestas', 'Pasillo de las Fichas', 'Sala del Gran Premio', 'Ciudadela del Casino',
+  'Vórtice del Azar', 'Bóveda Final', 'Rueda del Destino', 'Trono de la Fortuna',
+];
+
+// Mundo 7 ESPECTRO: títulos de sus 16 etapas
+const MIRAGE_STAGE_TITLES: string[] = [
+  'Telar de Humo', 'Nido de Urracas', 'Pasillo Espectral', 'Bastión del Robo',
+  'Mercado Negro', 'Galería de Sombras', 'Cámara de Gemas', 'Torreón del Ladrón',
+  'Nido de Urracas', 'Túnel de Ceniza', 'Sala del Botín', 'Ciudadela Oculta',
+  'Corona Robada', 'Vórtice de Humo', 'Bóveda Espectral', 'Trono del Espectro',
+];
+
+// Mundo 8 ECO: títulos de sus 16 etapas
+const ECHO_STAGE_TITLES: string[] = [
+  'Salón de Espejos', 'Doble Eco', 'Portón Gemelo', 'Bastión de Cristal',
+  'Ciudad Eco', 'Pasarela del Reflejo', 'Cámara de Ondas', 'Torre de la Resonancia',
+  'Nido de Ecos', 'Galería Simétrica', 'Sala del Tiempo', 'Ciudadela del Reflejo',
+  'Cúpula Temporal', 'Vórtice de Ecos', 'Bóveda Espejo', 'Trono del Eco',
 ];
 
 export function gridKey(col: number, row: number): number {
@@ -425,15 +452,48 @@ const EXP_ROSTERS: EnemyType[][] = [
   ['spiny', 'chuck', 'koopa_red', 'rex', 'bullet_bill'], // V: Valle Vítreo
 ];
 
+// Mundo 6 FORTUNA: rosters por mundo (riesgo/recompensa).
+const FORTUNE_ROSTERS: EnemyType[][] = [
+  ['goomba', 'koopa_red', 'chuck', 'galoomba'], // F: Casa de Fortuna
+  ['koopa_red', 'rex', 'goomba', 'paratroopa'], // Q: Mercado de Espejos
+  ['chuck', 'bullet_bill', 'koopa_green', 'spiny'], // K: Ruleta de Cristal
+  ['spiny', 'chuck', 'koopa_red', 'rex', 'bullet_bill'], // Z: Bóveda del Azar
+];
+
+// Mundo 7 ESPECTRO: rosters por mundo (siempre con urracas).
+const MIRAGE_ROSTERS: EnemyType[][] = [
+  ['thief', 'koopa_green', 'galoomba', 'paratroopa'], // W: Telar de Humo
+  ['thief', 'spiny', 'koopa_red', 'rex'], // X: Mercado Negro
+  ['thief', 'bullet_bill', 'koopa_red', 'galoomba'], // U: Nido de Urracas
+  ['thief', 'chuck', 'spiny', 'rex', 'koopa_red'], // Y: Corona Robada
+];
+
+// Mundo 8 ECO: rosters por mundo (sin urracas; el reto es el reflejo).
+const ECHO_ROSTERS: EnemyType[][] = [
+  ['goomba', 'koopa_red', 'galoomba', 'paratroopa'], // E: Palacio de Espejos
+  ['rex', 'koopa_green', 'chuck', 'spiny'], // P: Ciudad Eco
+  ['chuck', 'bullet_bill', 'koopa_red', 'galoomba'], // N: Cámara de Resonancia
+  ['spiny', 'rex', 'chuck', 'koopa_red', 'bullet_bill'], // T: Cúpula del Tiempo
+];
+
 /** Next ground foe from the current world's roster (deterministic rotation). */
 function foe(ctx: BuilderCtx): EnemyType {
   const rosters =
     ctx.partition === 'expedition' || ctx.partition === 'frontier'
       ? EXP_ROSTERS
+      : ctx.partition === 'fortune'
+      ? FORTUNE_ROSTERS
+      : ctx.partition === 'mirage'
+      ? MIRAGE_ROSTERS
+      : ctx.partition === 'echo'
+      ? ECHO_ROSTERS
       : ctx.partition === 'dimension'
       ? DIM_ROSTERS
       : CLASSIC_ROSTERS;
-  const rosterWorld = ctx.partition === 'frontier' ? Math.floor(ctx.designIndex / STAGES_PER_WORLD) : ctx.worldNum - 1;
+  const rosterWorld =
+    ctx.partition === 'frontier'
+      ? Math.floor(ctx.designIndex / STAGES_PER_WORLD)
+      : ctx.worldNum - 1;
   const roster = rosters[Math.min(rosters.length - 1, rosterWorld)];
   const type = roster[ctx.enemySeq % roster.length];
   ctx.enemySeq++;
@@ -464,7 +524,19 @@ type SetpieceKind =
   | 'twin_lifts'
   | 'foe_parade'
   | 'lift_wall'
-  | 'hidden_stairway';
+  | 'hidden_stairway'
+  // Mundo 6 FORTUNA — vocabulario de riesgo/recompensa (exclusivo)
+  | 'bet_altar'
+  | 'coin_press'
+  | 'double_or_nothing'
+  // Mundo 7 ESPECTRO — vocabulario de suma cero (exclusivo)
+  | 'thief_nest'
+  | 'gem_trap'
+  | 'shadow_corridor'
+  // Mundo 8 ECO — vocabulario de coordinación/espejo (exclusivo)
+  | 'echo_hall'
+  | 'mirror_jump'
+  | 'twin_gate';
 
 function buildSetpiece(ctx: BuilderCtx, kind: SetpieceKind, c: number): number {
   const v = variantOf(ctx, c);
@@ -701,6 +773,119 @@ function buildSetpiece(ctx: BuilderCtx, kind: SetpieceKind, c: number): number {
       addEnemy(ctx, c + 11, GROUND_ROW - 1, foe(ctx));
       addCoinArc(ctx, c + 7, 4, 7.0);
       return 14;
+    }
+
+    // =====================================================================
+    // MUNDO 6 · FORTUNA — setpieces de riesgo/recompensa
+    // =====================================================================
+    case 'bet_altar': {
+      // Un resorte lanza a la repisa del botín; abajo, enemigos custodian el paso.
+      addSpring(ctx, c + 1, GROUND_ROW);
+      for (let k = c + 3; k <= c + 11; k++) addCoin(ctx, k, 10.4);
+      putBlock(ctx, c + 6, 9, 'question', 'powerup');
+      putBlock(ctx, c + 7, 9, 'brick', 'multi_coin');
+      for (let k = c + 5; k <= c + 9; k++) putBlock(ctx, k, 6, 'brick');
+      addEnemy(ctx, c + 12, GROUND_ROW - 1, foe(ctx));
+      addEnemy(ctx, c + 14, GROUND_ROW - 1, foe(ctx));
+      return 17;
+    }
+
+    case 'coin_press': {
+      // Pasillo de monedas flanqueado por plantas: el botín exige cruzar el peligro.
+      addPipe(ctx, c + 1, 3, true);
+      addPipe(ctx, c + 12, 3, true);
+      for (let k = c + 3; k <= c + 10; k++) putBlock(ctx, k, 7, 'brick', k === c + 6 ? 'multi_coin' : null);
+      addCoinArc(ctx, c + 3, 8, 5.2);
+      addEnemy(ctx, c + 6, GROUND_ROW - 1, 'spiny');
+      addEnemy(ctx, c + 9, GROUND_ROW - 1, foe(ctx));
+      return 15;
+    }
+
+    case 'double_or_nothing': {
+      // Foso con dos rutas: puente seguro abajo, bloques de botín arriba.
+      carvePit(ctx, c + 3, 9);
+      for (let k = c + 3; k <= c + 11; k++) putBlock(ctx, k, GROUND_ROW, 'hard');
+      for (let k = c + 3; k <= c + 11; k += 2) putBlock(ctx, k, 7, 'brick');
+      putBlock(ctx, c + 7, 7, 'brick', 'multi_coin');
+      addCoinArc(ctx, c + 3, 9, 5.4);
+      putBlock(ctx, c + 9, 4, 'question', 'star');
+      addEnemy(ctx, c + 6, GROUND_ROW - 1, foe(ctx));
+      return 16;
+    }
+
+    // =====================================================================
+    // MUNDO 7 · ESPECTRO — setpieces de suma cero (robo/recuperación)
+    // =====================================================================
+    case 'thief_nest': {
+      // Tuberías y monedas; una urraca ronda el botín.
+      addPipe(ctx, c + 2, 2, false);
+      addPipe(ctx, c + 9, 4, true);
+      for (let k = c + 4; k <= c + 8; k++) addCoin(ctx, k, 9.4);
+      addEnemy(ctx, c + 5, GROUND_ROW - 1, 'thief');
+      addEnemy(ctx, c + 10, GROUND_ROW - 1, foe(ctx));
+      putBlock(ctx, c + 6, 5, 'question', 'powerup');
+      return 15;
+    }
+
+    case 'gem_trap': {
+      // Gemas sobre un foso custodiado: premio tentador, castigo si fallas.
+      carvePit(ctx, c + 3, 7);
+      for (let k = c + 3; k <= c + 9; k += 2) putBlock(ctx, k, 9, 'brick');
+      addCoinArc(ctx, c + 3, 7, 4.8);
+      addEnemy(ctx, c + 6, 8, 'spiny');
+      addEnemy(ctx, c + 8, 8, 'thief');
+      putBlock(ctx, c + 9, 5, 'question', 'one_up');
+      return 14;
+    }
+
+    case 'shadow_corridor': {
+      // Corredor con techo bajo, monedas y una urraca al acecho.
+      for (let k = c + 2; k <= c + 13; k++) putBlock(ctx, k, 3, 'hard');
+      for (let k = c + 3; k <= c + 12; k++) addCoin(ctx, k, 10.4);
+      addEnemy(ctx, c + 5, GROUND_ROW - 1, 'thief');
+      addEnemy(ctx, c + 9, GROUND_ROW - 1, foe(ctx));
+      putBlock(ctx, c + 7, 8, 'hidden', 'one_up');
+      return 16;
+    }
+
+    // =====================================================================
+    // MUNDO 8 · ECO — setpieces de coordinación/espejo
+    // =====================================================================
+    case 'echo_hall': {
+      // Salón simétrico: bloques espejo a ambos lados y monedas en el eje.
+      const mid = c + 7;
+      for (let k = 0; k < 4; k++) {
+        putBlock(ctx, mid - 1 - k, 7 + (k % 2), 'brick');
+        putBlock(ctx, mid + 1 + k, 7 + (k % 2), 'brick');
+      }
+      for (let k = c + 3; k <= c + 11; k++) addCoin(ctx, k, 5.3);
+      addEnemy(ctx, c + 4, GROUND_ROW - 1, foe(ctx));
+      addEnemy(ctx, c + 10, GROUND_ROW - 1, foe(ctx));
+      putBlock(ctx, mid, 4, 'question', 'powerup');
+      return 15;
+    }
+
+    case 'mirror_jump': {
+      // Plataformas paralelas en zigzag con monedas arriba.
+      for (let k = 0; k < 4; k++) {
+        putBlock(ctx, c + 2 + k * 3, 8 - (k % 2) * 2, 'hard');
+      }
+      for (let k = c + 3; k <= c + 12; k++) addCoin(ctx, k, 5.5);
+      addEnemy(ctx, c + 11, GROUND_ROW - 1, foe(ctx));
+      return 14;
+    }
+
+    case 'twin_gate': {
+      // Dos portones: solo el hueco alineado deja pasar.
+      for (let row = 6; row < GROUND_ROW; row++) {
+        if (row !== 8) {
+          putBlock(ctx, c + 3, row, 'hard');
+          putBlock(ctx, c + 9, row, 'hard');
+        }
+      }
+      for (let k = c + 4; k <= c + 8; k++) addCoin(ctx, k, 9.3);
+      addEnemy(ctx, c + 6, GROUND_ROW - 1, 'spiny');
+      return 13;
     }
   }
 }
@@ -977,6 +1162,30 @@ const DIM_FORTRESS_PLANS: FortressSection[][] = [
   ['pillar_hops', 'lava_staircase', 'cramped_hall', 'lift_chasm', 'dual_route', 'vertical_lift', 'guard_corridor', 'lava_pillar', 'supply_room'],
 ];
 
+// Mundo 6 FORTUNA: castillos con rutas de riesgo y salas de botín.
+const FORTUNE_FORTRESS_PLANS: FortressSection[][] = [
+  ['dual_route', 'pillar_hops', 'lift_chasm', 'guard_corridor', 'supply_room'],
+  ['guard_corridor', 'lift_chasm', 'pillar_hops', 'vertical_lift', 'dual_route', 'supply_room'],
+  ['lava_staircase', 'pillar_hops', 'guard_corridor', 'lift_chasm', 'dual_route', 'supply_room'],
+  ['vertical_lift', 'guard_corridor', 'lift_chasm', 'pillar_hops', 'lava_staircase', 'dual_route', 'supply_room'],
+];
+
+// Mundo 7 ESPECTRO: castillos con pasillos cerrados y botín robado.
+const MIRAGE_FORTRESS_PLANS: FortressSection[][] = [
+  ['cramped_hall', 'dual_route', 'lift_chasm', 'pillar_hops', 'supply_room'],
+  ['pillar_hops', 'cramped_hall', 'guard_corridor', 'vertical_lift', 'lift_chasm', 'supply_room'],
+  ['dual_route', 'cramped_hall', 'lava_staircase', 'guard_corridor', 'lift_chasm', 'supply_room'],
+  ['guard_corridor', 'vertical_lift', 'cramped_hall', 'pillar_hops', 'dual_route', 'lift_chasm', 'supply_room'],
+];
+
+// Mundo 8 ECO: castillos con salas simétricas y pasillos cerrados.
+const ECHO_FORTRESS_PLANS: FortressSection[][] = [
+  ['dual_route', 'pillar_hops', 'lift_chasm', 'guard_corridor', 'supply_room'],
+  ['guard_corridor', 'vertical_lift', 'pillar_hops', 'lift_chasm', 'dual_route', 'supply_room'],
+  ['lava_staircase', 'guard_corridor', 'pillar_hops', 'lift_chasm', 'dual_route', 'supply_room'],
+  ['vertical_lift', 'dual_route', 'cramped_hall', 'pillar_hops', 'lift_chasm', 'supply_room'],
+];
+
 function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: FortressBoss } {
   // Opening hall + powerup
   putBlock(ctx, 9, 8, 'brick');
@@ -987,6 +1196,12 @@ function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: Fortres
   const plans =
     ctx.partition === 'expedition' || ctx.partition === 'frontier'
       ? EXP_FORTRESS_PLANS
+      : ctx.partition === 'fortune'
+      ? FORTUNE_FORTRESS_PLANS
+      : ctx.partition === 'mirage'
+      ? MIRAGE_FORTRESS_PLANS
+      : ctx.partition === 'echo'
+      ? ECHO_FORTRESS_PLANS
       : ctx.partition === 'dimension'
       ? DIM_FORTRESS_PLANS
       : FORTRESS_PLANS;
@@ -1158,12 +1373,78 @@ const DIM_STAGE_PLANS: Record<number, SetpieceKind[]> = {
   30: ['moving_lift_chasm', 'double_deck_secret', 'stepping_pillars', 'pipe_maze', 'twin_lifts', 'brick_ceiling_run', 'spring_cliff_vault', 'spiny_fire_alley'],
 };
 
+// Mundo 6 FORTUNA: planes largos (10-12 piezas) con vocabulario de apuesta.
+const FORTUNE_STAGE_PLANS: Record<number, SetpieceKind[]> = {
+  // F: Casa de Fortuna
+  0: ['bet_altar', 'coin_press', 'double_or_nothing', 'foe_parade', 'stepping_pillars', 'coin_heaven_spring', 'bet_altar', 'shell_bowling', 'double_or_nothing', 'piranha_terrace'],
+  1: ['coin_press', 'twin_lifts', 'bet_altar', 'sky_bridge_paratroopa', 'double_or_nothing', 'foe_parade', 'spring_cliff_vault', 'coin_press', 'bet_altar', 'hidden_stairway'],
+  2: ['double_or_nothing', 'lift_wall', 'bet_altar', 'coin_press', 'pyramid_gauntlet', 'foe_parade', 'bet_altar', 'moving_lift_chasm', 'coin_heaven_spring', 'double_or_nothing'],
+  // Q: Mercado de Espejos
+  4: ['coin_press', 'bet_altar', 'foe_parade', 'double_or_nothing', 'stepping_pillars', 'bet_altar', 'shell_bowling', 'coin_heaven_spring', 'lift_wall', 'coin_press'],
+  5: ['bet_altar', 'twin_lifts', 'double_or_nothing', 'piranha_terrace', 'coin_press', 'sky_bridge_paratroopa', 'bet_altar', 'hidden_stairway', 'foe_parade', 'double_or_nothing'],
+  6: ['double_or_nothing', 'coin_press', 'bet_altar', 'lift_wall', 'moving_lift_chasm', 'foe_parade', 'coin_heaven_spring', 'bet_altar', 'stepping_pillars', 'shell_bowling'],
+  // K: Ruleta de Cristal
+  8: ['bet_altar', 'foe_parade', 'double_or_nothing', 'coin_press', 'twin_lifts', 'bet_altar', 'sky_bridge_paratroopa', 'coin_heaven_spring', 'lift_wall', 'double_or_nothing'],
+  9: ['coin_press', 'bet_altar', 'moving_lift_chasm', 'double_or_nothing', 'foe_parade', 'bet_altar', 'shell_bowling', 'hidden_stairway', 'coin_press', 'stepping_pillars'],
+  10: ['double_or_nothing', 'bet_altar', 'lift_wall', 'coin_press', 'piranha_terrace', 'foe_parade', 'bet_altar', 'twin_lifts', 'coin_heaven_spring', 'double_or_nothing'],
+  // Z: Bóveda del Azar
+  12: ['bet_altar', 'double_or_nothing', 'coin_press', 'foe_parade', 'sky_bridge_paratroopa', 'bet_altar', 'shell_bowling', 'moving_lift_chasm', 'double_or_nothing', 'coin_heaven_spring'],
+  13: ['double_or_nothing', 'sky_bridge_paratroopa', 'bet_altar', 'twin_lifts', 'pyramid_gauntlet', 'coin_press', 'brick_ceiling_run', 'double_deck_secret', 'bet_altar', 'spring_cliff_vault'],
+  14: ['sky_bridge_paratroopa', 'hidden_stairway', 'bet_altar', 'double_deck_secret', 'coin_press', 'brick_ceiling_run', 'bet_altar', 'twin_lifts', 'pyramid_gauntlet', 'double_or_nothing'],
+};
+
+// Mundo 7 ESPECTRO: planes largos con vocabulario de robo/recuperación.
+const MIRAGE_STAGE_PLANS: Record<number, SetpieceKind[]> = {
+  // W: Telar de Humo
+  0: ['thief_nest', 'shadow_corridor', 'gem_trap', 'foe_parade', 'stepping_pillars', 'thief_nest', 'coin_heaven_spring', 'shadow_corridor', 'gem_trap', 'twin_lifts'],
+  1: ['gem_trap', 'thief_nest', 'shadow_corridor', 'sky_bridge_paratroopa', 'gem_trap', 'foe_parade', 'thief_nest', 'hidden_stairway', 'shadow_corridor', 'pipe_maze'],
+  2: ['shadow_corridor', 'gem_trap', 'thief_nest', 'lift_wall', 'foe_parade', 'shadow_corridor', 'coin_heaven_spring', 'gem_trap', 'thief_nest', 'moving_lift_chasm'],
+  // X: Mercado Negro
+  4: ['thief_nest', 'gem_trap', 'shadow_corridor', 'stepping_pillars', 'thief_nest', 'foe_parade', 'gem_trap', 'shell_bowling', 'shadow_corridor', 'twin_lifts'],
+  5: ['gem_trap', 'shadow_corridor', 'thief_nest', 'piranha_terrace', 'gem_trap', 'lift_wall', 'thief_nest', 'sky_bridge_paratroopa', 'shadow_corridor', 'foe_parade'],
+  6: ['shadow_corridor', 'thief_nest', 'gem_trap', 'moving_lift_chasm', 'shadow_corridor', 'coin_heaven_spring', 'thief_nest', 'foe_parade', 'gem_trap', 'hidden_stairway'],
+  // U: Nido de Urracas
+  8: ['thief_nest', 'shadow_corridor', 'gem_trap', 'foe_parade', 'twin_lifts', 'thief_nest', 'stepping_pillars', 'shadow_corridor', 'gem_trap', 'shell_bowling'],
+  9: ['gem_trap', 'thief_nest', 'shadow_corridor', 'lift_wall', 'gem_trap', 'moving_lift_chasm', 'thief_nest', 'coin_heaven_spring', 'shadow_corridor', 'foe_parade'],
+  10: ['shadow_corridor', 'gem_trap', 'thief_nest', 'sky_bridge_paratroopa', 'shadow_corridor', 'foe_parade', 'gem_trap', 'thief_nest', 'twin_lifts', 'coin_heaven_spring'],
+  // Y: Corona Robada
+  12: ['thief_nest', 'shadow_corridor', 'gem_trap', 'stepping_pillars', 'thief_nest', 'shell_bowling', 'gem_trap', 'shadow_corridor', 'foe_parade', 'lift_wall'],
+  13: ['gem_trap', 'shadow_corridor', 'thief_nest', 'pipe_maze', 'gem_trap', 'foe_parade', 'thief_nest', 'sky_bridge_paratroopa', 'shadow_corridor', 'hidden_stairway'],
+  14: ['shadow_corridor', 'thief_nest', 'gem_trap', 'moving_lift_chasm', 'shadow_corridor', 'foe_parade', 'thief_nest', 'coin_heaven_spring', 'gem_trap', 'twin_lifts'],
+};
+
+// Mundo 8 ECO: planes largos con vocabulario de coordinación/espejo.
+const ECHO_STAGE_PLANS: Record<number, SetpieceKind[]> = {
+  // E: Palacio de Espejos
+  0: ['echo_hall', 'twin_gate', 'mirror_jump', 'foe_parade', 'stepping_pillars', 'echo_hall', 'coin_heaven_spring', 'twin_gate', 'mirror_jump', 'twin_lifts'],
+  1: ['mirror_jump', 'echo_hall', 'twin_gate', 'sky_bridge_paratroopa', 'mirror_jump', 'foe_parade', 'echo_hall', 'hidden_stairway', 'twin_gate', 'pipe_maze'],
+  2: ['twin_gate', 'mirror_jump', 'echo_hall', 'lift_wall', 'foe_parade', 'twin_gate', 'coin_heaven_spring', 'mirror_jump', 'echo_hall', 'moving_lift_chasm'],
+  // P: Ciudad Eco
+  4: ['echo_hall', 'twin_gate', 'mirror_jump', 'stepping_pillars', 'echo_hall', 'foe_parade', 'twin_gate', 'shell_bowling', 'mirror_jump', 'twin_lifts'],
+  5: ['mirror_jump', 'echo_hall', 'twin_gate', 'piranha_terrace', 'mirror_jump', 'lift_wall', 'echo_hall', 'sky_bridge_paratroopa', 'twin_gate', 'foe_parade'],
+  6: ['twin_gate', 'echo_hall', 'mirror_jump', 'moving_lift_chasm', 'twin_gate', 'coin_heaven_spring', 'echo_hall', 'foe_parade', 'mirror_jump', 'hidden_stairway'],
+  // N: Cámara de Resonancia
+  8: ['echo_hall', 'twin_gate', 'mirror_jump', 'foe_parade', 'twin_lifts', 'echo_hall', 'stepping_pillars', 'twin_gate', 'mirror_jump', 'shell_bowling'],
+  9: ['mirror_jump', 'echo_hall', 'twin_gate', 'lift_wall', 'mirror_jump', 'moving_lift_chasm', 'echo_hall', 'coin_heaven_spring', 'twin_gate', 'foe_parade'],
+  10: ['twin_gate', 'mirror_jump', 'echo_hall', 'sky_bridge_paratroopa', 'twin_gate', 'foe_parade', 'mirror_jump', 'echo_hall', 'twin_lifts', 'coin_heaven_spring'],
+  // T: Cúpula del Tiempo
+  12: ['echo_hall', 'twin_gate', 'mirror_jump', 'stepping_pillars', 'echo_hall', 'shell_bowling', 'mirror_jump', 'twin_gate', 'foe_parade', 'lift_wall'],
+  13: ['mirror_jump', 'echo_hall', 'twin_gate', 'pipe_maze', 'mirror_jump', 'foe_parade', 'echo_hall', 'sky_bridge_paratroopa', 'twin_gate', 'hidden_stairway'],
+  14: ['twin_gate', 'echo_hall', 'mirror_jump', 'moving_lift_chasm', 'twin_gate', 'foe_parade', 'echo_hall', 'coin_heaven_spring', 'mirror_jump', 'twin_lifts'],
+};
+
 function buildCuratedWorldStage(ctx: BuilderCtx): number {
   const seq =
     ctx.partition === 'expedition'
       ? EXP_STAGE_PLANS[ctx.designIndex] ?? EXP_STAGE_PLANS[0]
       : ctx.partition === 'frontier'
       ? EXP_STAGE_PLANS[ctx.designIndex] ?? EXP_STAGE_PLANS[20]
+      : ctx.partition === 'fortune'
+      ? FORTUNE_STAGE_PLANS[ctx.levelIndex] ?? FORTUNE_STAGE_PLANS[0]
+      : ctx.partition === 'mirage'
+      ? MIRAGE_STAGE_PLANS[ctx.levelIndex] ?? MIRAGE_STAGE_PLANS[0]
+      : ctx.partition === 'echo'
+      ? ECHO_STAGE_PLANS[ctx.levelIndex] ?? ECHO_STAGE_PLANS[0]
       : ctx.partition === 'dimension'
       ? DIM_STAGE_PLANS[ctx.levelIndex] ?? DIM_STAGE_PLANS[0]
       : STAGE_PLANS[ctx.levelIndex] ?? STAGE_PLANS[2];
@@ -1223,13 +1504,25 @@ export function buildWorldState(
     );
   }
   // Clásico, Expedición, Mundo 5 y Dimensión comparten este constructor
-  const isGenerated = partition === 'expedition' || partition === 'frontier' || partition === 'dimension';
+  const isGenerated =
+    partition === 'expedition' ||
+    partition === 'frontier' ||
+    partition === 'fortune' ||
+    partition === 'mirage' ||
+    partition === 'echo' ||
+    partition === 'dimension';
   const ownPartition: GamePartition = isGenerated ? partition : 'classic';
   const totalStages =
     partition === 'expedition'
       ? EXP_TOTAL_LEVELS
       : partition === 'frontier'
       ? FRONTIER_TOTAL_LEVELS
+      : partition === 'fortune'
+      ? FORTUNE_TOTAL_LEVELS
+      : partition === 'mirage'
+      ? MIRAGE_TOTAL_LEVELS
+      : partition === 'echo'
+      ? ECHO_TOTAL_LEVELS
       : partition === 'dimension'
       ? DIM_TOTAL_LEVELS
       : TOTAL_LEVELS;
@@ -1403,6 +1696,12 @@ export function buildWorldState(
         ? DIM_STAGE_TITLES
         : partition === 'frontier'
         ? EXP_STAGE_TITLES.slice(20)
+        : partition === 'fortune'
+        ? FORTUNE_STAGE_TITLES
+        : partition === 'mirage'
+        ? MIRAGE_STAGE_TITLES
+        : partition === 'echo'
+        ? ECHO_STAGE_TITLES
         : isGenerated
         ? EXP_STAGE_TITLES
         : STAGE_TITLES)[clampedIdx] ??

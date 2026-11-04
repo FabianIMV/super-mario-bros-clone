@@ -62,6 +62,9 @@ export const PauseModal: React.FC<PauseProps> = ({
           isSmw && { borderColor: '#4ade80' },
           partition === 'expedition' && { borderColor: '#a78bfa' },
           partition === 'frontier' && { borderColor: '#38bdf8' },
+          partition === 'fortune' && { borderColor: '#f59e0b' },
+          partition === 'mirage' && { borderColor: '#a78bfa' },
+          partition === 'echo' && { borderColor: '#2dd4bf' },
         ]}
       >
         <Text style={[styles.title, { fontFamily }]}>
@@ -72,6 +75,12 @@ export const PauseModal: React.FC<PauseProps> = ({
               ? 'PAUSA • EXPEDICIÓN'
               : isFrontier
               ? 'PAUSA • MUNDO 5 · FRONTERA'
+              : partition === 'fortune'
+              ? 'PAUSA • MUNDO 6 · FORTUNA'
+              : partition === 'mirage'
+              ? 'PAUSA • MUNDO 7 · ESPECTRO'
+              : partition === 'echo'
+              ? 'PAUSA • MUNDO 8 · ECO'
               : partition === 'dimension'
               ? 'PAUSA • DIMENSIÓN 3D'
               : 'PAUSA • PLOMERO BROS'
@@ -215,6 +224,12 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
                 ? '#c4b5fd'
                 : isFrontier
                 ? '#7dd3fc'
+                : partition === 'fortune'
+                ? '#fde68a'
+                : partition === 'mirage'
+                ? '#e9d5ff'
+                : partition === 'echo'
+                ? '#99f6e4'
                 : partition === 'dimension'
                 ? '#a5f3fc'
                 : '#f87171',
@@ -227,6 +242,12 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
             ? '🧭 PLOMERO EXPEDICIÓN'
             : isFrontier
             ? '🌊 PLOMERO MUNDO 5'
+            : partition === 'fortune'
+            ? '🎰 PLOMERO FORTUNA'
+            : partition === 'mirage'
+            ? '👻 PLOMERO ESPECTRO'
+            : partition === 'echo'
+            ? '🪞 PLOMERO ECO'
             : partition === 'dimension'
             ? '🧊 PLOMERO DIMENSIÓN 3D'
             : '🍄 SUPER PLOMERO BROS'}
@@ -263,6 +284,12 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
                 ? '¡EXPEDICIÓN COMPLETADA!'
                 : isFrontier
                 ? '¡MUNDO 5 COMPLETADO!'
+                : partition === 'fortune'
+                ? '¡FORTUNA COMPLETADA!'
+                : partition === 'mirage'
+                ? '¡ESPECTRO COMPLETADO!'
+                : partition === 'echo'
+                ? '¡ECO COMPLETADO!'
                 : partition === 'dimension'
                 ? '¡DIMENSIÓN CONQUISTADA!'
                 : '¡CAMPEÓN DE LOS 6 REINOS!'
@@ -277,6 +304,12 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
                 ? '¡Cruzaste los 5 mundos de Expedición, incluido el Mundo 5 de Marea Espejo y Valle Vítreo: 28 niveles!'
                 : isFrontier
                 ? '¡Cruzaste Marea Espejo y Valle Vítreo: 8 etapas 2D!'
+                : partition === 'fortune'
+                ? '¡Apostaste y venciste los 4 mundos de Fortuna: 16 niveles de riesgo y recompensa!'
+                : partition === 'mirage'
+                ? '¡Recuperaste cada gema robada y cruzaste los 4 mundos de Espectro: 16 niveles!'
+                : partition === 'echo'
+                ? '¡Coordinaste con tu reflejo y cruzaste los 4 mundos de Eco: 16 niveles!'
                 : partition === 'dimension'
                 ? '¡Cruzaste los 8 mundos de la Dimensión hasta el Núcleo Cósmico: 32 niveles en 3D!'
                 : '¡Derrotaste al Rey Koopa en la Fortaleza Final y liberaste los 24 niveles!'

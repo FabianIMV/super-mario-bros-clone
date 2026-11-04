@@ -104,11 +104,11 @@ export const HudOverlay: React.FC<Props> = ({ hud, pixelFontLoaded, onPausePress
           <Text style={[styles.statLabel, { fontFamily, color: '#4ade80' }]}>
             {isSmw
               ? 'ISLA'
-              : hud.partition === 'classic'
-              ? 'MUNDO'
-              : isFrontier
+              : hud.partition === 'frontier'
               ? 'REGIÓN'
-              : 'ZONA'}
+              : hud.partition === 'expedition' || hud.partition === 'dimension'
+              ? 'ZONA'
+              : 'MUNDO'}
           </Text>
           <Text style={[styles.statValue, { fontFamily }]}>{hud.worldLabel}</Text>
         </View>
