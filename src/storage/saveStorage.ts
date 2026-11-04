@@ -18,6 +18,10 @@ export const DEFAULT_PROGRESS: SaveProgress = {
   expUnlockedLevel: 0,
   expClearedLevels: [],
   expBestStageScores: {},
+  frontierHighScore: 0,
+  frontierUnlockedLevel: 0,
+  frontierClearedLevels: [],
+  frontierBestStageScores: {},
   lastPartition: 'smw',
 };
 
@@ -49,6 +53,10 @@ export async function loadProgress(): Promise<SaveProgress> {
       expUnlockedLevel: typeof parsed.expUnlockedLevel === 'number' ? parsed.expUnlockedLevel : 0,
       expClearedLevels: Array.isArray(parsed.expClearedLevels) ? parsed.expClearedLevels : [],
       expBestStageScores: parsed.expBestStageScores ?? {},
+      frontierHighScore: typeof parsed.frontierHighScore === 'number' ? parsed.frontierHighScore : 0,
+      frontierUnlockedLevel: typeof parsed.frontierUnlockedLevel === 'number' ? parsed.frontierUnlockedLevel : 0,
+      frontierClearedLevels: Array.isArray(parsed.frontierClearedLevels) ? parsed.frontierClearedLevels : [],
+      frontierBestStageScores: parsed.frontierBestStageScores ?? {},
       dimHighScore: typeof parsed.dimHighScore === 'number' ? parsed.dimHighScore : 0,
       dimUnlockedLevel: typeof parsed.dimUnlockedLevel === 'number' ? parsed.dimUnlockedLevel : 0,
       dimClearedLevels: Array.isArray(parsed.dimClearedLevels) ? parsed.dimClearedLevels : [],
@@ -57,6 +65,7 @@ export async function loadProgress(): Promise<SaveProgress> {
         parsed.lastPartition === 'classic' ||
         parsed.lastPartition === 'smw' ||
         parsed.lastPartition === 'expedition' ||
+        parsed.lastPartition === 'frontier' ||
         parsed.lastPartition === 'dimension'
           ? parsed.lastPartition
           : 'smw',

@@ -2,6 +2,7 @@ import {
   BIOMES,
   DIM_TOTAL_LEVELS,
   EXP_TOTAL_LEVELS,
+  FRONTIER_TOTAL_LEVELS,
   GROUND_ROW,
   MIN_CAMERA_WORLD_X,
   STAGES_PER_WORLD,
@@ -68,7 +69,7 @@ const STAGE_TITLES: string[] = [
   'Trono del Rey Koopa',
 ];
 
-// Modo Expedición (original): títulos de sus 28 etapas
+// Modo Expedición (original): títulos de sus 20 etapas
 const EXP_STAGE_TITLES: string[] = [
   'Bahía de las Burbujas',
   'Bosque de Coral',
@@ -184,6 +185,7 @@ export function createInitialPlayer(
 
 interface BuilderCtx {
   levelIndex: number;
+  designIndex: number;
   worldNum: number;
   stageNum: number;
   difficulty: number;
@@ -426,12 +428,13 @@ const EXP_ROSTERS: EnemyType[][] = [
 /** Next ground foe from the current world's roster (deterministic rotation). */
 function foe(ctx: BuilderCtx): EnemyType {
   const rosters =
-    ctx.partition === 'expedition'
+    ctx.partition === 'expedition' || ctx.partition === 'frontier'
       ? EXP_ROSTERS
       : ctx.partition === 'dimension'
       ? DIM_ROSTERS
       : CLASSIC_ROSTERS;
-  const roster = rosters[Math.min(rosters.length - 1, ctx.worldNum - 1)];
+  const rosterWorld = ctx.partition === 'frontier' ? Math.floor(ctx.designIndex / STAGES_PER_WORLD) : ctx.worldNum - 1;
+  const roster = rosters[Math.min(rosters.length - 1, rosterWorld)];
   const type = roster[ctx.enemySeq % roster.length];
   ctx.enemySeq++;
   return type;
@@ -982,12 +985,13 @@ function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: Fortres
   addEnemy(ctx, 15, GROUND_ROW - 1, foe(ctx));
 
   const plans =
-    ctx.partition === 'expedition'
+    ctx.partition === 'expedition' || ctx.partition === 'frontier'
       ? EXP_FORTRESS_PLANS
       : ctx.partition === 'dimension'
       ? DIM_FORTRESS_PLANS
       : FORTRESS_PLANS;
-  const plan = plans[Math.min(plans.length - 1, ctx.worldNum - 1)];
+  const planWorld = ctx.partition === 'frontier' ? Math.floor(ctx.designIndex / STAGES_PER_WORLD) : ctx.worldNum - 1;
+  const plan = plans[Math.min(plans.length - 1, planWorld)];
   let cursor = 18;
   for (const section of plan) {
     cursor += buildFortressSection(ctx, section, cursor) + 2;
@@ -1157,7 +1161,9 @@ const DIM_STAGE_PLANS: Record<number, SetpieceKind[]> = {
 function buildCuratedWorldStage(ctx: BuilderCtx): number {
   const seq =
     ctx.partition === 'expedition'
-      ? EXP_STAGE_PLANS[ctx.levelIndex] ?? EXP_STAGE_PLANS[0]
+      ? EXP_STAGE_PLANS[ctx.designIndex] ?? EXP_STAGE_PLANS[0]
+      : ctx.partition === 'frontier'
+      ? EXP_STAGE_PLANS[ctx.designIndex] ?? EXP_STAGE_PLANS[20]
       : ctx.partition === 'dimension'
       ? DIM_STAGE_PLANS[ctx.levelIndex] ?? DIM_STAGE_PLANS[0]
       : STAGE_PLANS[ctx.levelIndex] ?? STAGE_PLANS[2];
@@ -1216,11 +1222,17 @@ export function buildWorldState(
       )
     );
   }
-  // Clásico, Expedición y Dimensión comparten este constructor
-  const isExp = partition === 'expedition' || partition === 'dimension';
-  const ownPartition: GamePartition = isExp ? partition : 'classic';
+  // Clásico, Expedición, Mundo 5 y Dimensión comparten este constructor
+  const isGenerated = partition === 'expedition' || partition === 'frontier' || partition === 'dimension';
+  const ownPartition: GamePartition = isGenerated ? partition : 'classic';
   const totalStages =
-    partition === 'expedition' ? EXP_TOTAL_LEVELS : partition === 'dimension' ? DIM_TOTAL_LEVELS : TOTAL_LEVELS;
+    partition === 'expedition'
+      ? EXP_TOTAL_LEVELS
+      : partition === 'frontier'
+      ? FRONTIER_TOTAL_LEVELS
+      : partition === 'dimension'
+      ? DIM_TOTAL_LEVELS
+      : TOTAL_LEVELS;
   const clampedIdx = Math.max(0, Math.min(levelIndex, totalStages - 1));
   const worldNum = Math.floor(clampedIdx / STAGES_PER_WORLD) + 1;
   const stageNum = (clampedIdx % STAGES_PER_WORLD) + 1;
@@ -1229,6 +1241,7 @@ export function buildWorldState(
 
   const ctx: BuilderCtx = {
     levelIndex: clampedIdx,
+    designIndex: partition === 'frontier' ? clampedIdx + 20 : clampedIdx,
     worldNum,
     stageNum,
     difficulty: 1 + clampedIdx * 0.055,
@@ -1255,9 +1268,9 @@ export function buildWorldState(
     const built = buildFortressStage(ctx);
     totalCols = built.totalCols;
     boss = built.boss;
-  } else if (!isExp && clampedIdx === 0) {
+  } else if (!isGenerated && clampedIdx === 0) {
     totalCols = buildStage1_1(ctx);
-  } else if (!isExp && clampedIdx === 1) {
+  } else if (!isGenerated && clampedIdx === 1) {
     totalCols = buildStage1_2(ctx);
   } else {
     totalCols = buildCuratedWorldStage(ctx);
@@ -1386,7 +1399,13 @@ export function buildWorldState(
     levelIndex: clampedIdx,
     worldLabel: getWorldLabel(clampedIdx, ctx.partition),
     stageTitle:
-      (partition === 'dimension' ? DIM_STAGE_TITLES : isExp ? EXP_STAGE_TITLES : STAGE_TITLES)[clampedIdx] ??
+      (partition === 'dimension'
+        ? DIM_STAGE_TITLES
+        : partition === 'frontier'
+        ? EXP_STAGE_TITLES.slice(20)
+        : isGenerated
+        ? EXP_STAGE_TITLES
+        : STAGE_TITLES)[clampedIdx] ??
       `Etapa ${getWorldLabel(clampedIdx, ctx.partition)}`,
     biomeId,
     totalCols,

@@ -7,6 +7,8 @@ import {
   DIM_WORLD_NAMES,
   EXP_WORLDS,
   EXP_WORLD_NAMES,
+  FRONTIER_WORLDS,
+  FRONTIER_WORLD_NAMES,
   SMW_WORLDS,
   STAGES_PER_WORLD,
   TOTAL_WORLDS,
@@ -53,12 +55,23 @@ export const WorldSelectModal: React.FC<Props> = ({
 
   const isSmw = partition === 'smw';
   const isExp = partition === 'expedition';
+  const isFrontier = partition === 'frontier';
   const isDim = partition === 'dimension';
-  const worldCount = isSmw ? SMW_WORLDS : isExp ? EXP_WORLDS : isDim ? DIM_WORLDS : TOTAL_WORLDS;
+  const worldCount = isSmw
+    ? SMW_WORLDS
+    : isExp
+    ? EXP_WORLDS
+    : isFrontier
+    ? FRONTIER_WORLDS
+    : isDim
+    ? DIM_WORLDS
+    : TOTAL_WORLDS;
   const worldNames = isSmw
     ? SMW_WORLD_NAMES
     : isExp
     ? EXP_WORLD_NAMES
+    : isFrontier
+    ? FRONTIER_WORLD_NAMES
     : isDim
     ? DIM_WORLD_NAMES
     : CLASSIC_WORLD_NAMES;
@@ -66,8 +79,6 @@ export const WorldSelectModal: React.FC<Props> = ({
   const unlockedIdx = pp.unlocked;
   const clearedList = pp.cleared;
   const accent = PARTITION_INFO[partition].accent;
-  const expeditionWorldStarts = [0, 4, 8, 12, 20];
-  const expeditionWorldStageCounts = [4, 4, 4, 8, 8];
 
   return (
     <View
@@ -81,7 +92,13 @@ export const WorldSelectModal: React.FC<Props> = ({
         },
       ]}
     >
-      <View style={[styles.panel, partition !== 'classic' && { borderColor: accent }]}>
+      <View
+        style={[
+          styles.panel,
+          partition !== 'classic' && { borderColor: accent },
+          isFrontier && styles.panelFrontier,
+        ]}
+      >
         <View style={styles.header}>
           <View style={styles.titleBlock}>
             <Text
@@ -90,6 +107,7 @@ export const WorldSelectModal: React.FC<Props> = ({
                 { fontFamily },
                 isSmw && { color: '#86efac' },
                 isExp && { color: '#c4b5fd' },
+                isFrontier && { color: '#bae6fd' },
                 isDim && { color: '#a5f3fc' },
               ]}
             >
@@ -120,6 +138,8 @@ export const WorldSelectModal: React.FC<Props> = ({
                     ? '🦕 WORLD'
                     : part === 'expedition'
                     ? '🧭 EXPED.'
+                    : part === 'frontier'
+                    ? '🌊 MUNDO 5'
                     : '🧊 3D'}
                 </Text>
               </Pressable>
@@ -148,13 +168,14 @@ export const WorldSelectModal: React.FC<Props> = ({
           showsVerticalScrollIndicator={false}
         >
           {Array.from({ length: worldCount }, (_, wIdx) => {
-            const worldStart =
-              isExp ? expeditionWorldStarts[wIdx] ?? wIdx * STAGES_PER_WORLD : wIdx * STAGES_PER_WORLD;
-            const stageCount =
-              isExp ? expeditionWorldStageCounts[wIdx] ?? STAGES_PER_WORLD : STAGES_PER_WORLD;
+            const worldStart = wIdx * STAGES_PER_WORLD;
+            const stageCount = STAGES_PER_WORLD;
             const primaryBiome = BIOMES[getStageBiome(worldStart, partition)];
             return (
-              <View key={`${partition}_${wIdx}`} style={styles.worldCard}>
+              <View
+                key={`${partition}_${wIdx}`}
+                style={[styles.worldCard, isFrontier && styles.worldCardFrontier]}
+              >
                 <View style={styles.worldHeaderRow}>
                   <View
                     style={[styles.worldSwatch, { backgroundColor: primaryBiome.groundCap }]}
@@ -179,6 +200,7 @@ export const WorldSelectModal: React.FC<Props> = ({
                         style={({ pressed }) => [
                           styles.stageBtn,
                           isSmw && styles.stageBtnSmw,
+                          isFrontier && styles.stageBtnFrontier,
                           isBoss && styles.stageBtnBoss,
                           !unlocked && styles.stageBtnLocked,
                           cleared && styles.stageBtnCleared,
@@ -227,6 +249,9 @@ const styles = StyleSheet.create({
     borderColor: '#facc15',
     borderRadius: 14,
     padding: 12,
+  },
+  panelFrontier: {
+    backgroundColor: '#071a2b',
   },
   header: {
     flexDirection: 'row',
@@ -306,6 +331,10 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     padding: 9,
   },
+  worldCardFrontier: {
+    backgroundColor: '#0c2a43',
+    borderColor: '#155e75',
+  },
   worldHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -338,6 +367,10 @@ const styles = StyleSheet.create({
   },
   stageBtnSmw: {
     backgroundColor: '#0284c7',
+    borderColor: '#7dd3fc',
+  },
+  stageBtnFrontier: {
+    backgroundColor: '#075985',
     borderColor: '#7dd3fc',
   },
   stageBtnBoss: {
