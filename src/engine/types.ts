@@ -587,7 +587,7 @@ export interface SaveProgress {
   smwUnlockedLevel: number;
   smwClearedLevels: number[];
   smwBestStageScores: Record<number, number>;
-  // Modo 3: Plomero Expedición (20 niveles)
+  // Modo 3: Plomero Expedición (28 niveles)
   expHighScore?: number;
   expUnlockedLevel?: number;
   expClearedLevels?: number[];

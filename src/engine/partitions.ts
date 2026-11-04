@@ -44,10 +44,10 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     subtitleColor: '#bbf7d0',
   },
   expedition: {
-    tab: '🧭 EXPEDICIÓN (20)',
-    edition: 'NUEVA AVENTURA • 5 MUNDOS ORIGINALES',
+    tab: '🧭 EXPEDICIÓN (28)',
+    edition: 'NUEVA AVENTURA • 7 MUNDOS ORIGINALES',
     subtitle: 'EXPEDICIÓN',
-    worldsLabel: '5 MUNDOS',
+    worldsLabel: '7 MUNDOS',
     worldNoun: 'ZONA',
     firstStage: 'A-1',
     hint: 'X lanza la llave inglesa  •  Empuja contra una pared y pulsa A para saltar en pared  •  Corre y pulsa ▼ para barrerte',

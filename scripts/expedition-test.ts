@@ -26,7 +26,7 @@ function assert(cond: unknown, msg: string): void {
 
 console.log('10. Validando el modo Expedición...');
 
-// 10a. Estructura de las 20 etapas
+// 10a. Estructura de las 28 etapas
 const labels = new Set<string>();
 const biomesUsed = new Set<string>();
 for (let i = 0; i < EXP_TOTAL_LEVELS; i++) {
@@ -60,7 +60,9 @@ for (const b of ['reef', 'jungle', 'clockwork', 'cloudland', 'crystal']) {
   assert(biomesUsed.has(b), `El bioma ${b} se usa en Expedición`);
   assert(BIOMES[b as keyof typeof BIOMES].name.length > 0, `El bioma ${b} tiene nombre`);
 }
-assert([...labels].join(' ').startsWith('A-1 A-2 A-3 A-4 S-1'), 'Etiquetas en orden A, S, E, N, C');
+assert([...labels].join(' ').startsWith('A-1 A-2 A-3 A-4 S-1'), 'Etiquetas en orden A, S, E, N, C, M, V');
+assert(labels.has('M-1') && labels.has('V-4'), 'La campaña incluye los dos mundos nuevos');
+assert(biomesUsed.has('reef') && biomesUsed.has('cloudland'), 'Los mundos nuevos mezclan biomas de costa y nubes');
 
 // 10b. Avance: meta → siguiente etapa, castillo → siguiente mundo, última → victoria
 {

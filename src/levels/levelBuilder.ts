@@ -68,7 +68,7 @@ const STAGE_TITLES: string[] = [
   'Trono del Rey Koopa',
 ];
 
-// Modo Expedición (original): títulos de sus 20 etapas
+// Modo Expedición (original): títulos de sus 28 etapas
 const EXP_STAGE_TITLES: string[] = [
   'Bahía de las Burbujas',
   'Bosque de Coral',
@@ -90,6 +90,14 @@ const EXP_STAGE_TITLES: string[] = [
   'Mina de Geodas',
   'Cráter Prismático',
   'Corazón del Volcán',
+  'Espejo de la Marea',
+  'Grutas del Reflujo',
+  'Acantilados de Espuma',
+  'Faro del Horizonte',
+  'Valle de Vidrio',
+  'Galería de Reflejos',
+  'Cañón de Campanas',
+  'Núcleo Vítreo',
 ];
 
 // Modo Dimensión 3D (original): títulos de sus 16 etapas
@@ -411,6 +419,8 @@ const EXP_ROSTERS: EnemyType[][] = [
   ['koopa_red', 'bullet_bill', 'chuck', 'galoomba'], // E: Ciudad Engranaje
   ['paratroopa', 'rex', 'koopa_green', 'spiny'], // N: Reino de Algodón
   ['chuck', 'spiny', 'rex', 'bullet_bill', 'koopa_red'], // C: Volcán Cristal
+  ['paratroopa', 'galoomba', 'bullet_bill', 'koopa_green'], // M: Marea Espejo
+  ['spiny', 'chuck', 'koopa_red', 'rex', 'bullet_bill'], // V: Valle Vítreo
 ];
 
 /** Next ground foe from the current world's roster (deterministic rotation). */
@@ -949,6 +959,8 @@ const EXP_FORTRESS_PLANS: FortressSection[][] = [
   ['lift_chasm', 'dual_route', 'cramped_hall', 'guard_corridor', 'lava_staircase', 'supply_room'],
   ['vertical_lift', 'pillar_hops', 'lift_chasm', 'cramped_hall', 'dual_route', 'lava_pillar', 'supply_room'],
   ['dual_route', 'cramped_hall', 'lava_staircase', 'pillar_hops', 'vertical_lift', 'guard_corridor', 'lift_chasm', 'supply_room'],
+  ['vertical_lift', 'dual_route', 'pillar_hops', 'guard_corridor', 'lava_staircase', 'supply_room'],
+  ['lava_pillar', 'lift_chasm', 'cramped_hall', 'vertical_lift', 'dual_route', 'guard_corridor', 'supply_room'],
 ];
 
 const DIM_FORTRESS_PLANS: FortressSection[][] = [
@@ -1096,6 +1108,14 @@ const EXP_STAGE_PLANS: Record<number, SetpieceKind[]> = {
   16: ['lift_wall', 'pyramid_gauntlet', 'foe_parade', 'twin_lifts', 'piranha_terrace', 'brick_ceiling_run', 'hidden_stairway'],
   17: ['moving_lift_chasm', 'spring_cliff_vault', 'spiny_fire_alley', 'stepping_pillars', 'double_deck_secret', 'lift_wall'],
   18: ['twin_lifts', 'shell_bowling', 'hidden_stairway', 'sky_bridge_paratroopa', 'pyramid_gauntlet', 'coin_heaven_spring', 'foe_parade'],
+  // M: Marea Espejo — long sightlines, mirrored routes, and airborne timing
+  20: ['sky_bridge_paratroopa', 'double_deck_secret', 'moving_lift_chasm', 'coin_heaven_spring', 'foe_parade'],
+  21: ['pipe_maze', 'twin_lifts', 'hidden_stairway', 'spring_cliff_vault', 'shell_bowling', 'lift_wall'],
+  22: ['stepping_pillars', 'piranha_terrace', 'brick_ceiling_run', 'sky_bridge_paratroopa', 'spiny_fire_alley', 'coin_heaven_spring'],
+  // V: Valle Vítreo — tighter hazards, vertical climbs, and a final gauntlet
+  24: ['lift_wall', 'pyramid_gauntlet', 'moving_lift_chasm', 'double_deck_secret', 'foe_parade', 'twin_lifts'],
+  25: ['brick_ceiling_run', 'spiny_fire_alley', 'pipe_maze', 'hidden_stairway', 'sky_bridge_paratroopa', 'spring_cliff_vault'],
+  26: ['piranha_terrace', 'shell_bowling', 'stepping_pillars', 'lift_wall', 'coin_heaven_spring', 'pyramid_gauntlet', 'moving_lift_chasm'],
 };
 
 // Modo Dimensión 3D: un plan propio por etapa

@@ -94,7 +94,7 @@ export const WorldSelectModal: React.FC<Props> = ({
               {isSmw
                 ? 'ISLA DINOSAURIO (20)'
                 : isExp
-                ? 'EXPEDICIÓN (20)'
+                ? 'EXPEDICIÓN (28)'
                 : isDim
                 ? 'DIMENSIÓN 3D (32)'
                 : '6 MUNDOS CLÁSICOS (24)'}
