@@ -66,6 +66,8 @@ export const WorldSelectModal: React.FC<Props> = ({
   const unlockedIdx = pp.unlocked;
   const clearedList = pp.cleared;
   const accent = PARTITION_INFO[partition].accent;
+  const expeditionWorldStarts = [0, 4, 8, 12, 20];
+  const expeditionWorldStageCounts = [4, 4, 4, 8, 8];
 
   return (
     <View
@@ -94,7 +96,7 @@ export const WorldSelectModal: React.FC<Props> = ({
               {isSmw
                 ? 'ISLA DINOSAURIO (20)'
                 : isExp
-                ? 'EXPEDICIÓN (20)'
+                ? 'EXPEDICIÓN (28)'
                 : isDim
                 ? 'DIMENSIÓN 3D (32)'
                 : '6 MUNDOS CLÁSICOS (24)'}
@@ -146,7 +148,11 @@ export const WorldSelectModal: React.FC<Props> = ({
           showsVerticalScrollIndicator={false}
         >
           {Array.from({ length: worldCount }, (_, wIdx) => {
-            const primaryBiome = BIOMES[getStageBiome(wIdx * STAGES_PER_WORLD, partition)];
+            const worldStart =
+              isExp ? expeditionWorldStarts[wIdx] ?? wIdx * STAGES_PER_WORLD : wIdx * STAGES_PER_WORLD;
+            const stageCount =
+              isExp ? expeditionWorldStageCounts[wIdx] ?? STAGES_PER_WORLD : STAGES_PER_WORLD;
+            const primaryBiome = BIOMES[getStageBiome(worldStart, partition)];
             return (
               <View key={`${partition}_${wIdx}`} style={styles.worldCard}>
                 <View style={styles.worldHeaderRow}>
@@ -159,8 +165,8 @@ export const WorldSelectModal: React.FC<Props> = ({
                 </View>
 
                 <View style={styles.stageRow}>
-                  {Array.from({ length: STAGES_PER_WORLD }, (_, sIdx) => {
-                    const levelIdx = wIdx * STAGES_PER_WORLD + sIdx;
+                  {Array.from({ length: stageCount }, (_, sIdx) => {
+                    const levelIdx = worldStart + sIdx;
                     const unlocked = freePlay || levelIdx <= unlockedIdx;
                     const cleared = clearedList.includes(levelIdx);
                     const isBoss = sIdx === 3;

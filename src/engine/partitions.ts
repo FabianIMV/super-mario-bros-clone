@@ -44,7 +44,7 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     subtitleColor: '#bbf7d0',
   },
   expedition: {
-    tab: '🧭 EXPEDICIÓN (20)',
+    tab: '🧭 EXPEDICIÓN (28)',
     edition: 'NUEVA AVENTURA • 5 MUNDOS ORIGINALES',
     subtitle: 'EXPEDICIÓN',
     worldsLabel: '5 MUNDOS',

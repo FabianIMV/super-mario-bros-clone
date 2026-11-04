@@ -56,6 +56,12 @@ const EXP_OBJECTIVES: Record<number, StageObjective> = {
   16: 'chase',
   17: 'collect',
   18: 'time_attack',
+  20: 'collect',
+  21: 'chase',
+  22: 'time_attack',
+  24: 'collect',
+  25: 'chase',
+  26: 'time_attack',
 };
 
 const DIM_OBJECTIVES: Record<number, StageObjective> = {

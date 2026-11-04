@@ -1,7 +1,7 @@
 // Pruebas de la escena 3D (modo Dimensión) en Node, sin GPU: arma la escena
 // three.js para muchos mundos y revisa que todo quede dibujado y bien ubicado.
 import * as THREE from 'three';
-import { DIM_TOTAL_LEVELS, LOGICAL_HEIGHT, TILE } from '../src/engine/biomes';
+import { DIM_TOTAL_LEVELS, EXP_TOTAL_LEVELS, LOGICAL_HEIGHT, TILE } from '../src/engine/biomes';
 import { stepWorld } from '../src/engine/physics';
 import type { GamePartition, InputState, WorldState } from '../src/engine/types';
 import { buildWorldState } from '../src/levels/levelBuilder';
@@ -57,7 +57,7 @@ for (let i = 0; i < DIM_TOTAL_LEVELS; i++) {
 
 // 11b. La escena sabe dibujar cualquier mundo (todas las mecánicas y objetivos)
 let worlds = 0;
-for (const [part, total] of [['classic', 24], ['smw', 20], ['expedition', 20], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
+for (const [part, total] of [['classic', 24], ['smw', 20], ['expedition', EXP_TOTAL_LEVELS], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
   for (let i = 0; i < total; i++) {
     const w = buildWorldState(i, undefined, part);
     // Recorrer el nivel para que aparezcan sus elementos frente a la cámara

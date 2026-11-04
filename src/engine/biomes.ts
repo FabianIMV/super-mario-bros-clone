@@ -48,16 +48,18 @@ export const TOTAL_LEVELS = TOTAL_WORLDS * STAGES_PER_WORLD;
 export const SMW_WORLDS = 5;
 export const SMW_TOTAL_LEVELS = SMW_WORLDS * STAGES_PER_WORLD; // 20 stages!
 
-// Partition 3: Plomero Expedición (original — 5 mundos x 4 etapas = 20 niveles)
+// Partition 3: Plomero Expedición (5 zonas visibles, 28 niveles).
+// Las zonas 4 y 5 agrupan dos arcos de cuatro etapas para que la campaña
+// conserve el contenido existente y presente M/V como un único Mundo 5.
 export const EXP_WORLDS = 5;
-export const EXP_TOTAL_LEVELS = EXP_WORLDS * STAGES_PER_WORLD;
-export const EXP_WORLD_PREFIXES = ['A', 'S', 'E', 'N', 'C'];
+export const EXP_TOTAL_LEVELS = 28;
+export const EXP_WORLD_PREFIXES = ['A', 'S', 'E', 'N', 'C', 'M', 'V'];
 export const EXP_WORLD_NAMES = [
   'A • ARRECIFE CORAL',
   'S • SELVA NEÓN',
   'E • CIUDAD ENGRANAJE',
-  'N • REINO DE ALGODÓN',
-  'C • VOLCÁN CRISTAL',
+  'N/C • NUBES Y VOLCÁN CRISTAL',
+  '5 • MAREA ESPEJO Y VALLE VÍTREO',
 ];
 
 // Partition 4: Plomero Dimensión (original, arte 3D — 4 mundos x 4 etapas = 16 niveles)
@@ -942,8 +944,12 @@ export function getStageBiome(levelIndex: number, partition: GamePartition = 'cl
         return stageNum === 3 ? 'cloudland' : 'clockwork';
       case 4:
         return stageNum === 3 ? 'clockwork' : 'cloudland';
-      default:
+      case 5:
         return 'crystal';
+      case 6:
+        return stageNum === 2 ? 'reef' : 'cloudland';
+      default:
+        return stageNum === 1 ? 'clockwork' : 'crystal';
     }
   }
 

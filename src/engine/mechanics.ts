@@ -21,8 +21,8 @@ const key = (col: number, row: number): number => row * 1024 + col;
 const CLASSIC_MECHANICS: StageMechanic[] = ['bounce', 'wind', 'firefly', 'icicles', 'crumble', 'lowgrav'];
 const SMW_MECHANICS: StageMechanic[] = ['bounce', 'wind', 'crumble', 'firefly', 'lowgrav'];
 // Expedición: arrecife flotante, selva de luciérnagas, ciudad de puentes frágiles,
-// nubes con viento y volcán de carámbanos de cristal
-const EXP_MECHANICS: StageMechanic[] = ['lowgrav', 'firefly', 'crumble', 'wind', 'icicles'];
+// nubes con viento, volcán de carámbanos y marea espejo con hongos saltarines.
+const EXP_MECHANICS: StageMechanic[] = ['lowgrav', 'firefly', 'crumble', 'wind', 'icicles', 'bounce'];
 // Dimensión 3D: jardín sin gravedad, juguetes saltarines, polo con viento y fragua de puentes
 // Mundos 5-6: luces de prisma y setas con carámbanos. Mundos 7-8 (final):
 // cada etapa cambia de regla para poner a prueba todo lo aprendido.
@@ -31,10 +31,17 @@ const DIM_MIXED_WORLDS: Record<number, StageMechanic[]> = {
   7: ['firefly', 'crumble', 'lowgrav'],
   8: ['icicles', 'wind', 'bounce'],
 };
+const EXP_MIXED_WORLDS: Record<number, StageMechanic[]> = {
+  7: ['firefly', 'crumble', 'lowgrav'],
+};
 
 /** Mundos cuyas etapas combinan mecánicas distintas (solo en Dimensión). */
 export function isMixedMechanicWorld(levelIndex: number, partition: GamePartition): boolean {
-  return partition === 'dimension' && (Math.floor(levelIndex / STAGES_PER_WORLD) + 1) in DIM_MIXED_WORLDS;
+  const worldNum = Math.floor(levelIndex / STAGES_PER_WORLD) + 1;
+  return (
+    (partition === 'dimension' && worldNum in DIM_MIXED_WORLDS) ||
+    (partition === 'expedition' && worldNum in EXP_MIXED_WORLDS)
+  );
 }
 
 export const MECHANIC_LABELS: Record<StageMechanic, { text: string; color: string }> = {
@@ -54,6 +61,9 @@ export function getStageMechanic(levelIndex: number, partition: GamePartition): 
   if (stageNum === 4) return 'lava_tide';
   if (partition === 'dimension' && DIM_MIXED_WORLDS[worldNum]) {
     return DIM_MIXED_WORLDS[worldNum][stageNum - 1];
+  }
+  if (partition === 'expedition' && EXP_MIXED_WORLDS[worldNum]) {
+    return EXP_MIXED_WORLDS[worldNum][stageNum - 1];
   }
   const table =
     partition === 'smw'
