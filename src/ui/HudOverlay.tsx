@@ -37,6 +37,7 @@ export const HudOverlay: React.FC<Props> = ({ hud, pixelFontLoaded, onPausePress
   const insets = useSafeAreaInsets();
   const fontFamily = pixelFontLoaded ? 'PressStart2P_400Regular' : undefined;
   const isSmw = hud.partition === 'smw';
+  const isFrontier = hud.partition === 'frontier';
   const pFull = hud.pMeter >= 108;
 
   const powerBadge = hud.starActive
@@ -101,7 +102,13 @@ export const HudOverlay: React.FC<Props> = ({ hud, pixelFontLoaded, onPausePress
 
         <View style={styles.statCol}>
           <Text style={[styles.statLabel, { fontFamily, color: '#4ade80' }]}>
-            {isSmw ? 'ISLA' : hud.partition === 'classic' ? 'MUNDO' : 'ZONA'}
+            {isSmw
+              ? 'ISLA'
+              : hud.partition === 'classic'
+              ? 'MUNDO'
+              : isFrontier
+              ? 'REGIÓN'
+              : 'ZONA'}
           </Text>
           <Text style={[styles.statValue, { fontFamily }]}>{hud.worldLabel}</Text>
         </View>

@@ -36,6 +36,7 @@ export const PauseModal: React.FC<PauseProps> = ({
   if (!visible) return null;
 
   const isSmw = partition === 'smw';
+  const isFrontier = partition === 'frontier';
 
   const toggleItems: Array<{ key: keyof GameSettings; label: string }> = [
     { key: 'soundEnabled', label: 'EFECTOS SFX' },
@@ -69,8 +70,8 @@ export const PauseModal: React.FC<PauseProps> = ({
               ? 'PAUSA • PLOMERO WORLD'
               : partition === 'expedition'
               ? 'PAUSA • EXPEDICIÓN'
-              : partition === 'frontier'
-              ? 'PAUSA • MUNDO 5'
+              : isFrontier
+              ? 'PAUSA • MUNDO 5 · FRONTERA'
               : partition === 'dimension'
               ? 'PAUSA • DIMENSIÓN 3D'
               : 'PAUSA • PLOMERO BROS'
@@ -198,6 +199,7 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
 }) => {
   const fontFamily = pixelFontLoaded ? 'PressStart2P_400Regular' : undefined;
   const isSmw = partition === 'smw';
+  const isFrontier = partition === 'frontier';
 
   if (status === 'stage_intro') {
     return (
@@ -211,6 +213,8 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
                 ? '#4ade80'
                 : partition === 'expedition'
                 ? '#c4b5fd'
+                : isFrontier
+                ? '#7dd3fc'
                 : partition === 'dimension'
                 ? '#a5f3fc'
                 : '#f87171',
@@ -221,6 +225,8 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
             ? '🦕 SUPER PLOMERO WORLD'
             : partition === 'expedition'
             ? '🧭 PLOMERO EXPEDICIÓN'
+            : isFrontier
+            ? '🌊 PLOMERO MUNDO 5'
             : partition === 'dimension'
             ? '🧊 PLOMERO DIMENSIÓN 3D'
             : '🍄 SUPER PLOMERO BROS'}
@@ -255,6 +261,8 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
                 ? '¡CAMPEÓN DE PLOMERO WORLD!'
                 : partition === 'expedition'
                 ? '¡EXPEDICIÓN COMPLETADA!'
+                : isFrontier
+                ? '¡MUNDO 5 COMPLETADO!'
                 : partition === 'dimension'
                 ? '¡DIMENSIÓN CONQUISTADA!'
                 : '¡CAMPEÓN DE LOS 6 REINOS!'
@@ -267,6 +275,8 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
                 ? '¡Liberaste la Isla Dinosaurio y los 20 niveles junto a Yoshi y la Capa Dorada!'
                 : partition === 'expedition'
                 ? '¡Cruzaste los 5 mundos de Expedición, incluido el Mundo 5 de Marea Espejo y Valle Vítreo: 28 niveles!'
+                : isFrontier
+                ? '¡Cruzaste Marea Espejo y Valle Vítreo: 8 etapas 2D!'
                 : partition === 'dimension'
                 ? '¡Cruzaste los 8 mundos de la Dimensión hasta el Núcleo Cósmico: 32 niveles en 3D!'
                 : '¡Derrotaste al Rey Koopa en la Fortaleza Final y liberaste los 24 niveles!'

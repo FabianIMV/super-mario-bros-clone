@@ -59,13 +59,16 @@ export const TitleScreen: React.FC<Props> = ({
               onPress={() => onSelectPartition(part)}
               style={[
                 styles.partitionTab,
+                part === 'frontier' && styles.partitionTabFrontier,
                 active && { backgroundColor: PARTITION_INFO[part].accent },
+                active && part === 'frontier' && styles.partitionTabFrontierActive,
               ]}
             >
               <Text
                 style={[
                   styles.partitionTabText,
                   { fontFamily },
+                  part === 'frontier' && styles.partitionTabTextFrontier,
                   active && styles.partitionTabTextActive,
                 ]}
               >
@@ -193,6 +196,16 @@ const styles = StyleSheet.create({
   partitionTabTextActive: {
     color: '#ffffff',
   },
+  partitionTabFrontier: {
+    borderWidth: 1,
+    borderColor: '#38bdf8',
+  },
+  partitionTabFrontierActive: {
+    borderColor: '#e0f2fe',
+  },
+  partitionTabTextFrontier: {
+    color: '#e0f2fe',
+  },
   signBoard: {
     backgroundColor: '#9a3412',
     borderWidth: 4,
@@ -216,8 +229,8 @@ const styles = StyleSheet.create({
     borderColor: '#67e8f9',
   },
   signBoardFrontier: {
-    backgroundColor: '#075985',
-    borderColor: '#bae6fd',
+    backgroundColor: '#082f49',
+    borderColor: '#7dd3fc',
   },
   rivetRow: {
     width: '100%',

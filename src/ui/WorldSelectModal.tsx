@@ -92,7 +92,13 @@ export const WorldSelectModal: React.FC<Props> = ({
         },
       ]}
     >
-      <View style={[styles.panel, partition !== 'classic' && { borderColor: accent }]}>
+      <View
+        style={[
+          styles.panel,
+          partition !== 'classic' && { borderColor: accent },
+          isFrontier && styles.panelFrontier,
+        ]}
+      >
         <View style={styles.header}>
           <View style={styles.titleBlock}>
             <Text
@@ -101,6 +107,7 @@ export const WorldSelectModal: React.FC<Props> = ({
                 { fontFamily },
                 isSmw && { color: '#86efac' },
                 isExp && { color: '#c4b5fd' },
+                isFrontier && { color: '#bae6fd' },
                 isDim && { color: '#a5f3fc' },
               ]}
             >
@@ -165,7 +172,10 @@ export const WorldSelectModal: React.FC<Props> = ({
             const stageCount = STAGES_PER_WORLD;
             const primaryBiome = BIOMES[getStageBiome(worldStart, partition)];
             return (
-              <View key={`${partition}_${wIdx}`} style={styles.worldCard}>
+              <View
+                key={`${partition}_${wIdx}`}
+                style={[styles.worldCard, isFrontier && styles.worldCardFrontier]}
+              >
                 <View style={styles.worldHeaderRow}>
                   <View
                     style={[styles.worldSwatch, { backgroundColor: primaryBiome.groundCap }]}
@@ -190,6 +200,7 @@ export const WorldSelectModal: React.FC<Props> = ({
                         style={({ pressed }) => [
                           styles.stageBtn,
                           isSmw && styles.stageBtnSmw,
+                          isFrontier && styles.stageBtnFrontier,
                           isBoss && styles.stageBtnBoss,
                           !unlocked && styles.stageBtnLocked,
                           cleared && styles.stageBtnCleared,
@@ -238,6 +249,9 @@ const styles = StyleSheet.create({
     borderColor: '#facc15',
     borderRadius: 14,
     padding: 12,
+  },
+  panelFrontier: {
+    backgroundColor: '#071a2b',
   },
   header: {
     flexDirection: 'row',
@@ -317,6 +331,10 @@ const styles = StyleSheet.create({
     borderColor: '#334155',
     padding: 9,
   },
+  worldCardFrontier: {
+    backgroundColor: '#0c2a43',
+    borderColor: '#155e75',
+  },
   worldHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -349,6 +367,10 @@ const styles = StyleSheet.create({
   },
   stageBtnSmw: {
     backgroundColor: '#0284c7',
+    borderColor: '#7dd3fc',
+  },
+  stageBtnFrontier: {
+    backgroundColor: '#075985',
     borderColor: '#7dd3fc',
   },
   stageBtnBoss: {
