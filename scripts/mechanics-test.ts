@@ -1,4 +1,6 @@
 // Pruebas de las mecánicas por mundo (Fase 1), usando la física real a 60 Hz.
+import { partitionTotalLevels } from '../src/engine/biomes';
+import { PARTITION_ORDER } from '../src/engine/partitions';
 import { GROUND_ROW, TILE, TOTAL_LEVELS, SMW_TOTAL_LEVELS, getWorldLabel, EXP_TOTAL_LEVELS, FRONTIER_TOTAL_LEVELS, DIM_TOTAL_LEVELS } from '../src/engine/biomes';
 import {
   CRUMBLE_DELAY,
@@ -15,6 +17,9 @@ import {
 import { stepWorld } from '../src/engine/physics';
 import type { Block, GamePartition, InputState, WorldState } from '../src/engine/types';
 import { buildWorldState, gridKey } from '../src/levels/levelBuilder';
+
+// Todos los modos del juego (así ningún modo nuevo queda fuera de las pruebas)
+const ALL_MODES: Array<[GamePartition, number]> = PARTITION_ORDER.map((p) => [p, partitionTotalLevels(p)]);
 
 const VIEW_W = 970;
 const NO_INPUT: InputState = {
@@ -79,8 +84,11 @@ function run(w: WorldState, frames: number, input: Partial<InputState> = NO_INPU
 
 console.log('6. Validando mecánicas por mundo...');
 
+// Modos construidos alrededor de una sola regla (apostar, ladrón, eco)
+const SINGLE_RULE_MODES = new Set<GamePartition>(['fortune', 'mirage', 'echo']);
+
 // 6a. Cada nivel tiene una mecánica y cada mundo la suya
-for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS], ['frontier', FRONTIER_TOTAL_LEVELS], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
+for (const [part, total] of ALL_MODES) {
   const seen = new Map<number, string>();
   for (let i = 0; i < total; i++) {
     const w = buildWorldState(i, undefined, part);
@@ -101,7 +109,12 @@ for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS
     }
   }
   const unique = new Set(seen.values());
-  assert(unique.size === seen.size, `${part}: dos mundos comparten mecánica`);
+  if (SINGLE_RULE_MODES.has(part)) {
+    // Modos de teoría de juegos: una sola regla que define a todo el modo
+    assert(unique.size === 1, `${part}: todos sus mundos usan su regla propia`);
+  } else {
+    assert(unique.size === seen.size, `${part}: dos mundos comparten mecánica`);
+  }
 }
 
 // 6b. Hongos trampolín (1-x): rebotan más alto que un resorte normal

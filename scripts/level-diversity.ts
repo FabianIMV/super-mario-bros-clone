@@ -1,9 +1,14 @@
 // Verifica que ningún nivel sea una copia (ni casi copia) de otro.
 // Compara bloques (posición + tipo), enemigos (columna + tipo), fosos y tuberías.
 // Falla si dos niveles comparten más del MAX_SIMILARITY de sus elementos (Jaccard).
+import { partitionTotalLevels } from '../src/engine/biomes';
+import { PARTITION_ORDER } from '../src/engine/partitions';
 import { buildWorldState } from '../src/levels/levelBuilder';
 import { TOTAL_LEVELS, SMW_TOTAL_LEVELS, getWorldLabel, TILE, EXP_TOTAL_LEVELS, ECHO_TOTAL_LEVELS, FORTUNE_TOTAL_LEVELS, FRONTIER_TOTAL_LEVELS, MIRAGE_TOTAL_LEVELS, DIM_TOTAL_LEVELS } from '../src/engine/biomes';
 import type { GamePartition, WorldState } from '../src/engine/types';
+
+// Todos los modos del juego (así ningún modo nuevo queda fuera de las pruebas)
+const ALL_MODES: Array<[GamePartition, number]> = PARTITION_ORDER.map((p) => [p, partitionTotalLevels(p)]);
 
 const MAX_SIMILARITY = 0.5;
 
@@ -28,7 +33,7 @@ function jaccard(a: Set<string>, b: Set<string>): number {
 }
 
 let failures = 0;
-for (const [partition, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS], ['frontier', FRONTIER_TOTAL_LEVELS], ['fortune', FORTUNE_TOTAL_LEVELS], ['mirage', MIRAGE_TOTAL_LEVELS], ['echo', ECHO_TOTAL_LEVELS], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
+for (const [partition, total] of ALL_MODES) {
   const levels = Array.from({ length: total }, (_, i) => ({
     label: getWorldLabel(i, partition),
     f: features(buildWorldState(i, undefined, partition)),

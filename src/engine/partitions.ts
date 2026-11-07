@@ -10,6 +10,10 @@ export const PARTITION_ORDER: GamePartition[] = ['classic', 'smw', 'expedition',
 
 export interface PartitionInfo {
   tab: string;
+  /** Nombre del modo en encabezados (el conteo de niveles se agrega aparte). */
+  title: string;
+  /** Etiqueta corta para chips y el botón "IR A ..." de la pausa. */
+  chip: string;
   edition: string;
   subtitle: string;
   worldsLabel: string;
@@ -22,7 +26,9 @@ export interface PartitionInfo {
 
 export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
   classic: {
-    tab: '🍄 BROS (24)',
+    title: '6 MUNDOS CLÁSICOS',
+    chip: '🍄 BROS',
+    tab: `🍄 BROS (${partitionTotalLevels('classic')})`,
     edition: '16-BIT CONSOLE EDITION • CLÁSICO',
     subtitle: 'BROS. DELUXE',
     worldsLabel: '6 MUNDOS',
@@ -33,7 +39,9 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     subtitleColor: '#fde68a',
   },
   smw: {
-    tab: '🦕 WORLD (20)',
+    title: 'ISLA DINOSAURIO',
+    chip: '🦕 WORLD',
+    tab: `🦕 WORLD (${partitionTotalLevels('smw')})`,
     edition: '16-BIT ISLA DINOSAURIO • YOSHI & CAPA',
     subtitle: 'WORLD • 20 NIVELES',
     worldsLabel: '5 MUNDOS',
@@ -44,7 +52,9 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     subtitleColor: '#bbf7d0',
   },
   expedition: {
-    tab: '🧭 EXPEDICIÓN (28)',
+    title: 'EXPEDICIÓN',
+    chip: '🧭 EXPEDICIÓN',
+    tab: `🧭 EXPEDICIÓN (${partitionTotalLevels('expedition')})`,
     edition: 'NUEVA AVENTURA • 5 MUNDOS ORIGINALES',
     subtitle: 'EXPEDICIÓN',
     worldsLabel: '5 MUNDOS',
@@ -55,6 +65,8 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     subtitleColor: '#ddd6fe',
   },
   frontier: {
+    title: 'FRONTERA',
+    chip: '🌊 MUNDO 5',
     tab: '🌊 MUNDO 5',
     edition: 'CAMPAÑA 2D • MAREA ESPEJO / VALLE VÍTREO',
     subtitle: 'MUNDO 5 • FRONTERA',
@@ -66,6 +78,8 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     subtitleColor: '#e0f2fe',
   },
   fortune: {
+    title: 'FORTUNA',
+    chip: '🎰 MUNDO 6',
     tab: '🎰 MUNDO 6',
     edition: 'NUEVA AVENTURA • RIESGO / RECOMPENSA',
     subtitle: 'MUNDO 6 • FORTUNA',
@@ -77,6 +91,8 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     subtitleColor: '#fde68a',
   },
   mirage: {
+    title: 'ESPECTRO',
+    chip: '👻 MUNDO 7',
     tab: '👻 MUNDO 7',
     edition: 'NUEVA AVENTURA • SUMA CERO',
     subtitle: 'MUNDO 7 • ESPECTRO',
@@ -88,6 +104,8 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     subtitleColor: '#e9d5ff',
   },
   echo: {
+    title: 'ECO',
+    chip: '🪞 MUNDO 8',
     tab: '🪞 MUNDO 8',
     edition: 'NUEVA AVENTURA • COORDINACIÓN / ESPEJO',
     subtitle: 'MUNDO 8 • ECO',
@@ -99,7 +117,9 @@ export const PARTITION_INFO: Record<GamePartition, PartitionInfo> = {
     subtitleColor: '#99f6e4',
   },
   dimension: {
-    tab: '🧊 DIMENSIÓN 3D (32)',
+    title: 'DIMENSIÓN 3D',
+    chip: '🧊 DIMENSIÓN 3D',
+    tab: `🧊 DIMENSIÓN 3D (${partitionTotalLevels('dimension')})`,
     edition: 'NUEVO • MUNDOS EN 3D • 8 MUNDOS ORIGINALES',
     subtitle: 'DIMENSIÓN 3D',
     worldsLabel: '8 MUNDOS',
@@ -290,6 +310,11 @@ export function recordStageClear(
     }),
     lastPartition: part,
   };
+}
+
+/** Encabezado con el conteo real de niveles, p. ej. "EXPEDICIÓN (20)". */
+export function partitionHeading(part: GamePartition): string {
+  return `${PARTITION_INFO[part].title} (${partitionTotalLevels(part)})`;
 }
 
 export function nextPartition(part: GamePartition): GamePartition {

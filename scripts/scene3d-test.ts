@@ -1,11 +1,16 @@
 // Pruebas de la escena 3D (modo Dimensión) en Node, sin GPU: arma la escena
 // three.js para muchos mundos y revisa que todo quede dibujado y bien ubicado.
+import { partitionTotalLevels } from '../src/engine/biomes';
+import { PARTITION_ORDER } from '../src/engine/partitions';
 import * as THREE from 'three';
 import { DIM_TOTAL_LEVELS, EXP_TOTAL_LEVELS, FRONTIER_TOTAL_LEVELS, LOGICAL_HEIGHT, TILE } from '../src/engine/biomes';
 import { stepWorld } from '../src/engine/physics';
 import type { GamePartition, InputState, WorldState } from '../src/engine/types';
 import { buildWorldState } from '../src/levels/levelBuilder';
 import { World3DScene } from '../src/renderer3d/scene3d';
+
+// Todos los modos del juego (así ningún modo nuevo queda fuera de las pruebas)
+const ALL_MODES: Array<[GamePartition, number]> = PARTITION_ORDER.map((p) => [p, partitionTotalLevels(p)]);
 
 const W = 844;
 const H = 390;
@@ -57,7 +62,7 @@ for (let i = 0; i < DIM_TOTAL_LEVELS; i++) {
 
 // 11b. La escena sabe dibujar cualquier mundo (todas las mecánicas y objetivos)
 let worlds = 0;
-for (const [part, total] of [['classic', 24], ['smw', 20], ['expedition', EXP_TOTAL_LEVELS], ['frontier', FRONTIER_TOTAL_LEVELS], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
+for (const [part, total] of ALL_MODES) {
   for (let i = 0; i < total; i++) {
     const w = buildWorldState(i, undefined, part);
     // Recorrer el nivel para que aparezcan sus elementos frente a la cámara

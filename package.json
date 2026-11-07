@@ -39,7 +39,7 @@
     "ios": "expo start --ios",
     "web": "expo start --web",
     "typecheck": "tsc --noEmit",
-    "verify": "tsc --ignoreConfig --target ES2022 --module commonjs --esModuleInterop --skipLibCheck --types node --outDir /tmp/spb-verify scripts/verify-game.ts scripts/level-diversity.ts scripts/mechanics-test.ts scripts/objectives-test.ts scripts/secrets-test.ts scripts/abilities-test.ts scripts/expedition-test.ts scripts/scene3d-test.ts && node /tmp/spb-verify/scripts/verify-game.js && node /tmp/spb-verify/scripts/level-diversity.js && node /tmp/spb-verify/scripts/mechanics-test.js && node /tmp/spb-verify/scripts/objectives-test.js && node /tmp/spb-verify/scripts/secrets-test.js && node /tmp/spb-verify/scripts/abilities-test.js && node /tmp/spb-verify/scripts/expedition-test.js && NODE_PATH=./node_modules node /tmp/spb-verify/scripts/scene3d-test.js"
+    "verify": "tsc --ignoreConfig --target ES2022 --module commonjs --esModuleInterop --skipLibCheck --types node --outDir /tmp/spb-verify scripts/verify-game.ts scripts/level-diversity.ts scripts/mechanics-test.ts scripts/objectives-test.ts scripts/secrets-test.ts scripts/abilities-test.ts scripts/expedition-test.ts scripts/scene3d-test.ts scripts/procgen-test.ts && node /tmp/spb-verify/scripts/verify-game.js && node /tmp/spb-verify/scripts/level-diversity.js && node /tmp/spb-verify/scripts/mechanics-test.js && node /tmp/spb-verify/scripts/objectives-test.js && node /tmp/spb-verify/scripts/secrets-test.js && node /tmp/spb-verify/scripts/abilities-test.js && node /tmp/spb-verify/scripts/expedition-test.js && NODE_PATH=./node_modules node /tmp/spb-verify/scripts/scene3d-test.js && node /tmp/spb-verify/scripts/procgen-test.js"
   },
   "private": true
 }

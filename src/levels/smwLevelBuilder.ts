@@ -28,6 +28,7 @@ import type {
   WorldState,
 } from '../engine/types';
 import { createInitialPlayer, gridKey } from './levelBuilder';
+import { makeRng, planLevel, type PieceSpec, type PlanStep, type Rng } from './procgen';
 
 export const SMW_STAGE_TITLES: string[] = [
   // Mundo 1: Isla de Yoshi (Y-1 .. Y-4)
@@ -85,6 +86,8 @@ interface SmwCtx {
   isFortress: boolean;
   isUnderground: boolean;
   enemySeq: number;
+  /** RNG con semilla (modo, nivel) para las variantes de cada pieza. */
+  rng: Rng;
 }
 
 function putBlock(
@@ -315,8 +318,9 @@ function addFoe(ctx: SmwCtx, col: number): void {
   addEnemy(ctx, col, type === 'bullet_bill' ? 8 : GROUND_ROW - 1, type);
 }
 
-function smwVariant(ctx: SmwCtx, salt: number): number {
-  return (ctx.levelIndex * 5 + salt * 3 + ctx.worldNum) % 3;
+/** Variante 0..2 de una pieza: sale del RNG del nivel, así cada uso se ve distinto. */
+function smwVariant(ctx: SmwCtx, _salt: number): number {
+  return ctx.rng.int(0, 2);
 }
 
 // ============================================================================
@@ -732,14 +736,6 @@ function buildSmwCastleSection(
   }
 }
 
-const SMW_CASTLE_PLANS: SmwCastleSection[][] = [
-  ['lava_trench', 'chuck_hallway', 'synced_lift', 'rotating_bridge', 'vertical_lift', 'castle_supply'],
-  ['magma_steps', 'thwomp_hall', 'rotating_bridge', 'lava_trench', 'synced_lift', 'castle_supply'],
-  ['bill_gallery', 'synced_lift', 'thwomp_hall', 'magma_steps', 'vertical_lift', 'castle_supply'],
-  ['thwomp_hall', 'vertical_lift', 'bill_gallery', 'rotating_bridge', 'magma_steps', 'chuck_hallway', 'castle_supply'],
-  ['magma_steps', 'bill_gallery', 'chuck_hallway', 'synced_lift', 'thwomp_hall', 'rotating_bridge', 'lava_trench', 'castle_supply'],
-];
-
 /** Picks exactly 5 evenly spread indices out of n (n >= 5) for Dragon Coins. */
 function dragonCoinSlots(n: number): Set<number> {
   const slots = new Set<number>();
@@ -754,7 +750,18 @@ function buildSmwFortressStage(ctx: SmwCtx): { totalCols: number; boss: Fortress
   putBlock(ctx, 10, 8, 'rotating');
   addFoe(ctx, 14);
 
-  const plan = SMW_CASTLE_PLANS[Math.min(SMW_CASTLE_PLANS.length - 1, ctx.worldNum - 1)];
+  // Secciones generadas con la misma curva; siempre cierra con abastecimiento
+  const plan: SmwCastleSection[] = [
+    ...planLevel({
+      pieces: SMW_CASTLE_PIECES,
+      rng: makeRng(`smw:${ctx.levelIndex}:castillo`),
+      progress: smwProgress(ctx),
+    })
+      .filter((s) => s.kind !== 'rest')
+      .slice(0, 5 + Math.round(smwProgress(ctx) * 3))
+      .map((s) => s.kind as SmwCastleSection),
+    'castle_supply',
+  ];
   const slots = dragonCoinSlots(plan.length);
   let cursor = 18;
   plan.forEach((section, i) => {
@@ -823,31 +830,60 @@ function buildSmwFortressStage(ctx: SmwCtx): { totalCols: number; boss: Fortress
   return { totalCols, boss };
 }
 
-// One hand-picked route per SMW stage (keyed by level index); no two share a plan.
-const SMW_STAGE_PLANS: Record<number, SmwSetpiece[]> = {
-  // Y: Isla de Yoshi
-  1: ['cape_runway_skyway', 'galoomba_meadow', 'rotating_block_vault', 'yoshi_berry_orchard', 'rex_hill'],
-  2: ['yoshi_berry_orchard', 'pipe_valley', 'donut_lifts', 'rotating_staircase', 'chuck_stadium'],
-  // D: Llanura Rosquilla
-  4: ['galoomba_meadow', 'rex_terrace_paratroopa', 'feather_cloud_trail', 'donut_lifts', 'rex_hill'],
-  5: ['rotating_block_vault', 'vanilla_crystal_lifts', 'pipe_valley', 'spiny_spinjump_bridge', 'rotating_staircase'],
-  6: ['rex_hill', 'cape_runway_skyway', 'donut_lifts', 'yoshi_berry_orchard', 'bullet_bill_canyon', 'galoomba_meadow'],
-  // V: Domo Vainilla
-  8: ['spiny_spinjump_bridge', 'rotating_staircase', 'vanilla_crystal_lifts', 'pipe_valley', 'bullet_bill_canyon'],
-  9: ['pipe_valley', 'rotating_block_vault', 'donut_lifts', 'spiny_spinjump_bridge', 'vanilla_crystal_lifts', 'chuck_stadium'],
-  10: ['vanilla_crystal_lifts', 'yoshi_berry_orchard', 'rex_hill', 'bullet_bill_canyon', 'feather_cloud_trail'],
-  // B: Bosque Ilusión
-  12: ['rex_terrace_paratroopa', 'feather_cloud_trail', 'chuck_stadium', 'galoomba_meadow', 'donut_lifts', 'rex_hill'],
-  13: ['feather_cloud_trail', 'rex_hill', 'pipe_valley', 'rex_terrace_paratroopa', 'rotating_block_vault', 'cape_runway_skyway'],
-  14: ['donut_lifts', 'chuck_stadium', 'rotating_staircase', 'rex_terrace_paratroopa', 'spiny_spinjump_bridge', 'galoomba_meadow'],
-  // K: Valle de Koopa
-  16: ['bullet_bill_canyon', 'chuck_stadium', 'rex_hill', 'donut_lifts', 'spiny_spinjump_bridge', 'rotating_staircase', 'feather_cloud_trail'],
-  17: ['rotating_staircase', 'pipe_valley', 'bullet_bill_canyon', 'vanilla_crystal_lifts', 'chuck_stadium', 'rotating_block_vault'],
-  18: ['chuck_stadium', 'donut_lifts', 'spiny_spinjump_bridge', 'feather_cloud_trail', 'bullet_bill_canyon', 'rex_terrace_paratroopa', 'galoomba_meadow'],
-};
+// Catálogo para la generación procedural (ver procgen.ts)
+const SMW_PIECES: PieceSpec<SmwSetpiece>[] = [
+  { kind: 'yoshi_berry_orchard', difficulty: 0.2, tag: 'reward' },
+  { kind: 'galoomba_meadow', difficulty: 0.3, tag: 'foes' },
+  { kind: 'cape_runway_skyway', difficulty: 0.35, tag: 'reward' },
+  { kind: 'rotating_block_vault', difficulty: 0.4, tag: 'blocks' },
+  { kind: 'pipe_valley', difficulty: 0.5, tag: 'pipes' },
+  { kind: 'rex_hill', difficulty: 0.5, tag: 'vertical' },
+  { kind: 'feather_cloud_trail', difficulty: 0.52, tag: 'vertical' },
+  { kind: 'rotating_staircase', difficulty: 0.56, tag: 'blocks' },
+  { kind: 'rex_terrace_paratroopa', difficulty: 0.6, tag: 'pit' },
+  { kind: 'chuck_stadium', difficulty: 0.66, tag: 'foes' },
+  { kind: 'vanilla_crystal_lifts', difficulty: 0.72, tag: 'lift' },
+  { kind: 'donut_lifts', difficulty: 0.76, tag: 'lift' },
+  { kind: 'spiny_spinjump_bridge', difficulty: 0.78, tag: 'foes' },
+  { kind: 'bullet_bill_canyon', difficulty: 0.84, tag: 'pit' },
+];
+
+const SMW_CASTLE_PIECES: PieceSpec<SmwCastleSection>[] = [
+  { kind: 'lava_trench', difficulty: 0.3, tag: 'pit' },
+  { kind: 'chuck_hallway', difficulty: 0.45, tag: 'foes' },
+  { kind: 'magma_steps', difficulty: 0.5, tag: 'vertical' },
+  { kind: 'thwomp_hall', difficulty: 0.55, tag: 'blocks' },
+  { kind: 'rotating_bridge', difficulty: 0.58, tag: 'reward' },
+  { kind: 'synced_lift', difficulty: 0.64, tag: 'lift' },
+  { kind: 'vertical_lift', difficulty: 0.66, tag: 'lift' },
+  { kind: 'bill_gallery', difficulty: 0.72, tag: 'pit' },
+];
+
+function smwProgress(ctx: SmwCtx): number {
+  return SMW_TOTAL_LEVELS <= 1 ? 0 : ctx.levelIndex / (SMW_TOTAL_LEVELS - 1);
+}
+
+/** Descanso tras un pico de tensión: tramo plano con monedas y bayas. */
+function buildSmwRestPlaza(ctx: SmwCtx, c: number): number {
+  addCoinArc(ctx, c + 1, 5, 7.6);
+  addBerry(ctx, c + 5, 10.6);
+  putBlock(ctx, c + 3, 8, 'rotating');
+  return 7;
+}
+
+/** Plan de piezas de una etapa normal de World (determinista). */
+export function smwStagePlan(levelIndex: number): PlanStep<SmwSetpiece>[] {
+  return planLevel({
+    pieces: SMW_PIECES,
+    rng: makeRng(`smw:${levelIndex}:plan`),
+    progress: SMW_TOTAL_LEVELS <= 1 ? 0 : levelIndex / (SMW_TOTAL_LEVELS - 1),
+  });
+}
 
 function buildCuratedSmwStage(ctx: SmwCtx): number {
-  const seq = SMW_STAGE_PLANS[ctx.levelIndex] ?? SMW_STAGE_PLANS[1];
+  // Secuencia generada: sigue una curva de tensión y no repite piezas seguidas
+  const plan = smwStagePlan(ctx.levelIndex);
+  const seq = plan.map((s) => s.kind);
   const slots = dragonCoinSlots(seq.length);
   let cursor = 12;
 
@@ -863,7 +899,8 @@ function buildCuratedSmwStage(ctx: SmwCtx): number {
 
   for (let i = 0; i < seq.length; i++) {
     const startC = cursor;
-    const advance = buildSmwSetpiece(ctx, seq[i], cursor);
+    const step = seq[i];
+    const advance = step === 'rest' ? buildSmwRestPlaza(ctx, cursor) : buildSmwSetpiece(ctx, step, cursor);
     // Exactly 5 Dragon Coins per stage, spread across its zones.
     if (slots.has(i)) {
       addDragonCoin(ctx, startC + Math.floor(advance * 0.5), ctx.isUnderground ? 5.2 : 3.6);
@@ -933,6 +970,7 @@ export function buildSmwWorldState(
     isFortress: stageNum === 4,
     isUnderground: biome.underground,
     enemySeq: 0,
+    rng: makeRng(`smw:${clampedIdx}:piezas`),
   };
 
   let totalCols = 140;

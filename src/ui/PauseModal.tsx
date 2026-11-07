@@ -2,6 +2,8 @@ import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { GamePartition, GameSettings, WorldStatus } from '../engine/types';
+import { PARTITION_INFO, nextPartition } from '../engine/partitions';
+import { partitionTotalLevels } from '../engine/biomes';
 
 interface PauseProps {
   visible: boolean;
@@ -155,15 +157,7 @@ export const PauseModal: React.FC<PauseProps> = ({
                 style={({ pressed }) => [styles.btnEmerald, pressed && styles.pressed]}
               >
                 <Text style={[styles.btnLightText, { fontFamily }]}>
-                  {partition === 'classic'
-                    ? '🦕 IR A WORLD'
-                    : partition === 'smw'
-                    ? '🧭 IR A EXPEDICIÓN'
-                    : partition === 'expedition'
-                    ? '🧊 IR A DIMENSIÓN 3D'
-                    : partition === 'frontier'
-                    ? '🧊 IR A DIMENSIÓN 3D'
-                    : '🍄 IR A BROS'}
+                  {`IR A ${PARTITION_INFO[nextPartition(partition)].chip}`}
                 </Text>
               </Pressable>
 
@@ -301,7 +295,7 @@ export const StageStatusOverlay: React.FC<StatusBannerProps> = ({
               ? isSmw
                 ? '¡Liberaste la Isla Dinosaurio y los 20 niveles junto a Yoshi y la Capa Dorada!'
                 : partition === 'expedition'
-                ? '¡Cruzaste los 5 mundos de Expedición, incluido el Mundo 5 de Marea Espejo y Valle Vítreo: 28 niveles!'
+                ? `¡Cruzaste los 5 mundos de Expedición: ${partitionTotalLevels('expedition')} niveles!`
                 : isFrontier
                 ? '¡Cruzaste Marea Espejo y Valle Vítreo: 8 etapas 2D!'
                 : partition === 'fortune'

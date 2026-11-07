@@ -23,7 +23,7 @@ import {
 } from '../engine/biomes';
 import type { GamePartition, SaveProgress } from '../engine/types';
 import { SMW_WORLD_NAMES } from '../levels/smwLevelBuilder';
-import { PARTITION_INFO, PARTITION_ORDER, getPartitionProgress } from '../engine/partitions';
+import { PARTITION_INFO, PARTITION_ORDER, getPartitionProgress, partitionHeading } from '../engine/partitions';
 
 interface Props {
   visible: boolean;
@@ -132,21 +132,7 @@ export const WorldSelectModal: React.FC<Props> = ({
                 isDim && { color: '#a5f3fc' },
               ]}
             >
-              {isSmw
-                ? 'ISLA DINOSAURIO (20)'
-                : isExp
-                ? 'EXPEDICIÓN (28)'
-                : isFortune
-                ? 'FORTUNA (16)'
-                : isMirage
-                ? 'ESPECTRO (16)'
-                : isEcho
-                ? 'ECO (16)'
-                : isFrontier
-                ? 'FRONTERA (8)'
-                : isDim
-                ? 'DIMENSIÓN 3D (32)'
-                : '6 MUNDOS CLÁSICOS (24)'}
+              {partitionHeading(partition)}
             </Text>
           </View>
 
@@ -161,21 +147,7 @@ export const WorldSelectModal: React.FC<Props> = ({
                 ]}
               >
                 <Text style={[styles.chipText, { fontFamily }]}>
-                  {part === 'classic'
-                    ? '🍄 BROS'
-                    : part === 'smw'
-                    ? '🦕 WORLD'
-                    : part === 'expedition'
-                    ? '🧭 EXPED.'
-                    : part === 'frontier'
-                    ? '🌊 MUNDO 5'
-                    : part === 'fortune'
-                    ? '🎰 MUNDO 6'
-                    : part === 'mirage'
-                    ? '👻 MUNDO 7'
-                    : part === 'echo'
-                    ? '🪞 MUNDO 8'
-                    : '🧊 3D'}
+                  {PARTITION_INFO[part].chip}
                 </Text>
               </Pressable>
             ))}

@@ -145,7 +145,15 @@ const ECHO_OBJECTIVES: Record<number, StageObjective> = {
 
 export const GEMS_PER_STAGE = 5;
 export const CLOCKS_PER_STAGE = 5;
-export const TIME_ATTACK_START = 75; // unidades del contador (1 unidad = 38 frames)
+export const TIME_ATTACK_START = 75; // mínimo, en unidades del contador (1 unidad = 38 frames)
+const TIME_ATTACK_PACE = 2.5; // px/frame: más lento que caminar, para que sea justo
+const TIME_ATTACK_SLACK = 0.85; // el nivel debe poder cruzarse usando el 85% del tiempo
+
+/** Tiempo inicial del contrarreloj según el largo del nivel (los niveles largos dan más). */
+export function timeAttackBudget(totalCols: number): number {
+  const needed = (totalCols * TILE) / TIME_ATTACK_PACE / 38;
+  return Math.max(TIME_ATTACK_START, Math.ceil(needed / TIME_ATTACK_SLACK));
+}
 export const CLOCK_BONUS = 15;
 export const CHASE_DELAY = 150; // frames antes de que la sombra empiece a moverse
 export const THIEF_STEAL_PERIOD = 260; // frames entre robos de la urraca (Mundo 7)
@@ -279,7 +287,7 @@ export function applyStageObjective(world: WorldState): WorldState {
       break;
     }
     case 'time_attack': {
-      world.timeLeft = TIME_ATTACK_START;
+      world.timeLeft = timeAttackBudget(world.totalCols);
       for (const s of findSpots(world, CLOCKS_PER_STAGE, false)) {
         world.pickups.push(makePickup(world, 'clock', s.col, s.row));
       }
@@ -447,6 +455,14 @@ export function updateObjectives(world: WorldState, events: GameEvent[], cb: Obj
     ) {
       world.gemsCollected = Math.max(0, (world.gemsCollected ?? 0) - 1);
       world.score = Math.max(0, world.score - 300);
+      // La gema robada queda junto a la urraca para recuperarla; si no, la meta
+      // (que exige todas las gemas) quedaría cerrada para siempre.
+      const stolen = world.pickups?.find((pk) => pk.kind === 'gem' && pk.collected);
+      if (stolen) {
+        stolen.collected = false;
+        stolen.x = thief.x + thief.width / 2 - stolen.width / 2;
+        stolen.y = thief.y - stolen.height - 8;
+      }
       cb.text(p.x - 30, p.y - 20, '¡LA URRACA TE ROBÓ UNA GEMA!', '#e9d5ff');
       cb.sparks(thief.x + 10, thief.y + 10, '#e9d5ff', 8);
       events.push({ type: 'sfx', id: 'chase_growl' });

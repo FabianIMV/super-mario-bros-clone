@@ -1,9 +1,14 @@
 // Pruebas de rutas y secretos (Fase 3), usando la física real a 60 Hz.
+import { partitionTotalLevels } from '../src/engine/biomes';
+import { PARTITION_ORDER } from '../src/engine/partitions';
 import { GROUND_ROW, SMW_TOTAL_LEVELS, TILE, TOTAL_LEVELS, EXP_TOTAL_LEVELS, FRONTIER_TOTAL_LEVELS, DIM_TOTAL_LEVELS } from '../src/engine/biomes';
 import { stepWorld } from '../src/engine/physics';
 import { castleIndexOf, stageHasPortal, stageHasVault, VAULT_WIDTH } from '../src/engine/secrets';
 import type { GamePartition, InputState, WorldState } from '../src/engine/types';
 import { buildWorldState, gridKey } from '../src/levels/levelBuilder';
+
+// Todos los modos del juego (así ningún modo nuevo queda fuera de las pruebas)
+const ALL_MODES: Array<[GamePartition, number]> = PARTITION_ORDER.map((p) => [p, partitionTotalLevels(p)]);
 
 const VIEW_W = 970;
 const NO_INPUT: InputState = {
@@ -44,7 +49,7 @@ console.log('8. Validando rutas y secretos...');
 
 // 8a. Cada nivel elegible tiene bóveda + llave alcanzable
 let vaults = 0;
-for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS], ['frontier', FRONTIER_TOTAL_LEVELS], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
+for (const [part, total] of ALL_MODES) {
   for (let i = 0; i < total; i++) {
     const w = buildWorldState(i, undefined, part);
     const door = vaultDoorCol(w);

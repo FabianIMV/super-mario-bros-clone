@@ -13,6 +13,7 @@ import {
   TOTAL_LEVELS,
   getStageBiome,
   getWorldLabel,
+  partitionTotalLevels,
 } from '../engine/biomes';
 import type {
   Block,
@@ -34,6 +35,7 @@ import type {
   WorldState,
 } from '../engine/types';
 import { buildSmwWorldState } from './smwLevelBuilder';
+import { makeRng, planLevel, type PieceSpec, type PlanStep, type Rng } from './procgen';
 import { applyStageMechanic } from '../engine/mechanics';
 import { applyStageObjective } from '../engine/objectives';
 import { applyStageSecrets } from '../engine/secrets';
@@ -230,6 +232,8 @@ interface BuilderCtx {
   isUnderground: boolean;
   enemySeq: number;
   partition: GamePartition;
+  /** RNG con semilla (modo, nivel): da variantes distintas en cada uso de una pieza. */
+  rng: Rng;
 }
 
 function putBlock(
@@ -501,8 +505,9 @@ function foe(ctx: BuilderCtx): EnemyType {
 }
 
 /** Stage-local variant 0..2 so a repeated setpiece is re-dressed per stage. */
-function variantOf(ctx: BuilderCtx, salt: number): number {
-  return (ctx.levelIndex * 7 + salt * 3 + ctx.worldNum) % 3;
+/** Variante 0..2 de una pieza: sale del RNG del nivel, así cada uso se ve distinto. */
+function variantOf(ctx: BuilderCtx, _salt: number): number {
+  return ctx.rng.int(0, 2);
 }
 
 // ============================================================================
@@ -1132,60 +1137,6 @@ function buildFortressSection(ctx: BuilderCtx, kind: FortressSection, c: number)
   }
 }
 
-const FORTRESS_PLANS: FortressSection[][] = [
-  ['lava_pillar', 'guard_corridor', 'lift_chasm', 'dual_route', 'vertical_lift', 'supply_room'],
-  ['lava_staircase', 'cramped_hall', 'lift_chasm', 'guard_corridor', 'pillar_hops', 'supply_room'],
-  ['guard_corridor', 'pillar_hops', 'dual_route', 'lava_staircase', 'vertical_lift', 'supply_room'],
-  ['cramped_hall', 'lift_chasm', 'lava_pillar', 'pillar_hops', 'dual_route', 'guard_corridor', 'supply_room'],
-  ['pillar_hops', 'vertical_lift', 'cramped_hall', 'lava_staircase', 'lift_chasm', 'guard_corridor', 'supply_room'],
-  ['lava_staircase', 'dual_route', 'pillar_hops', 'cramped_hall', 'lift_chasm', 'vertical_lift', 'lava_pillar', 'supply_room'],
-];
-
-const EXP_FORTRESS_PLANS: FortressSection[][] = [
-  ['pillar_hops', 'lift_chasm', 'guard_corridor', 'dual_route', 'supply_room'],
-  ['cramped_hall', 'lava_staircase', 'vertical_lift', 'pillar_hops', 'lava_pillar', 'supply_room'],
-  ['lift_chasm', 'dual_route', 'cramped_hall', 'guard_corridor', 'lava_staircase', 'supply_room'],
-  ['vertical_lift', 'pillar_hops', 'lift_chasm', 'cramped_hall', 'dual_route', 'lava_pillar', 'supply_room'],
-  ['dual_route', 'cramped_hall', 'lava_staircase', 'pillar_hops', 'vertical_lift', 'guard_corridor', 'lift_chasm', 'supply_room'],
-  ['vertical_lift', 'dual_route', 'pillar_hops', 'guard_corridor', 'lava_staircase', 'supply_room'],
-  ['lava_pillar', 'lift_chasm', 'cramped_hall', 'vertical_lift', 'dual_route', 'guard_corridor', 'supply_room'],
-];
-
-const DIM_FORTRESS_PLANS: FortressSection[][] = [
-  ['lift_chasm', 'cramped_hall', 'pillar_hops', 'dual_route', 'supply_room'],
-  ['guard_corridor', 'vertical_lift', 'lava_staircase', 'lift_chasm', 'supply_room'],
-  ['pillar_hops', 'dual_route', 'lava_pillar', 'cramped_hall', 'vertical_lift', 'supply_room'],
-  ['lava_staircase', 'lift_chasm', 'guard_corridor', 'pillar_hops', 'dual_route', 'cramped_hall', 'supply_room'],
-  ['vertical_lift', 'lava_pillar', 'dual_route', 'pillar_hops', 'cramped_hall', 'supply_room'],
-  ['cramped_hall', 'lift_chasm', 'lava_staircase', 'guard_corridor', 'vertical_lift', 'pillar_hops', 'supply_room'],
-  ['dual_route', 'pillar_hops', 'vertical_lift', 'lift_chasm', 'lava_staircase', 'cramped_hall', 'supply_room'],
-  ['pillar_hops', 'lava_staircase', 'cramped_hall', 'lift_chasm', 'dual_route', 'vertical_lift', 'guard_corridor', 'lava_pillar', 'supply_room'],
-];
-
-// Mundo 6 FORTUNA: castillos con rutas de riesgo y salas de botín.
-const FORTUNE_FORTRESS_PLANS: FortressSection[][] = [
-  ['dual_route', 'pillar_hops', 'lift_chasm', 'guard_corridor', 'supply_room'],
-  ['guard_corridor', 'lift_chasm', 'pillar_hops', 'vertical_lift', 'dual_route', 'supply_room'],
-  ['lava_staircase', 'pillar_hops', 'guard_corridor', 'lift_chasm', 'dual_route', 'supply_room'],
-  ['vertical_lift', 'guard_corridor', 'lift_chasm', 'pillar_hops', 'lava_staircase', 'dual_route', 'supply_room'],
-];
-
-// Mundo 7 ESPECTRO: castillos con pasillos cerrados y botín robado.
-const MIRAGE_FORTRESS_PLANS: FortressSection[][] = [
-  ['cramped_hall', 'dual_route', 'lift_chasm', 'pillar_hops', 'supply_room'],
-  ['pillar_hops', 'cramped_hall', 'guard_corridor', 'vertical_lift', 'lift_chasm', 'supply_room'],
-  ['dual_route', 'cramped_hall', 'lava_staircase', 'guard_corridor', 'lift_chasm', 'supply_room'],
-  ['guard_corridor', 'vertical_lift', 'cramped_hall', 'pillar_hops', 'dual_route', 'lift_chasm', 'supply_room'],
-];
-
-// Mundo 8 ECO: castillos con salas simétricas y pasillos cerrados.
-const ECHO_FORTRESS_PLANS: FortressSection[][] = [
-  ['dual_route', 'pillar_hops', 'lift_chasm', 'guard_corridor', 'supply_room'],
-  ['guard_corridor', 'vertical_lift', 'pillar_hops', 'lift_chasm', 'dual_route', 'supply_room'],
-  ['lava_staircase', 'guard_corridor', 'pillar_hops', 'lift_chasm', 'dual_route', 'supply_room'],
-  ['vertical_lift', 'dual_route', 'cramped_hall', 'pillar_hops', 'lift_chasm', 'supply_room'],
-];
-
 function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: FortressBoss } {
   // Opening hall + powerup
   putBlock(ctx, 9, 8, 'brick');
@@ -1193,20 +1144,15 @@ function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: Fortres
   putBlock(ctx, 11, 8, 'brick');
   addEnemy(ctx, 15, GROUND_ROW - 1, foe(ctx));
 
-  const plans =
-    ctx.partition === 'expedition' || ctx.partition === 'frontier'
-      ? EXP_FORTRESS_PLANS
-      : ctx.partition === 'fortune'
-      ? FORTUNE_FORTRESS_PLANS
-      : ctx.partition === 'mirage'
-      ? MIRAGE_FORTRESS_PLANS
-      : ctx.partition === 'echo'
-      ? ECHO_FORTRESS_PLANS
-      : ctx.partition === 'dimension'
-      ? DIM_FORTRESS_PLANS
-      : FORTRESS_PLANS;
-  const planWorld = ctx.partition === 'frontier' ? Math.floor(ctx.designIndex / STAGES_PER_WORLD) : ctx.worldNum - 1;
-  const plan = plans[Math.min(plans.length - 1, planWorld)];
+  // Secciones generadas con la misma curva de tensión; siempre cierra con abastecimiento
+  const fortressPlan = planLevel({
+    pieces: FORTRESS_PIECES,
+    rng: makeRng(`${ctx.partition}:${ctx.levelIndex}:castillo`),
+    progress: stageProgress(ctx),
+  })
+    .filter((s) => s.kind !== 'rest')
+    .slice(0, 5 + Math.round(stageProgress(ctx) * 3));
+  const plan: FortressSection[] = [...fortressPlan.map((s) => s.kind as FortressSection), 'supply_room'];
   let cursor = 18;
   for (const section of plan) {
     cursor += buildFortressSection(ctx, section, cursor) + 2;
@@ -1278,186 +1224,111 @@ function buildFortressStage(ctx: BuilderCtx): { totalCols: number; boss: Fortres
   return { totalCols, boss };
 }
 
-// One hand-picked route per stage (keyed by level index). No two stages share
-// a plan, and each world's foe roster re-dresses every setpiece it uses.
-const STAGE_PLANS: Record<number, SetpieceKind[]> = {
-  // World 1
-  2: ['sky_bridge_paratroopa', 'stepping_pillars', 'shell_bowling', 'moving_lift_chasm', 'coin_heaven_spring'],
-  // World 2
-  4: ['pipe_maze', 'foe_parade', 'pyramid_gauntlet', 'spring_cliff_vault', 'piranha_terrace'],
-  5: ['brick_ceiling_run', 'double_deck_secret', 'pipe_maze', 'hidden_stairway', 'stepping_pillars'],
-  6: ['twin_lifts', 'shell_bowling', 'lift_wall', 'sky_bridge_paratroopa', 'pyramid_gauntlet', 'foe_parade'],
-  // World 3
-  8: ['coin_heaven_spring', 'spiny_fire_alley', 'twin_lifts', 'piranha_terrace', 'stepping_pillars'],
-  9: ['hidden_stairway', 'brick_ceiling_run', 'moving_lift_chasm', 'foe_parade', 'double_deck_secret'],
-  10: ['stepping_pillars', 'sky_bridge_paratroopa', 'lift_wall', 'twin_lifts', 'spring_cliff_vault', 'shell_bowling'],
-  // World 4
-  12: ['foe_parade', 'lift_wall', 'piranha_terrace', 'pyramid_gauntlet', 'hidden_stairway', 'spiny_fire_alley'],
-  13: ['double_deck_secret', 'twin_lifts', 'brick_ceiling_run', 'spring_cliff_vault', 'pipe_maze'],
-  14: ['moving_lift_chasm', 'stepping_pillars', 'coin_heaven_spring', 'sky_bridge_paratroopa', 'foe_parade', 'lift_wall'],
-  // World 5
-  16: ['spring_cliff_vault', 'pyramid_gauntlet', 'twin_lifts', 'shell_bowling', 'piranha_terrace', 'stepping_pillars'],
-  17: ['pipe_maze', 'hidden_stairway', 'spiny_fire_alley', 'lift_wall', 'brick_ceiling_run', 'moving_lift_chasm'],
-  18: ['brick_ceiling_run', 'foe_parade', 'double_deck_secret', 'twin_lifts', 'coin_heaven_spring', 'pyramid_gauntlet'],
-  // World 6
-  20: ['lift_wall', 'sky_bridge_paratroopa', 'foe_parade', 'stepping_pillars', 'twin_lifts', 'spiny_fire_alley', 'piranha_terrace'],
-  21: ['spiny_fire_alley', 'pipe_maze', 'moving_lift_chasm', 'hidden_stairway', 'pyramid_gauntlet', 'brick_ceiling_run', 'shell_bowling'],
-  22: ['twin_lifts', 'coin_heaven_spring', 'lift_wall', 'foe_parade', 'sky_bridge_paratroopa', 'stepping_pillars', 'double_deck_secret'],
+// ============================================================================
+// CATÁLOGO PARA LA GENERACIÓN PROCEDURAL (ver procgen.ts)
+// Dificultad aproximada en [0, 1] y categoría de cada pieza.
+// ============================================================================
+const GENERIC_PIECES: PieceSpec<SetpieceKind>[] = [
+  { kind: 'coin_heaven_spring', difficulty: 0.18, tag: 'reward' },
+  { kind: 'double_deck_secret', difficulty: 0.2, tag: 'blocks' },
+  { kind: 'hidden_stairway', difficulty: 0.3, tag: 'reward' },
+  { kind: 'brick_ceiling_run', difficulty: 0.42, tag: 'blocks' },
+  { kind: 'piranha_terrace', difficulty: 0.45, tag: 'pipes' },
+  { kind: 'pipe_maze', difficulty: 0.5, tag: 'pipes' },
+  { kind: 'shell_bowling', difficulty: 0.48, tag: 'foes' },
+  { kind: 'spring_cliff_vault', difficulty: 0.5, tag: 'vertical' },
+  { kind: 'lift_wall', difficulty: 0.58, tag: 'vertical' },
+  { kind: 'stepping_pillars', difficulty: 0.62, tag: 'pit' },
+  { kind: 'sky_bridge_paratroopa', difficulty: 0.64, tag: 'pit' },
+  { kind: 'twin_lifts', difficulty: 0.75, tag: 'lift' },
+  { kind: 'moving_lift_chasm', difficulty: 0.78, tag: 'lift' },
+  { kind: 'spiny_fire_alley', difficulty: 0.74, tag: 'foes' },
+  { kind: 'pyramid_gauntlet', difficulty: 0.72, tag: 'pit' },
+  { kind: 'foe_parade', difficulty: 0.86, tag: 'foes' },
+];
+
+/** Piezas exclusivas de cada modo (su "sello"): entran al sorteo y salen al menos dos. */
+const SIGNATURE_PIECES: Partial<Record<GamePartition, PieceSpec<SetpieceKind>[]>> = {
+  fortune: [
+    { kind: 'bet_altar', difficulty: 0.5, tag: 'theme' },
+    { kind: 'coin_press', difficulty: 0.65, tag: 'theme' },
+    { kind: 'double_or_nothing', difficulty: 0.72, tag: 'theme' },
+  ],
+  mirage: [
+    { kind: 'thief_nest', difficulty: 0.55, tag: 'theme' },
+    { kind: 'gem_trap', difficulty: 0.6, tag: 'theme' },
+    { kind: 'shadow_corridor', difficulty: 0.66, tag: 'theme' },
+  ],
+  echo: [
+    { kind: 'echo_hall', difficulty: 0.5, tag: 'theme' },
+    { kind: 'mirror_jump', difficulty: 0.62, tag: 'theme' },
+    { kind: 'twin_gate', difficulty: 0.56, tag: 'theme' },
+  ],
 };
 
-// Modo Expedición: un plan propio por etapa (no se repite con ningún otro)
-const EXP_STAGE_PLANS: Record<number, SetpieceKind[]> = {
-  // A: Arrecife Coral
-  0: ['foe_parade', 'stepping_pillars', 'coin_heaven_spring', 'shell_bowling'],
-  1: ['twin_lifts', 'hidden_stairway', 'pipe_maze', 'sky_bridge_paratroopa', 'double_deck_secret'],
-  2: ['lift_wall', 'foe_parade', 'moving_lift_chasm', 'brick_ceiling_run', 'stepping_pillars'],
-  // S: Selva Neón
-  4: ['brick_ceiling_run', 'twin_lifts', 'spiny_fire_alley', 'lift_wall', 'coin_heaven_spring'],
-  5: ['hidden_stairway', 'pyramid_gauntlet', 'double_deck_secret', 'pipe_maze', 'moving_lift_chasm', 'foe_parade'],
-  6: ['sky_bridge_paratroopa', 'coin_heaven_spring', 'stepping_pillars', 'twin_lifts', 'spring_cliff_vault'],
-  // E: Ciudad Engranaje
-  8: ['pipe_maze', 'lift_wall', 'shell_bowling', 'moving_lift_chasm', 'hidden_stairway', 'pyramid_gauntlet'],
-  9: ['spring_cliff_vault', 'brick_ceiling_run', 'twin_lifts', 'foe_parade', 'piranha_terrace'],
-  10: ['double_deck_secret', 'sky_bridge_paratroopa', 'lift_wall', 'stepping_pillars', 'spiny_fire_alley', 'twin_lifts'],
-  // N: Reino de Algodón
-  12: ['coin_heaven_spring', 'moving_lift_chasm', 'foe_parade', 'pyramid_gauntlet', 'sky_bridge_paratroopa', 'hidden_stairway'],
-  13: ['stepping_pillars', 'piranha_terrace', 'twin_lifts', 'brick_ceiling_run', 'lift_wall', 'shell_bowling'],
-  14: ['spiny_fire_alley', 'double_deck_secret', 'coin_heaven_spring', 'pipe_maze', 'twin_lifts', 'stepping_pillars'],
-  // C: Volcán Cristal
-  16: ['lift_wall', 'pyramid_gauntlet', 'foe_parade', 'twin_lifts', 'piranha_terrace', 'brick_ceiling_run', 'hidden_stairway'],
-  17: ['moving_lift_chasm', 'spring_cliff_vault', 'spiny_fire_alley', 'stepping_pillars', 'double_deck_secret', 'lift_wall'],
-  18: ['twin_lifts', 'shell_bowling', 'hidden_stairway', 'sky_bridge_paratroopa', 'pyramid_gauntlet', 'coin_heaven_spring', 'foe_parade'],
-  // M: Marea Espejo — long sightlines, mirrored routes, and airborne timing
-  20: ['sky_bridge_paratroopa', 'double_deck_secret', 'moving_lift_chasm', 'coin_heaven_spring', 'foe_parade'],
-  21: ['pipe_maze', 'twin_lifts', 'hidden_stairway', 'spring_cliff_vault', 'shell_bowling', 'lift_wall'],
-  22: ['stepping_pillars', 'piranha_terrace', 'brick_ceiling_run', 'sky_bridge_paratroopa', 'spiny_fire_alley', 'coin_heaven_spring'],
-  // V: Valle Vítreo — tighter hazards, vertical climbs, and a final gauntlet
-  24: ['lift_wall', 'pyramid_gauntlet', 'moving_lift_chasm', 'double_deck_secret', 'foe_parade', 'twin_lifts'],
-  25: ['brick_ceiling_run', 'spiny_fire_alley', 'pipe_maze', 'hidden_stairway', 'sky_bridge_paratroopa', 'spring_cliff_vault'],
-  26: ['piranha_terrace', 'shell_bowling', 'stepping_pillars', 'lift_wall', 'coin_heaven_spring', 'pyramid_gauntlet', 'moving_lift_chasm'],
-};
+const FORTRESS_PIECES: PieceSpec<FortressSection>[] = [
+  { kind: 'lava_pillar', difficulty: 0.3, tag: 'pit' },
+  { kind: 'guard_corridor', difficulty: 0.38, tag: 'foes' },
+  { kind: 'lava_staircase', difficulty: 0.48, tag: 'vertical' },
+  { kind: 'cramped_hall', difficulty: 0.52, tag: 'blocks' },
+  { kind: 'dual_route', difficulty: 0.55, tag: 'reward' },
+  { kind: 'lift_chasm', difficulty: 0.62, tag: 'lift' },
+  { kind: 'vertical_lift', difficulty: 0.64, tag: 'lift' },
+  { kind: 'pillar_hops', difficulty: 0.7, tag: 'pit' },
+];
 
-// Modo Dimensión 3D: un plan propio por etapa
-const DIM_STAGE_PLANS: Record<number, SetpieceKind[]> = {
-  // J: Jardín Estelar
-  0: ['stepping_pillars', 'coin_heaven_spring', 'foe_parade', 'twin_lifts'],
-  1: ['sky_bridge_paratroopa', 'lift_wall', 'hidden_stairway', 'pyramid_gauntlet', 'brick_ceiling_run'],
-  2: ['twin_lifts', 'double_deck_secret', 'moving_lift_chasm', 'stepping_pillars', 'spring_cliff_vault'],
-  // T: Taller de Juguetes
-  4: ['pipe_maze', 'foe_parade', 'coin_heaven_spring', 'shell_bowling', 'lift_wall'],
-  5: ['brick_ceiling_run', 'spring_cliff_vault', 'twin_lifts', 'hidden_stairway', 'piranha_terrace', 'stepping_pillars'],
-  6: ['double_deck_secret', 'pyramid_gauntlet', 'pipe_maze', 'sky_bridge_paratroopa', 'foe_parade'],
-  // P: Polo Aurora
-  8: ['moving_lift_chasm', 'spiny_fire_alley', 'stepping_pillars', 'coin_heaven_spring', 'twin_lifts', 'hidden_stairway'],
-  9: ['lift_wall', 'shell_bowling', 'sky_bridge_paratroopa', 'brick_ceiling_run', 'pyramid_gauntlet'],
-  10: ['twin_lifts', 'foe_parade', 'double_deck_secret', 'lift_wall', 'spiny_fire_alley', 'moving_lift_chasm'],
-  // F: Fragua Lunar
-  12: ['pyramid_gauntlet', 'pipe_maze', 'twin_lifts', 'stepping_pillars', 'piranha_terrace', 'foe_parade'],
-  13: ['spiny_fire_alley', 'lift_wall', 'hidden_stairway', 'moving_lift_chasm', 'shell_bowling', 'coin_heaven_spring', 'brick_ceiling_run'],
-  14: ['sky_bridge_paratroopa', 'twin_lifts', 'spring_cliff_vault', 'double_deck_secret', 'pyramid_gauntlet', 'lift_wall', 'stepping_pillars'],
-  // G: Galería Prisma
-  16: ['hidden_stairway', 'twin_lifts', 'brick_ceiling_run', 'moving_lift_chasm', 'coin_heaven_spring'],
-  17: ['double_deck_secret', 'lift_wall', 'foe_parade', 'twin_lifts', 'spiny_fire_alley', 'stepping_pillars'],
-  18: ['moving_lift_chasm', 'pipe_maze', 'sky_bridge_paratroopa', 'hidden_stairway', 'twin_lifts', 'pyramid_gauntlet'],
-  // H: Hongar Nevado
-  20: ['brick_ceiling_run', 'shell_bowling', 'stepping_pillars', 'spring_cliff_vault', 'foe_parade', 'double_deck_secret'],
-  21: ['coin_heaven_spring', 'pyramid_gauntlet', 'lift_wall', 'brick_ceiling_run', 'piranha_terrace', 'twin_lifts'],
-  22: ['foe_parade', 'hidden_stairway', 'double_deck_secret', 'pipe_maze', 'stepping_pillars', 'spiny_fire_alley', 'moving_lift_chasm'],
-  // R: Relojería Flotante
-  24: ['twin_lifts', 'stepping_pillars', 'lift_wall', 'moving_lift_chasm', 'sky_bridge_paratroopa', 'coin_heaven_spring'],
-  25: ['pipe_maze', 'twin_lifts', 'spiny_fire_alley', 'stepping_pillars', 'hidden_stairway', 'lift_wall', 'shell_bowling'],
-  26: ['spring_cliff_vault', 'moving_lift_chasm', 'brick_ceiling_run', 'twin_lifts', 'pyramid_gauntlet', 'foe_parade', 'double_deck_secret'],
-  // N: Núcleo Cósmico
-  28: ['lift_wall', 'twin_lifts', 'piranha_terrace', 'stepping_pillars', 'spiny_fire_alley', 'coin_heaven_spring', 'moving_lift_chasm'],
-  29: ['shell_bowling', 'sky_bridge_paratroopa', 'hidden_stairway', 'twin_lifts', 'foe_parade', 'pyramid_gauntlet', 'lift_wall'],
-  30: ['moving_lift_chasm', 'double_deck_secret', 'stepping_pillars', 'pipe_maze', 'twin_lifts', 'brick_ceiling_run', 'spring_cliff_vault', 'spiny_fire_alley'],
-};
+/** Progreso del nivel dentro de su modo, en [0, 1] (alimenta la curva de intensidad). */
+function progressOf(partition: GamePartition, levelIndex: number): number {
+  const total = partitionTotalLevels(partition);
+  return total <= 1 ? 0 : levelIndex / (total - 1);
+}
 
-// Mundo 6 FORTUNA: planes largos (10-12 piezas) con vocabulario de apuesta.
-const FORTUNE_STAGE_PLANS: Record<number, SetpieceKind[]> = {
-  // F: Casa de Fortuna
-  0: ['bet_altar', 'coin_press', 'double_or_nothing', 'foe_parade', 'stepping_pillars', 'coin_heaven_spring', 'bet_altar', 'shell_bowling', 'double_or_nothing', 'piranha_terrace'],
-  1: ['coin_press', 'twin_lifts', 'bet_altar', 'sky_bridge_paratroopa', 'double_or_nothing', 'foe_parade', 'spring_cliff_vault', 'coin_press', 'bet_altar', 'hidden_stairway'],
-  2: ['double_or_nothing', 'lift_wall', 'bet_altar', 'coin_press', 'pyramid_gauntlet', 'foe_parade', 'bet_altar', 'moving_lift_chasm', 'coin_heaven_spring', 'double_or_nothing'],
-  // Q: Mercado de Espejos
-  4: ['coin_press', 'bet_altar', 'foe_parade', 'double_or_nothing', 'stepping_pillars', 'bet_altar', 'shell_bowling', 'coin_heaven_spring', 'lift_wall', 'coin_press'],
-  5: ['bet_altar', 'twin_lifts', 'double_or_nothing', 'piranha_terrace', 'coin_press', 'sky_bridge_paratroopa', 'bet_altar', 'hidden_stairway', 'foe_parade', 'double_or_nothing'],
-  6: ['double_or_nothing', 'coin_press', 'bet_altar', 'lift_wall', 'moving_lift_chasm', 'foe_parade', 'coin_heaven_spring', 'bet_altar', 'stepping_pillars', 'shell_bowling'],
-  // K: Ruleta de Cristal
-  8: ['bet_altar', 'foe_parade', 'double_or_nothing', 'coin_press', 'twin_lifts', 'bet_altar', 'sky_bridge_paratroopa', 'coin_heaven_spring', 'lift_wall', 'double_or_nothing'],
-  9: ['coin_press', 'bet_altar', 'moving_lift_chasm', 'double_or_nothing', 'foe_parade', 'bet_altar', 'shell_bowling', 'hidden_stairway', 'coin_press', 'stepping_pillars'],
-  10: ['double_or_nothing', 'bet_altar', 'lift_wall', 'coin_press', 'piranha_terrace', 'foe_parade', 'bet_altar', 'twin_lifts', 'coin_heaven_spring', 'double_or_nothing'],
-  // Z: Bóveda del Azar
-  12: ['bet_altar', 'double_or_nothing', 'coin_press', 'foe_parade', 'sky_bridge_paratroopa', 'bet_altar', 'shell_bowling', 'moving_lift_chasm', 'double_or_nothing', 'coin_heaven_spring'],
-  13: ['double_or_nothing', 'sky_bridge_paratroopa', 'bet_altar', 'twin_lifts', 'pyramid_gauntlet', 'coin_press', 'brick_ceiling_run', 'double_deck_secret', 'bet_altar', 'spring_cliff_vault'],
-  14: ['sky_bridge_paratroopa', 'hidden_stairway', 'bet_altar', 'double_deck_secret', 'coin_press', 'brick_ceiling_run', 'bet_altar', 'twin_lifts', 'pyramid_gauntlet', 'double_or_nothing'],
-};
+function stageProgress(ctx: BuilderCtx): number {
+  return progressOf(ctx.partition, ctx.levelIndex);
+}
 
-// Mundo 7 ESPECTRO: planes largos con vocabulario de robo/recuperación.
-const MIRAGE_STAGE_PLANS: Record<number, SetpieceKind[]> = {
-  // W: Telar de Humo
-  0: ['thief_nest', 'shadow_corridor', 'gem_trap', 'foe_parade', 'stepping_pillars', 'thief_nest', 'coin_heaven_spring', 'shadow_corridor', 'gem_trap', 'twin_lifts'],
-  1: ['gem_trap', 'thief_nest', 'shadow_corridor', 'sky_bridge_paratroopa', 'gem_trap', 'foe_parade', 'thief_nest', 'hidden_stairway', 'shadow_corridor', 'pipe_maze'],
-  2: ['shadow_corridor', 'gem_trap', 'thief_nest', 'lift_wall', 'foe_parade', 'shadow_corridor', 'coin_heaven_spring', 'gem_trap', 'thief_nest', 'moving_lift_chasm'],
-  // X: Mercado Negro
-  4: ['thief_nest', 'gem_trap', 'shadow_corridor', 'stepping_pillars', 'thief_nest', 'foe_parade', 'gem_trap', 'shell_bowling', 'shadow_corridor', 'twin_lifts'],
-  5: ['gem_trap', 'shadow_corridor', 'thief_nest', 'piranha_terrace', 'gem_trap', 'lift_wall', 'thief_nest', 'sky_bridge_paratroopa', 'shadow_corridor', 'foe_parade'],
-  6: ['shadow_corridor', 'thief_nest', 'gem_trap', 'moving_lift_chasm', 'shadow_corridor', 'coin_heaven_spring', 'thief_nest', 'foe_parade', 'gem_trap', 'hidden_stairway'],
-  // U: Nido de Urracas
-  8: ['thief_nest', 'shadow_corridor', 'gem_trap', 'foe_parade', 'twin_lifts', 'thief_nest', 'stepping_pillars', 'shadow_corridor', 'gem_trap', 'shell_bowling'],
-  9: ['gem_trap', 'thief_nest', 'shadow_corridor', 'lift_wall', 'gem_trap', 'moving_lift_chasm', 'thief_nest', 'coin_heaven_spring', 'shadow_corridor', 'foe_parade'],
-  10: ['shadow_corridor', 'gem_trap', 'thief_nest', 'sky_bridge_paratroopa', 'shadow_corridor', 'foe_parade', 'gem_trap', 'thief_nest', 'twin_lifts', 'coin_heaven_spring'],
-  // Y: Corona Robada
-  12: ['thief_nest', 'shadow_corridor', 'gem_trap', 'stepping_pillars', 'thief_nest', 'shell_bowling', 'gem_trap', 'shadow_corridor', 'foe_parade', 'lift_wall'],
-  13: ['gem_trap', 'shadow_corridor', 'thief_nest', 'pipe_maze', 'gem_trap', 'foe_parade', 'thief_nest', 'sky_bridge_paratroopa', 'shadow_corridor', 'hidden_stairway'],
-  14: ['shadow_corridor', 'thief_nest', 'gem_trap', 'moving_lift_chasm', 'shadow_corridor', 'foe_parade', 'thief_nest', 'coin_heaven_spring', 'gem_trap', 'twin_lifts'],
-};
+/** Plan de piezas de una etapa normal (determinista). Lo usan el constructor y las pruebas. */
+export function curatedStagePlan(partition: GamePartition, levelIndex: number): PlanStep<SetpieceKind>[] {
+  const pool = [...GENERIC_PIECES, ...(SIGNATURE_PIECES[partition] ?? [])];
+  const signature = (SIGNATURE_PIECES[partition] ?? []).map((p) => p.kind);
+  return planLevel({
+    pieces: pool,
+    rng: makeRng(`${partition}:${levelIndex}:plan`),
+    progress: progressOf(partition, levelIndex),
+    signature: signature.length > 0 ? [signature[levelIndex % 3], signature[(levelIndex + 1) % 3]] : [],
+  });
+}
 
-// Mundo 8 ECO: planes largos con vocabulario de coordinación/espejo.
-const ECHO_STAGE_PLANS: Record<number, SetpieceKind[]> = {
-  // E: Palacio de Espejos
-  0: ['echo_hall', 'twin_gate', 'mirror_jump', 'foe_parade', 'stepping_pillars', 'echo_hall', 'coin_heaven_spring', 'twin_gate', 'mirror_jump', 'twin_lifts'],
-  1: ['mirror_jump', 'echo_hall', 'twin_gate', 'sky_bridge_paratroopa', 'mirror_jump', 'foe_parade', 'echo_hall', 'hidden_stairway', 'twin_gate', 'pipe_maze'],
-  2: ['twin_gate', 'mirror_jump', 'echo_hall', 'lift_wall', 'foe_parade', 'twin_gate', 'coin_heaven_spring', 'mirror_jump', 'echo_hall', 'moving_lift_chasm'],
-  // P: Ciudad Eco
-  4: ['echo_hall', 'twin_gate', 'mirror_jump', 'stepping_pillars', 'echo_hall', 'foe_parade', 'twin_gate', 'shell_bowling', 'mirror_jump', 'twin_lifts'],
-  5: ['mirror_jump', 'echo_hall', 'twin_gate', 'piranha_terrace', 'mirror_jump', 'lift_wall', 'echo_hall', 'sky_bridge_paratroopa', 'twin_gate', 'foe_parade'],
-  6: ['twin_gate', 'echo_hall', 'mirror_jump', 'moving_lift_chasm', 'twin_gate', 'coin_heaven_spring', 'echo_hall', 'foe_parade', 'mirror_jump', 'hidden_stairway'],
-  // N: Cámara de Resonancia
-  8: ['echo_hall', 'twin_gate', 'mirror_jump', 'foe_parade', 'twin_lifts', 'echo_hall', 'stepping_pillars', 'twin_gate', 'mirror_jump', 'shell_bowling'],
-  9: ['mirror_jump', 'echo_hall', 'twin_gate', 'lift_wall', 'mirror_jump', 'moving_lift_chasm', 'echo_hall', 'coin_heaven_spring', 'twin_gate', 'foe_parade'],
-  10: ['twin_gate', 'mirror_jump', 'echo_hall', 'sky_bridge_paratroopa', 'twin_gate', 'foe_parade', 'mirror_jump', 'echo_hall', 'twin_lifts', 'coin_heaven_spring'],
-  // T: Cúpula del Tiempo
-  12: ['echo_hall', 'twin_gate', 'mirror_jump', 'stepping_pillars', 'echo_hall', 'shell_bowling', 'mirror_jump', 'twin_gate', 'foe_parade', 'lift_wall'],
-  13: ['mirror_jump', 'echo_hall', 'twin_gate', 'pipe_maze', 'mirror_jump', 'foe_parade', 'echo_hall', 'sky_bridge_paratroopa', 'twin_gate', 'hidden_stairway'],
-  14: ['twin_gate', 'echo_hall', 'mirror_jump', 'moving_lift_chasm', 'twin_gate', 'foe_parade', 'echo_hall', 'coin_heaven_spring', 'mirror_jump', 'twin_lifts'],
-};
+/** Dificultad de cada pieza del catálogo (0..1), para pruebas y métricas. */
+export function pieceDifficulty(kind: string): number {
+  const all = [...GENERIC_PIECES, ...Object.values(SIGNATURE_PIECES).flat()];
+  return all.find((p) => p.kind === kind)?.difficulty ?? 0;
+}
+
+/** Descanso tras un pico de tensión: tramo plano con monedas y un bloque de premio. */
+function buildRestPlaza(ctx: BuilderCtx, c: number): number {
+  addCoinArc(ctx, c + 1, 5, 7.6);
+  putBlock(ctx, c + 3, 8, 'question', ctx.rng.chance(0.3) ? 'powerup' : 'coin');
+  return 7;
+}
 
 function buildCuratedWorldStage(ctx: BuilderCtx): number {
-  const seq =
-    ctx.partition === 'expedition'
-      ? EXP_STAGE_PLANS[ctx.designIndex] ?? EXP_STAGE_PLANS[0]
-      : ctx.partition === 'frontier'
-      ? EXP_STAGE_PLANS[ctx.designIndex] ?? EXP_STAGE_PLANS[20]
-      : ctx.partition === 'fortune'
-      ? FORTUNE_STAGE_PLANS[ctx.levelIndex] ?? FORTUNE_STAGE_PLANS[0]
-      : ctx.partition === 'mirage'
-      ? MIRAGE_STAGE_PLANS[ctx.levelIndex] ?? MIRAGE_STAGE_PLANS[0]
-      : ctx.partition === 'echo'
-      ? ECHO_STAGE_PLANS[ctx.levelIndex] ?? ECHO_STAGE_PLANS[0]
-      : ctx.partition === 'dimension'
-      ? DIM_STAGE_PLANS[ctx.levelIndex] ?? DIM_STAGE_PLANS[0]
-      : STAGE_PLANS[ctx.levelIndex] ?? STAGE_PLANS[2];
+  // Secuencia generada: sigue una curva de tensión y no repite piezas seguidas
+  const plan = curatedStagePlan(ctx.partition, ctx.levelIndex);
+  const pool = [...GENERIC_PIECES, ...(SIGNATURE_PIECES[ctx.partition] ?? [])];
   let cursor = 11;
 
   // Welcoming starter block
   putBlock(ctx, 9, 8, 'question', ctx.levelIndex % 3 === 0 ? 'powerup' : 'coin');
 
-  for (let i = 0; i < seq.length; i++) {
-    const advance = buildSetpiece(ctx, seq[i], cursor);
-    cursor += advance + 3;
-    // Leave clean flat plaza around midpoint for the Checkpoint Pennant!
-    if (i === Math.floor(seq.length / 2) - 1) {
+  const difficultyOf = new Map(pool.map((p) => [p.kind, p.difficulty]));
+  for (let i = 0; i < plan.length; i++) {
+    const step = plan[i];
+    const advance = step.kind === 'rest' ? buildRestPlaza(ctx, cursor) : buildSetpiece(ctx, step.kind, cursor);
+    // Más aire después de las piezas difíciles
+    cursor += advance + 3 + ((difficultyOf.get(step.kind as SetpieceKind) ?? 0) >= 0.7 ? 2 : 0);
+    // Plaza plana a mitad del nivel para el checkpoint
+    if (i === Math.floor(plan.length / 2) - 1) {
       cursor += 5;
     }
   }
@@ -1552,6 +1423,7 @@ export function buildWorldState(
     isUnderground: biome.underground,
     enemySeq: 0,
     partition: ownPartition,
+    rng: makeRng(`${ownPartition}:${clampedIdx}:piezas`),
   };
 
   let totalCols = 132;

@@ -1,17 +1,24 @@
 // Pruebas de los objetivos por nivel (Fase 2), usando la física real a 60 Hz.
+import { partitionTotalLevels } from '../src/engine/biomes';
+import { PARTITION_ORDER } from '../src/engine/partitions';
 import { GROUND_ROW, SMW_TOTAL_LEVELS, TILE, TOTAL_LEVELS, EXP_TOTAL_LEVELS, ECHO_TOTAL_LEVELS, FORTUNE_TOTAL_LEVELS, FRONTIER_TOTAL_LEVELS, MIRAGE_TOTAL_LEVELS, DIM_TOTAL_LEVELS } from '../src/engine/biomes';
 import {
   CHASE_DELAY,
   CLOCKS_PER_STAGE,
   CLOCK_BONUS,
   GEMS_PER_STAGE,
+  THIEF_STEAL_PERIOD,
   TIME_ATTACK_START,
   getStageObjective,
+  timeAttackBudget,
   isGoalLocked,
 } from '../src/engine/objectives';
 import { stepWorld } from '../src/engine/physics';
 import type { GamePartition, InputState, StageObjective, WorldState } from '../src/engine/types';
 import { buildWorldState, gridKey } from '../src/levels/levelBuilder';
+
+// Todos los modos del juego (así ningún modo nuevo queda fuera de las pruebas)
+const ALL_MODES: Array<[GamePartition, number]> = PARTITION_ORDER.map((p) => [p, partitionTotalLevels(p)]);
 
 const VIEW_W = 970;
 const NO_INPUT: InputState = {
@@ -46,7 +53,7 @@ function calm(w: WorldState): void {
 console.log('7. Validando objetivos por nivel...');
 
 // 7a. Reparto de objetivos
-for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS], ['frontier', FRONTIER_TOTAL_LEVELS], ['fortune', FORTUNE_TOTAL_LEVELS], ['mirage', MIRAGE_TOTAL_LEVELS], ['echo', ECHO_TOTAL_LEVELS], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
+for (const [part, total] of ALL_MODES) {
   const count: Record<StageObjective, number> = { reach: 0, collect: 0, time_attack: 0, chase: 0, fortune: 0, recover: 0 };
   for (let i = 0; i < total; i++) {
     const w = buildWorldState(i, undefined, part);
@@ -79,7 +86,7 @@ for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS
 }
 
 // 7b. Gemas: 5 por nivel, accesibles, y la meta se abre solo con todas
-for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS], ['expedition', EXP_TOTAL_LEVELS], ['frontier', FRONTIER_TOTAL_LEVELS], ['fortune', FORTUNE_TOTAL_LEVELS], ['mirage', MIRAGE_TOTAL_LEVELS], ['echo', ECHO_TOTAL_LEVELS], ['dimension', DIM_TOTAL_LEVELS]] as [GamePartition, number][]) {
+for (const [part, total] of ALL_MODES) {
   for (let i = 0; i < total; i++) {
     if (getStageObjective(i, part) !== 'collect') continue;
     const w = buildWorldState(i, undefined, part);
@@ -145,7 +152,17 @@ for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS
   const idx = [...Array(TOTAL_LEVELS).keys()].find((i) => getStageObjective(i, 'classic') === 'time_attack')!;
   const w = buildWorldState(idx);
   calm(w);
-  assert(w.timeLeft === TIME_ATTACK_START, `Contrarreloj empieza con ${TIME_ATTACK_START}`);
+  assert(w.timeLeft === timeAttackBudget(w.totalCols), `Contrarreloj empieza con ${timeAttackBudget(w.totalCols)}`);
+  assert(w.timeLeft >= TIME_ATTACK_START, 'Contrarreloj nunca da menos del mínimo');
+  // Todo nivel de contrarreloj se puede terminar sin relojes avanzando a 2,5 px/frame
+  for (const part of PARTITION_ORDER) {
+    for (let i = 0; i < partitionTotalLevels(part); i++) {
+      if (getStageObjective(i, part) !== 'time_attack') continue;
+      const lv = buildWorldState(i, undefined, part);
+      const needed = (lv.totalCols * TILE) / 2.5 / 38;
+      assert(needed <= lv.timeLeft, `${part} ${lv.worldLabel}: el tiempo (${lv.timeLeft}) no alcanza (${needed.toFixed(0)})`);
+    }
+  }
   const clocks = w.pickups!.filter((p) => p.kind === 'clock');
   assert(clocks.length === CLOCKS_PER_STAGE, `Contrarreloj tiene ${CLOCKS_PER_STAGE} relojes (tiene ${clocks.length})`);
   const before = w.timeLeft;
@@ -187,6 +204,39 @@ for (const [part, total] of [['classic', TOTAL_LEVELS], ['smw', SMW_TOTAL_LEVELS
   run(w, 400, { right: true, run: true });
   assert(w.status === 'playing', 'Corriendo se escapa de la sombra');
   assert(w.chase!.x >= w.cameraX - 50, 'La sombra siempre asoma por el borde izquierdo');
+}
+
+// 7e. Espectro: si la urraca roba una gema, la gema vuelve al nivel (sin quedar sin salida)
+{
+  const idx = [...Array(MIRAGE_TOTAL_LEVELS).keys()].find((i) => getStageObjective(i, 'mirage') === 'recover');
+  if (idx !== undefined) {
+    const w = buildWorldState(idx, undefined, 'mirage');
+    const thief = w.enemies.find((e) => e.type === 'thief');
+    assert(thief, 'Espectro: el nivel de recuperar tiene urraca');
+    const gems = w.pickups!.filter((pk) => pk.kind === 'gem');
+    for (const g of gems) g.collected = true;
+    w.gemsCollected = gems.length;
+    w.icicles = [];
+    w.wind = null;
+    w.chase = null;
+    w.enemies = [thief!];
+    thief!.active = true;
+    thief!.vx = 0;
+    w.player.x = thief!.x - 3 * TILE;
+    w.player.y = GROUND_ROW * TILE - w.player.height;
+    w.player.invulnTimer = 9999;
+    w.frameCount = THIEF_STEAL_PERIOD - 1;
+    stepWorld(w, NO_INPUT, 970);
+    assert(w.gemsCollected === gems.length - 1, 'Espectro: la urraca roba una gema');
+    const dropped = gems.find((g) => !g.collected);
+    assert(dropped, 'Espectro: la gema robada vuelve al nivel para recuperarla');
+    assert(isGoalLocked(w), 'Espectro: sin la gema la meta sigue cerrada');
+    w.player.x = dropped!.x;
+    w.player.y = dropped!.y;
+    w.player.vy = 0;
+    stepWorld(w, NO_INPUT, 970);
+    assert(!isGoalLocked(w), 'Espectro: al recuperar la gema la meta se abre');
+  }
 }
 
 console.log(`   ✔ ${passed} comprobaciones de objetivos en verde.`);

@@ -1020,7 +1020,9 @@ export function getStageBiome(levelIndex: number, partition: GamePartition = 'cl
 
   if (partition === 'frontier') {
     const frontier: BiomeId[] = ['cloudland', 'reef', 'clockwork', 'crystal'];
-    return stageNum === 4 ? 'fortress' : frontier[Math.min(frontier.length - 1, levelIndex)];
+    // Se recorre la lista por etapa (no por índice absoluto, que dejaba el mundo 2
+    // entero en el mismo bioma): mundo 1 → nubes, arrecife, engranaje; mundo 2 → cristal, nubes, arrecife.
+    return stageNum === 4 ? 'fortress' : frontier[((worldNum - 1) * 3 + stageNum - 1) % frontier.length];
   }
 
   if (partition === 'fortune') {
